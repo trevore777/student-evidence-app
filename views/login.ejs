@@ -1,95 +1,32 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Login</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <link rel="stylesheet" href="/css/styles.css" />
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Login Test</title>
 </head>
-<body>
-  <main class="container narrow">
-    <h1>Student Evidence App v3</h1>
+<body style="font-family: Arial, sans-serif; padding: 24px; background: white; color: black;">
+  <h1>Login Test Page</h1>
+  <p>If you can see this, EJS rendering is working.</p>
 
-    <% if (error) { %>
-      <div class="error"><%= error %></div>
-    <% } %>
+  <form method="POST" action="/login">
+    <label>Role</label>
+    <select name="role">
+      <option value="student">Student</option>
+      <option value="teacher">Teacher</option>
+    </select>
 
-    <form method="POST" action="/login" class="card" id="login-form">
-      <label>Role</label>
-      <select name="role" id="role-select" required>
-        <option value="student">Student</option>
-        <option value="teacher">Teacher</option>
-      </select>
+    <div style="margin-top: 12px;">
+      <label>Email</label>
+      <input type="email" name="email" />
+    </div>
 
-      <div id="teacher-fields" style="display:none;">
-        <label>Email</label>
-        <input type="email" name="email" />
+    <div style="margin-top: 12px;">
+      <label>Password</label>
+      <input type="password" name="password" />
+    </div>
 
-        <label>Password</label>
-        <input type="password" name="password" />
-      </div>
-
-      <div id="student-fields">
-        <label>Class</label>
-        <select name="className" id="class-select" required>
-          <option value="">Select class</option>
-          <% classes.forEach(c => { %>
-            <option value="<%= c.class_name %>"><%= c.class_name %></option>
-          <% }) %>
-        </select>
-
-        <label>Student</label>
-        <select name="studentId" id="student-select" required>
-          <option value="">Select student</option>
-        </select>
-      </div>
-
-      <button type="submit">Login</button>
-    </form>
-
-    <p class="small">Seed demo data: <a href="/seed-demo-users">/seed-demo-users</a></p>
-    <p class="small">Teachers use email/password. Students use class + student name.</p>
-  </main>
-
-  <script>
-    const roleSelect = document.getElementById("role-select");
-    const teacherFields = document.getElementById("teacher-fields");
-    const studentFields = document.getElementById("student-fields");
-    const classSelect = document.getElementById("class-select");
-    const studentSelect = document.getElementById("student-select");
-
-    function updateRoleUI() {
-      const role = roleSelect.value;
-      if (role === "teacher") {
-        teacherFields.style.display = "block";
-        studentFields.style.display = "none";
-        classSelect.required = false;
-        studentSelect.required = false;
-      } else {
-        teacherFields.style.display = "none";
-        studentFields.style.display = "block";
-        classSelect.required = true;
-        studentSelect.required = true;
-      }
-    }
-
-    roleSelect.addEventListener("change", updateRoleUI);
-    updateRoleUI();
-
-    classSelect.addEventListener("change", async () => {
-      const className = classSelect.value;
-      studentSelect.innerHTML = '<option value="">Select student</option>';
-      if (!className) return;
-
-      const res = await fetch(`/api/students/by-class?className=${encodeURIComponent(className)}`);
-      const students = await res.json();
-
-      students.forEach(student => {
-        const option = document.createElement("option");
-        option.value = student.id;
-        option.textContent = student.name;
-        studentSelect.appendChild(option);
-      });
-    });
-  </script>
+    <button type="submit" style="margin-top: 16px;">Login</button>
+  </form>
 </body>
 </html>
