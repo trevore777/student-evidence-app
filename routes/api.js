@@ -80,8 +80,11 @@ router.post("/submit", async (req, res) => {
 
 router.post("/ai/generate-feedback-email", async (req, res) => {
   try {
-    if (!process.env.OPENAI_API_KEY) {
-      return res.status(400).json({ ok: false, error: "OPENAI_API_KEY is not set in .env" });
+    if (!openai) {
+      return res.status(500).json({
+        ok: false,
+        error: "OPENAI_API_KEY is not configured"
+      });
     }
 
     const {
@@ -91,19 +94,23 @@ router.post("/ai/generate-feedback-email", async (req, res) => {
       finalText,
       flags,
       declarations,
+      composition,
       goodNotes,
       badNotes,
-      uglyNotes,
-      composition
+      uglyNotes
     } = req.body;
 
-    const prompt = `You are helping a teacher write a constructive email to a student.
+    const prompt = `
+You are helping a teacher write a constructive email to a student.
 
 Write a professional, encouraging school-style feedback email.
 
-Student name: ${studentName || "Student"}
-Student email: ${studentEmail || ""}
-Assignment title: ${assignmentTitle || "Student submission"}
+Student name: ${studentName}
+Student email: ${studentEmail}
+Assignment title: ${assignmentTitle}
+
+Estimated submission composition:
+${JSON.stringify(composition || {}, null, 2)}
 
 Teacher notes:
 What the student did well:
@@ -117,9 +124,6 @@ ${uglyNotes || "-"}
 
 Submission flags:
 ${JSON.stringify(flags || [], null, 2)}
-
-Estimated composition of the submission (these are estimates, not proof):
-${JSON.stringify(composition || {}, null, 2)}
 
 Source declarations:
 ${JSON.stringify(declarations || [], null, 2)}
@@ -137,10 +141,9 @@ Instructions:
   4. most important next step
   5. short encouragement at the end
 - Keep it suitable for school use.
-- Do not mention internal system flags unless phrased constructively.
-- If you mention the estimated composition, describe it clearly as an estimate based on writing activity, paste events, and declarations.
 - Do not accuse the student of misconduct.
-- Keep it concise and clear.`;
+- Keep it concise and clear.
+`;
 
     const response = await openai.responses.create({
       model: "gpt-5.4",
@@ -152,7 +155,10 @@ Instructions:
     res.json({ ok: true, draft });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ ok: false, error: "Failed to generate AI feedback email" });
+    res.status(500).json({
+      ok: false,
+      error: "Failed to generate AI feedback email"
+    });
   }
 });
 
