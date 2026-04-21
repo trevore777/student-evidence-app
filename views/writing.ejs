@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title><%= assignment.title %></title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="/css/styles.css" />
+  <script src="https://cdn.tiny.cloud/1/r1tocpuc91a9rca9tehcaxzegc9la0c5tnz7p6kux9ikyl2s/tinymce/8/tinymce.min.js" referrerpolicy="origin"></script>
+</head>
+<body>
+  <main class="container">
+    <header class="row-between wrap">
+      <div>
+        <h1><%= assignment.title %></h1>
+        <p><strong>Student:</strong> <%= student.name %></p>
+      </div>
+      <a class="button-link auto-width" href="/student/dashboard">Back</a>
+    </header>
+
+    <section class="card">
+      <h2>Instructions</h2>
+      <p><%= assignment.instructions %></p>
+      <% if (assignment.ai_policy_note) { %>
+        <p class="small"><strong>AI note:</strong> <%= assignment.ai_policy_note %></p>
+      <% } %>
+    </section>
+
+    <section class="card">
+      <div class="row-between wrap gap">
+        <div>
+          <strong>Save status:</strong> <span id="save-status">Starting…</span><br />
+          <strong>Word count:</strong> <span id="word-count">0</span>
+        </div>
+        <div>
+          <strong>Session time:</strong> <span id="session-time">00:00</span>
+        </div>
+      </div>
+
+      <p class="small top-gap">Formatting tools are enabled for headings, bold, italics, bullet lists, numbering, indenting, font family, and font size.</p>
+
+      <textarea id="editor" class="editor" placeholder="Start writing here..."><%= latestContent %></textarea>
+
+      <div class="row gap wrap top-gap">
+        <button id="submit-btn" type="button" class="auto-width">Submit work</button>
+      </div>
+    </section>
+  </main>
+
+  <div id="declaration-overlay" class="modal-overlay hidden"></div>
+  <div id="declaration-modal" class="modal hidden" aria-hidden="true">
+    <h2>Paste declaration</h2>
+    <p class="small">Please classify the content you pasted.</p>
+    <form id="declaration-form">
+      <label>What is this pasted content?</label>
+      <select id="declaration-type" required>
+        <option value="">Select one</option>
+        <option value="self_written">My own self-written content</option>
+        <option value="pasted_own_work">My own earlier draft</option>
+        <option value="pasted_research">Research or source notes</option>
+        <option value="teacher_scaffold">Teacher scaffold</option>
+        <option value="ai_generated">AI-generated text</option>
+        <option value="ai_modified">AI-modified text</option>
+        <option value="other">Other</option>
+      </select>
+
+      <div id="ai-fields" class="hidden">
+        <label>AI tool used</label>
+        <input type="text" id="tool-name" />
+        <label>Prompt used</label>
+        <textarea id="prompt-text" rows="4"></textarea>
+      </div>
+
+      <label>Explain how you used or changed this content</label>
+      <textarea id="student-explanation" rows="4" required></textarea>
+
+      <label>Pasted excerpt preview</label>
+      <textarea id="pasted-preview" rows="4" readonly></textarea>
+
+      <div class="row gap wrap top-gap">
+        <button type="submit" class="auto-width">Save declaration</button>
+      </div>
+    </form>
+  </div>
+
+  <script>
+    window.APP_DATA = {
+      submissionId: <%= submission.id %>,
+      assignmentId: <%= assignment.id %>,
+      initialContent: <%- JSON.stringify(latestContent) %>,
+      requireDeclaration: <%= assignment.require_declaration ? 'true' : 'false' %>
+    };
+  </script>
+  <script src="/js/writing-editor.js"></script>
+</body>
+</html>

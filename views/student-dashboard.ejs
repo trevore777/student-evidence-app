@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Student Dashboard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="/css/styles.css" />
+</head>
+<body>
+  <main class="container">
+    <header class="row-between wrap">
+      <div>
+        <h1>Welcome, <%= student.name %></h1>
+        <p class="small"><strong>Class:</strong> <%= student.class_name %></p>
+      </div>
+      <a class="button-link auto-width" href="/logout">Logout</a>
+    </header>
+
+    <section class="stats-grid">
+      <div class="card stat-card"><strong><%= assignments.length %></strong><span>Assignments</span></div>
+      <div class="card stat-card"><strong><%= assignments.filter(a => a.status === 'submitted').length %></strong><span>Submitted</span></div>
+      <div class="card stat-card"><strong><%= assignments.filter(a => a.status !== 'submitted').length %></strong><span>In progress</span></div>
+    </section>
+
+    <section class="card">
+      <h2>Your assignments</h2>
+      <% if (!assignments.length) { %><p>No assignments found.</p><% } %>
+      <% assignments.forEach(a => { %>
+        <div class="assignment-item">
+          <div class="row-between wrap gap">
+            <div>
+              <h3><%= a.title %></h3>
+              <p><%= a.instructions %></p>
+              <p class="small">
+                <strong>Due:</strong> <%= a.due_date || 'No due date' %> |
+                <strong>Status:</strong> <%= a.status || 'not started' %> |
+                <strong>Sessions:</strong> <%= a.session_count || 0 %> |
+                <strong>Declarations:</strong> <%= a.declaration_count || 0 %> |
+                <strong>Snapshots:</strong> <%= a.snapshot_count || 0 %>
+              </p>
+              <p class="small"><strong>Last saved:</strong> <%= a.last_saved || 'No saves yet' %></p>
+            </div>
+            <a class="button-link auto-width" href="/student/assignment/<%= a.id %>">Continue writing</a>
+          </div>
+        </div>
+      <% }) %>
+    </section>
+  </main>
+</body>
+</html>

@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Teacher Dashboard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="/css/styles.css" />
+</head>
+<body>
+  <main class="container">
+    <header class="row-between wrap">
+      <div>
+        <h1>Teacher Dashboard</h1>
+        <p class="small">Class filters and flagged submissions are now wired in.</p>
+      </div>
+      <div class="row gap wrap">
+        <a class="button-link auto-width" href="/teacher/assignments/new">New assignment</a>
+        <a class="button-link auto-width secondary" href="/logout">Logout</a>
+      </div>
+    </header>
+
+    <section class="stats-grid">
+      <div class="card stat-card"><strong><%= assignments.length %></strong><span>Assignments</span></div>
+      <div class="card stat-card"><strong><%= submissions.filter(s => s.status === 'submitted').length %></strong><span>Submitted</span></div>
+      <div class="card stat-card"><strong><%= submissions.filter(s => s.flags.length > 0).length %></strong><span>Flagged</span></div>
+    </section>
+
+    <section class="card">
+      <form class="row gap wrap" method="GET" action="/teacher/dashboard">
+        <div class="filter-group">
+          <label>Class</label>
+          <select name="class">
+            <option value="">All classes</option>
+            <% classes.forEach(c => { %>
+              <option value="<%= c %>" <%= selectedClass === c ? 'selected' : '' %>><%= c %></option>
+            <% }) %>
+          </select>
+        </div>
+        <label class="checkbox-row">
+          <input type="checkbox" name="flagged" value="1" <%= flaggedOnly ? 'checked' : '' %> />
+          Flagged only
+        </label>
+        <button type="submit" class="auto-width">Apply filters</button>
+      </form>
+    </section>
+
+    <section class="card">
+      <h2>Assignments</h2>
+      <% assignments.forEach(a => { %>
+        <div class="assignment-item">
+          <h3><%= a.title %></h3>
+          <p class="small"><strong>Class:</strong> <%= a.class_name %> | <strong>Due:</strong> <%= a.due_date || 'No due date' %></p>
+        </div>
+      <% }) %>
+    </section>
+
+    <section class="card">
+      <h2>Submissions</h2>
+      <% if (!submissions.length) { %><p>No submissions match the current filters.</p><% } %>
+      <% submissions.forEach(s => { %>
+        <div class="assignment-item">
+          <div class="row-between wrap gap">
+            <div>
+              <h3><%= s.student_name %> — <%= s.assignment_title %></h3>
+              <p class="small"><strong>Class:</strong> <%= s.class_name %> | <strong>Status:</strong> <%= s.status %> | <strong>Submitted:</strong> <%= s.submitted_at || 'Not yet' %></p>
+              <p class="small"><strong>Flags:</strong> <%= s.flags.length %></p>
+              <% if (s.flags.length) { %>
+                <ul class="flag-list compact">
+                  <% s.flags.forEach(flag => { %><li class="flag <%= flag.severity %>"><%= flag.message %></li><% }) %>
+                </ul>
+              <% } %>
+            </div>
+            <a class="button-link auto-width" href="/teacher/submission/<%= s.id %>">Open review</a>
+          </div>
+        </div>
+      <% }) %>
+    </section>
+  </main>
+</body>
+</html>

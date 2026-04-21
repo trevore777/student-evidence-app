@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>New Assignment</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="/css/styles.css" />
+</head>
+<body>
+  <main class="container narrow">
+    <header class="row-between wrap">
+      <h1>Create Assignment</h1>
+      <a class="button-link auto-width" href="/teacher/dashboard">Back</a>
+    </header>
+
+    <% if (error) { %><div class="error"><%= error %></div><% } %>
+
+    <form method="POST" action="/teacher/assignments/new" class="card">
+      <label>Title</label>
+      <input type="text" name="title" value="<%= values.title || '' %>" required />
+
+      <label>Instructions</label>
+      <textarea name="instructions" rows="6" required><%= values.instructions || '' %></textarea>
+
+      <label>Class</label>
+      <input type="text" name="class_name" placeholder="Year 10A" value="<%= values.class_name || '' %>" required />
+
+      <label>Due date</label>
+      <input type="date" name="due_date" value="<%= values.due_date || '' %>" />
+
+      <label>Word target</label>
+      <input type="number" name="word_target" value="<%= values.word_target || '' %>" />
+
+      <label>AI policy note</label>
+      <textarea name="ai_policy_note" rows="4"><%= values.ai_policy_note || '' %></textarea>
+
+      <label class="checkbox-row">
+        <input type="checkbox" name="require_declaration" value="1" <%= values.require_declaration ? 'checked' : '' %> />
+        Require declaration on pasted or AI-assisted material
+      </label>
+
+      <button type="submit">Create assignment</button>
+    </form>
+  </main>
+</body>
+</html>
