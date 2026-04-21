@@ -1,12 +1,17 @@
 {
-  "name": "student-evidence-app-v8.1",
+  "name": "student-evidence-app",
+  "version": "1.0.0",
   "type": "module",
+  "scripts": {
+    "dev": "node server.js",
+    "db:init": "node lib/schema.js"
+  },
   "dependencies": {
-    "@libsql/client": "^0.6.2",
-    "cookie-parser": "^1.4.7",
-    "dotenv": "^17.4.2",
-    "ejs": "^5.0.2",
-    "express": "^4.22.1",
-    "serverless-http": "^4.0.0"
+    "@libsql/client": "^0.6.0",
+    "cookie-parser": "^1.4.6",
+    "dotenv": "^16.4.0",
+    "ejs": "^3.1.9",
+    "express": "^4.19.2",
+    "serverless-http": "^3.2.0"
   }
 }
