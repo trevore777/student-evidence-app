@@ -14,7 +14,13 @@ async function getClasses() {
 }
 
 router.get("/login", async (req, res) => {
-  res.send("login route works");
+  try {
+    const classes = await getClasses();
+    res.render("login", { error: null, classes });
+  } catch (err) {
+    console.error("GET /login error:", err);
+    res.status(500).send("Failed to load login page");
+  }
 });
 
 router.get("/seed-demo-users", async (req, res) => {
@@ -61,8 +67,13 @@ router.get("/seed-demo-users", async (req, res) => {
       args: ["baker@test.com"]
     });
 
+    if (!teacherA.rows[0] || !teacherB.rows[0]) {
+      return res.status(500).send("Teachers not found after seeding");
+    }
+
     await db.execute({
-      sql: `INSERT OR IGNORE INTO assignments (id, teacher_id, title, instructions, class_name, due_date, word_target, ai_policy_note, require_declaration)
+      sql: `INSERT OR IGNORE INTO assignments
+            (id, teacher_id, title, instructions, class_name, due_date, word_target, ai_policy_note, require_declaration)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       args: [
         1,
@@ -78,7 +89,8 @@ router.get("/seed-demo-users", async (req, res) => {
     });
 
     await db.execute({
-      sql: `INSERT OR IGNORE INTO assignments (id, teacher_id, title, instructions, class_name, due_date, word_target, ai_policy_note, require_declaration)
+      sql: `INSERT OR IGNORE INTO assignments
+            (id, teacher_id, title, instructions, class_name, due_date, word_target, ai_policy_note, require_declaration)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       args: [
         2,
@@ -95,65 +107,95 @@ router.get("/seed-demo-users", async (req, res) => {
 
     res.send("Demo users seeded");
   } catch (err) {
-    console.error(err);
+    console.error("GET /seed-demo-users error:", err);
     res.status(500).send("Failed to seed demo users");
   }
 });
 
 router.post("/login", async (req, res) => {
-  const { role } = req.body;
+  try {
+    const { role } = req.body;
 
-  if (role === "teacher") {
-    const { email, password } = req.body;
+    if (role === "teacher") {
+      const { email, password } = req.body;
+
+      const result = await db.execute({
+        sql: `SELECT * FROM teachers WHERE email = ?`,
+        args: [email]
+      });
+
+      const user = result.rows[0];
+
+      if (!user) {
+        return res.render("login", {
+          error: "Invalid login details",
+          classes: await getClasses()
+        });
+      }
+
+      const valid = await comparePassword(password, user.password_hash);
+
+      if (!valid) {
+        return res.render("login", {
+          error: "Invalid login details",
+          classes: await getClasses()
+        });
+      }
+
+      res.cookie(
+        "user",
+        {
+          id: user.id,
+          name: user.name,
+          role: "teacher",
+          class_name: user.class_name || ""
+        },
+        {
+          signed: true,
+          httpOnly: true,
+          sameSite: "lax"
+        }
+      );
+
+      return res.redirect("/teacher/dashboard");
+    }
+
+    const { studentId } = req.body;
 
     const result = await db.execute({
-      sql: `SELECT * FROM teachers WHERE email = ?`,
-      args: [email]
+      sql: `SELECT * FROM students WHERE id = ?`,
+      args: [studentId]
     });
 
-    const user = result.rows[0];
-    if (!user) {
-      return res.render("login", { error: "Invalid login details", classes: await getClasses() });
+    const student = result.rows[0];
+
+    if (!student) {
+      return res.render("login", {
+        error: "Please select a valid student",
+        classes: await getClasses()
+      });
     }
 
-    const valid = await comparePassword(password, user.password_hash);
-    if (!valid) {
-      return res.render("login", { error: "Invalid login details", classes: await getClasses() });
-    }
+    res.cookie(
+      "user",
+      {
+        id: student.id,
+        name: student.name,
+        role: "student",
+        class_name: student.class_name
+      },
+      {
+        signed: true,
+        httpOnly: true,
+        sameSite: "lax"
+      }
+    );
 
-    res.cookie("user", { id: user.id, name: user.name, role: "teacher", class_name: user.class_name || "" }, {
-      signed: true,
-      httpOnly: true,
-      sameSite: "lax"
-    });
-
-    return res.redirect("/teacher/dashboard");
+    return res.redirect("/student/dashboard");
+  } catch (err) {
+    console.error("POST /login error:", err);
+    res.status(500).send("Login failed");
   }
-
-  const { studentId } = req.body;
-
-  const result = await db.execute({
-    sql: `SELECT * FROM students WHERE id = ?`,
-    args: [studentId]
-  });
-
-  const student = result.rows[0];
-  if (!student) {
-    return res.render("login", { error: "Please select a valid student", classes: await getClasses() });
-  }
-
-  res.cookie("user", {
-    id: student.id,
-    name: student.name,
-    role: "student",
-    class_name: student.class_name
-  }, {
-    signed: true,
-    httpOnly: true,
-    sameSite: "lax"
-  });
-
-  return res.redirect("/student/dashboard");
 });
 
 router.get("/logout", (req, res) => {

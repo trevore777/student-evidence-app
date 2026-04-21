@@ -1,32 +1,161 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Login Test</title>
+  <title>Login</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      background: #f4f6f8;
+      color: #222;
+    }
+    .container {
+      max-width: 520px;
+      margin: 40px auto;
+      padding: 20px;
+    }
+    .card {
+      background: #fff;
+      border-radius: 14px;
+      padding: 20px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+    }
+    h1 {
+      margin-top: 0;
+      font-size: 2rem;
+    }
+    label {
+      display: block;
+      margin: 12px 0 6px;
+      font-weight: 600;
+    }
+    input, select, button {
+      width: 100%;
+      padding: 12px;
+      font-size: 16px;
+      border-radius: 10px;
+      border: 1px solid #ccc;
+      box-sizing: border-box;
+    }
+    button {
+      margin-top: 18px;
+      background: #1d4ed8;
+      color: white;
+      border: none;
+      cursor: pointer;
+    }
+    .error {
+      background: #fee2e2;
+      color: #991b1b;
+      padding: 10px 12px;
+      border-radius: 10px;
+      margin-bottom: 14px;
+    }
+    .small {
+      margin-top: 14px;
+      font-size: 14px;
+      color: #555;
+    }
+  </style>
 </head>
-<body style="font-family: Arial, sans-serif; padding: 24px; background: white; color: black;">
-  <h1>Login Test Page</h1>
-  <p>If you can see this, EJS rendering is working.</p>
+<body>
+  <main class="container">
+    <div class="card">
+      <h1>Student Evidence App</h1>
 
-  <form method="POST" action="/login">
-    <label>Role</label>
-    <select name="role">
-      <option value="student">Student</option>
-      <option value="teacher">Teacher</option>
-    </select>
+      <% if (error) { %>
+        <div class="error"><%= error %></div>
+      <% } %>
 
-    <div style="margin-top: 12px;">
-      <label>Email</label>
-      <input type="email" name="email" />
+      <form method="POST" action="/login" id="login-form">
+        <label for="role-select">Role</label>
+        <select name="role" id="role-select" required>
+          <option value="student">Student</option>
+          <option value="teacher">Teacher</option>
+        </select>
+
+        <div id="teacher-fields" style="display:none;">
+          <label for="teacher-email">Email</label>
+          <input id="teacher-email" type="email" name="email" />
+
+          <label for="teacher-password">Password</label>
+          <input id="teacher-password" type="password" name="password" />
+        </div>
+
+        <div id="student-fields">
+          <label for="class-select">Class</label>
+          <select name="className" id="class-select" required>
+            <option value="">Select class</option>
+            <% (classes || []).forEach(c => { %>
+              <option value="<%= c.class_name %>"><%= c.class_name %></option>
+            <% }) %>
+          </select>
+
+          <label for="student-select">Student</label>
+          <select name="studentId" id="student-select" required>
+            <option value="">Select student</option>
+          </select>
+        </div>
+
+        <button type="submit">Login</button>
+      </form>
+
+      <p class="small">
+        Demo seed:
+        <a href="/seed-demo-users">create demo users</a>
+      </p>
     </div>
+  </main>
 
-    <div style="margin-top: 12px;">
-      <label>Password</label>
-      <input type="password" name="password" />
-    </div>
+  <script>
+    const roleSelect = document.getElementById("role-select");
+    const teacherFields = document.getElementById("teacher-fields");
+    const studentFields = document.getElementById("student-fields");
+    const classSelect = document.getElementById("class-select");
+    const studentSelect = document.getElementById("student-select");
+    const teacherEmail = document.getElementById("teacher-email");
+    const teacherPassword = document.getElementById("teacher-password");
 
-    <button type="submit" style="margin-top: 16px;">Login</button>
-  </form>
+    function updateRoleUI() {
+      const role = roleSelect.value;
+
+      if (role === "teacher") {
+        teacherFields.style.display = "block";
+        studentFields.style.display = "none";
+        teacherEmail.required = true;
+        teacherPassword.required = true;
+        classSelect.required = false;
+        studentSelect.required = false;
+      } else {
+        teacherFields.style.display = "none";
+        studentFields.style.display = "block";
+        teacherEmail.required = false;
+        teacherPassword.required = false;
+        classSelect.required = true;
+        studentSelect.required = true;
+      }
+    }
+
+    roleSelect.addEventListener("change", updateRoleUI);
+    updateRoleUI();
+
+    classSelect.addEventListener("change", async () => {
+      const className = classSelect.value;
+      studentSelect.innerHTML = '<option value="">Select student</option>';
+      if (!className) return;
+
+      const res = await fetch(`/api/students/by-class?className=${encodeURIComponent(className)}`);
+      const students = await res.json();
+
+      students.forEach(student => {
+        const option = document.createElement("option");
+        option.value = student.id;
+        option.textContent = student.name;
+        studentSelect.appendChild(option);
+      });
+    });
+  </script>
 </body>
 </html>
