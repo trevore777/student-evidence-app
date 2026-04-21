@@ -14,8 +14,7 @@ async function getClasses() {
 }
 
 router.get("/login", async (req, res) => {
-  const classes = await getClasses();
-  res.render("login", { error: null, classes });
+  res.send("login route works");
 });
 
 router.get("/seed-demo-users", async (req, res) => {
