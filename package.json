@@ -1,22 +1,8 @@
 {
-  "name": "student-evidence-app-v8-vercel",
-  "version": "1.8.0",
-  "private": true,
+  "name": "student-evidence-app-v8.1",
   "type": "module",
-  "scripts": {
-    "dev": "node --watch server.js",
-    "start": "node server.js",
-    "db:init": "node lib/schema.js"
-  },
   "dependencies": {
-    "@libsql/client": "^0.15.15",
-    "@tursodatabase/serverless": "^1.1.0",
-    "bcryptjs": "^2.4.3",
-    "cookie-parser": "^1.4.7",
-    "dotenv": "^16.6.1",
-    "ejs": "^3.1.10",
-    "express": "^5.1.0",
-    "openai": "^4.104.0",
-    "serverless-http": "^3.2.0"
+    "express": "^4.19.2",
+    "@libsql/client": "^0.6.0"
   }
 }
