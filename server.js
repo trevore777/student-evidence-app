@@ -25,7 +25,7 @@ app.use(cookieParser(process.env.APP_SECRET || "dev-secret"));
 app.use(express.static(path.join(__dirname, "public")));
 
 app.get("/health", (req, res) => {
-  res.status(200).send("ok");
+  res.send("ok");
 });
 
 app.get("/", (req, res) => {
@@ -47,11 +47,7 @@ app.use((err, req, res, next) => {
   res.status(500).send("Server error");
 });
 
-export default app;
-
-if (process.env.NODE_ENV !== "production") {
-  const port = process.env.PORT || 3000;
-  app.listen(port, () => {
-    console.log(`Student Evidence App running on http://localhost:${port}`);
-  });
-}
+const port = process.env.PORT || 3000;
+app.listen(port, "0.0.0.0", () => {
+  console.log(`Running on port ${port}`);
+});
