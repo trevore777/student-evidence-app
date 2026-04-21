@@ -5,15 +5,17 @@ import requireTeacher from "../middleware/requireTeacher.js";
 const router = express.Router();
 
 router.get("/new", requireTeacher, (req, res) => {
-  res.render("assignment-form", { error: null, values: {} });
+  const teacher = req.signedCookies.user;
+  res.render("assignment-form", { error: null, values: { class_name: teacher.class_name || "" }, teacher });
 });
 
 router.post("/new", requireTeacher, async (req, res) => {
   const teacher = req.signedCookies.user;
-  const { title, instructions, class_name, due_date, word_target, ai_policy_note, require_declaration } = req.body;
+  const { title, instructions, due_date, word_target, ai_policy_note, require_declaration } = req.body;
+  const class_name = teacher.class_name || req.body.class_name;
 
   if (!title || !instructions || !class_name) {
-    return res.render("assignment-form", { error: "Title, instructions, and class are required.", values: req.body });
+    return res.render("assignment-form", { error: "Title, instructions, and class are required.", values: { ...req.body, class_name }, teacher });
   }
 
   await db.execute({

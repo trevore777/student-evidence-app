@@ -10,7 +10,7 @@
     <header class="row-between wrap">
       <div>
         <h1>Teacher Dashboard</h1>
-        <p class="small">Class filters and flagged submissions are now wired in.</p>
+        <p class="small">Signed in as <strong><%= teacher.name %></strong> for <strong><%= teacher.class_name || 'Unassigned class' %></strong>.</p>
       </div>
       <div class="row gap wrap">
         <a class="button-link auto-width" href="/teacher/assignments/new">New assignment</a>
@@ -26,15 +26,7 @@
 
     <section class="card">
       <form class="row gap wrap" method="GET" action="/teacher/dashboard">
-        <div class="filter-group">
-          <label>Class</label>
-          <select name="class">
-            <option value="">All classes</option>
-            <% classes.forEach(c => { %>
-              <option value="<%= c %>" <%= selectedClass === c ? 'selected' : '' %>><%= c %></option>
-            <% }) %>
-          </select>
-        </div>
+        <input type="hidden" name="class" value="<%= selectedClass %>" />
         <label class="checkbox-row">
           <input type="checkbox" name="flagged" value="1" <%= flaggedOnly ? 'checked' : '' %> />
           Flagged only
@@ -44,7 +36,8 @@
     </section>
 
     <section class="card">
-      <h2>Assignments</h2>
+      <h2>Assignments for <%= selectedClass %></h2>
+      <% if (!assignments.length) { %><p>No assignments yet for this class.</p><% } %>
       <% assignments.forEach(a => { %>
         <div class="assignment-item">
           <h3><%= a.title %></h3>

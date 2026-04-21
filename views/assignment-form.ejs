@@ -22,7 +22,7 @@
       <textarea name="instructions" rows="6" required><%= values.instructions || '' %></textarea>
 
       <label>Class</label>
-      <input type="text" name="class_name" placeholder="Year 10A" value="<%= values.class_name || '' %>" required />
+      <input type="text" name="class_name" value="<%= teacher?.class_name || values.class_name || '' %>" readonly />
 
       <label>Due date</label>
       <input type="date" name="due_date" value="<%= values.due_date || '' %>" />

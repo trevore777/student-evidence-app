@@ -21,7 +21,7 @@ app.set("views", path.join(__dirname, "views"));
 
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
-app.use(cookieParser(process.env.APP_SECRET));
+app.use(cookieParser(process.env.APP_SECRET || "dev-secret-change-me"));
 app.use(express.static(path.join(__dirname, "public")));
 
 app.get("/", (req, res) => res.redirect("/login"));
@@ -38,7 +38,11 @@ app.use((err, req, res, next) => {
   res.status(500).send("Server error");
 });
 
-const port = process.env.PORT || 3000;
-app.listen(port, () => {
-  console.log(`Student Evidence App v4 running on http://localhost:${port}`);
-});
+if (process.env.VERCEL !== "1") {
+  const port = process.env.PORT || 3000;
+  app.listen(port, () => {
+    console.log(`Student Evidence App v8 running on http://localhost:${port}`);
+  });
+}
+
+export default app;

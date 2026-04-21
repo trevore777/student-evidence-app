@@ -23,8 +23,13 @@ router.get("/seed-demo-users", async (req, res) => {
     const teacherHash = await hashPassword("teacher123");
 
     await db.execute({
-      sql: `INSERT OR IGNORE INTO teachers (name, email, password_hash) VALUES (?, ?, ?)`,
-      args: ["Demo Teacher", "teacher@test.com", teacherHash]
+      sql: `INSERT OR IGNORE INTO teachers (name, email, password_hash, class_name) VALUES (?, ?, ?, ?)`,
+      args: ["Demo Teacher", "teacher@test.com", teacherHash, "Year 10A"]
+    });
+
+    await db.execute({
+      sql: `INSERT OR IGNORE INTO teachers (name, email, password_hash, class_name) VALUES (?, ?, ?, ?)`,
+      args: ["Ms Baker", "baker@test.com", teacherHash, "Year 10B"]
     });
 
     await db.execute({
@@ -42,9 +47,19 @@ router.get("/seed-demo-users", async (req, res) => {
       args: ["Noah Smith", "noah@test.com", "Year 10B", "unused"]
     });
 
-    const teacher = await db.execute({
+    await db.execute({
+      sql: `INSERT OR IGNORE INTO students (name, email, class_name, password_hash) VALUES (?, ?, ?, ?)`,
+      args: ["Ruby Jones", "ruby@test.com", "Year 10B", "unused"]
+    });
+
+    const teacherA = await db.execute({
       sql: `SELECT id FROM teachers WHERE email = ?`,
       args: ["teacher@test.com"]
+    });
+
+    const teacherB = await db.execute({
+      sql: `SELECT id FROM teachers WHERE email = ?`,
+      args: ["baker@test.com"]
     });
 
     await db.execute({
@@ -52,13 +67,29 @@ router.get("/seed-demo-users", async (req, res) => {
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       args: [
         1,
-        teacher.rows[0].id,
+        teacherA.rows[0].id,
         "AI and Academic Integrity Reflection",
         "Write a reflection explaining how you used AI appropriately in this task.",
         "Year 10A",
         "2026-05-01",
         400,
         "Declare any pasted or AI-assisted content honestly.",
+        1
+      ]
+    });
+
+    await db.execute({
+      sql: `INSERT OR IGNORE INTO assignments (id, teacher_id, title, instructions, class_name, due_date, word_target, ai_policy_note, require_declaration)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      args: [
+        2,
+        teacherB.rows[0].id,
+        "Evaluating Sources",
+        "Compare two sources and explain which is more reliable.",
+        "Year 10B",
+        "2026-05-08",
+        500,
+        "Use the declaration tools if you paste notes or use AI assistance.",
         1
       ]
     });
@@ -91,7 +122,7 @@ router.post("/login", async (req, res) => {
       return res.render("login", { error: "Invalid login details", classes: await getClasses() });
     }
 
-    res.cookie("user", { id: user.id, name: user.name, role: "teacher" }, {
+    res.cookie("user", { id: user.id, name: user.name, role: "teacher", class_name: user.class_name || "" }, {
       signed: true,
       httpOnly: true,
       sameSite: "lax"

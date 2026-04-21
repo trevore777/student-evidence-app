@@ -1,6 +1,6 @@
 {
-  "name": "student-evidence-app-v6",
-  "version": "1.5.0",
+  "name": "student-evidence-app-v8-vercel",
+  "version": "1.8.0",
   "private": true,
   "type": "module",
   "scripts": {
@@ -15,6 +15,7 @@
     "dotenv": "^16.6.1",
     "ejs": "^3.1.10",
     "express": "^5.1.0",
-    "openai": "^4.104.0"
+    "openai": "^4.104.0",
+    "serverless-http": "^3.2.0"
   }
 }

@@ -1,20 +1,39 @@
-# Student Evidence App v6
+# Student Evidence App v8 — Vercel Ready
 
-This version adds a TinyMCE rich text editor to the student writing space so students can use familiar formatting tools while the app still keeps evidence logging and paste declarations.
+This build is prepared for deployment on **Vercel + Turso** and adds **teacher-to-class locking** so each teacher only works with their assigned class.
 
-## Included in v6
+## What changed in v8
 
-- TinyMCE rich text editor on the writing page
-- formatting toolbar with blocks, font family, font size, bold, italic, underline, bullets, numbering, indent, and outdent
-- paste logging and declaration modal still active
-- autosave still active
-- teacher review now renders submitted rich text and snapshots as formatted content, with HTML source available in expandable sections
+- Vercel serverless entrypoint added in `api/index.js`
+- `vercel.json` included
+- `.env.example` now defaults to Turso variables
+- teacher records now include `class_name`
+- teacher dashboards, assignment creation, and submission review are locked to the teacher's class
+- database init now includes migration-style `ALTER TABLE` steps for older local databases
+- `.gitignore` included
 
 ## Local setup
+
+For local testing with Turso:
 
 ```bash
 npm install
 cp .env.example .env
+# add your real Turso + OpenAI values to .env
+npm run db:init
+npm run dev
+```
+
+If you want to test locally with a file DB instead, set:
+
+```env
+TURSO_DATABASE_URL=file:local.db
+TURSO_AUTH_TOKEN=
+```
+
+Then run:
+
+```bash
 rm -f local.db
 npm run db:init
 npm run dev
@@ -27,23 +46,34 @@ Then open:
 
 ## Demo logins
 
-### Teacher
+### Teacher A
 - email: `teacher@test.com`
 - password: `teacher123`
+- class: `Year 10A`
 
-### Student
+### Teacher B
+- email: `baker@test.com`
+- password: `teacher123`
+- class: `Year 10B`
+
+### Students
 - role: `Student`
-- class: `Year 10A` or `Year 10B`
-- select a student from the dropdown
+- choose class and student name from dropdown
+
+## Deploy to Vercel
+
+1. Create a Turso database and token.
+2. Set these environment variables in Vercel:
+   - `APP_SECRET`
+   - `TURSO_DATABASE_URL`
+   - `TURSO_AUTH_TOKEN`
+   - `OPENAI_API_KEY`
+3. Run `npm run db:init` once against the Turso database.
+4. Deploy to Vercel.
+5. Visit `/seed-demo-users` once if you want demo content.
 
 ## Notes
 
-- This build uses TinyMCE from the TinyMCE CDN.
-- Pasted content is forced to plain text before insertion to keep formatting cleaner and easier to review.
-- Student submission content is now stored as rich HTML. Word counts are calculated from stripped plain text in the browser before save and submit.
-- AI email drafting still requires `OPENAI_API_KEY` in `.env` if you want to use that feature.
-
-
-## v7 update
-
-Teacher Review now shows an **Estimated composition of submission** panel with estimated own work, copy-and-paste, and declared AI-assisted percentages plus a confidence label. These percentages are estimates based on writing activity, paste events, and declarations.
+- TinyMCE is still loaded from the TinyMCE CDN.
+- The AI feedback email feature still needs a valid `OPENAI_API_KEY`.
+- Submission composition percentages remain estimates, not proof.

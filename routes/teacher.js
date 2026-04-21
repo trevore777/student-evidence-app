@@ -7,12 +7,12 @@ const router = express.Router();
 
 router.get("/dashboard", requireTeacher, async (req, res) => {
   const teacher = req.signedCookies.user;
-  const selectedClass = req.query.class || "";
+  const selectedClass = teacher.class_name || req.query.class || "";
   const flaggedOnly = req.query.flagged === "1";
 
   const assignments = await db.execute({
-    sql: `SELECT * FROM assignments WHERE teacher_id = ? ORDER BY created_at DESC`,
-    args: [teacher.id]
+    sql: `SELECT * FROM assignments WHERE teacher_id = ? AND class_name = ? ORDER BY created_at DESC`,
+    args: [teacher.id, selectedClass]
   });
 
   const submissions = await db.execute({
@@ -23,10 +23,10 @@ router.get("/dashboard", requireTeacher, async (req, res) => {
       FROM submissions sub
       JOIN students s ON s.id = sub.student_id
       JOIN assignments a ON a.id = sub.assignment_id
-      WHERE a.teacher_id = ?
+      WHERE a.teacher_id = ? AND a.class_name = ?
       ORDER BY sub.created_at DESC
     `,
-    args: [teacher.id]
+    args: [teacher.id, selectedClass]
   });
 
   let rows = submissions.rows;
@@ -49,22 +49,21 @@ router.get("/dashboard", requireTeacher, async (req, res) => {
     enriched.push({ ...row, flags });
   }
 
-  if (selectedClass) enriched.splice(0, enriched.length, ...enriched.filter((r) => r.class_name === selectedClass));
-  if (flaggedOnly) enriched.splice(0, enriched.length, ...enriched.filter((r) => r.flags.length > 0));
-
-  const classes = [...new Set(submissions.rows.map((r) => r.class_name))].sort();
+  if (flaggedOnly) rows = enriched.filter((r) => r.flags.length > 0);
+  else rows = enriched;
 
   res.render("teacher-dashboard", {
     teacher,
     assignments: assignments.rows,
-    submissions: enriched,
-    classes,
+    submissions: rows,
+    classes: selectedClass ? [selectedClass] : [],
     selectedClass,
     flaggedOnly
   });
 });
 
 router.get("/submission/:id", requireTeacher, async (req, res) => {
+  const teacher = req.signedCookies.user;
   const submissionId = Number(req.params.id);
   const submissionResult = await db.execute({
     sql: `
@@ -72,9 +71,9 @@ router.get("/submission/:id", requireTeacher, async (req, res) => {
       FROM submissions sub
       JOIN students s ON s.id = sub.student_id
       JOIN assignments a ON a.id = sub.assignment_id
-      WHERE sub.id = ?
+      WHERE sub.id = ? AND a.teacher_id = ? AND a.class_name = ?
     `,
-    args: [submissionId]
+    args: [submissionId, teacher.id, teacher.class_name || ""]
   });
 
   const submission = submissionResult.rows[0];
