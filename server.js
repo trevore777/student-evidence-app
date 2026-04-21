@@ -1,7 +1,17 @@
 import express from "express";
 const app = express();
 
-app.get("/health", (req,res)=>res.send("ok"));
-app.get("/login",(req,res)=>res.send("login page"));
+// your routes here
+
+app.get("/", (req, res) => {
+  res.redirect("/login");
+});
 
 export default app;
+
+if (process.env.NODE_ENV !== "production") {
+  const port = process.env.PORT || 3000;
+  app.listen(port, () => {
+    console.log(`Student Evidence App running on http://localhost:${port}`);
+  });
+}
