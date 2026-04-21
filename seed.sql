@@ -1,16 +1,7 @@
--- =========================
--- TEACHERS
--- Password = teacher123 (bcrypt hash)
--- =========================
-
 INSERT OR IGNORE INTO teachers (id, name, email, password_hash, class_name)
 VALUES
 (1, 'Demo Teacher', 'teacher@test.com', '$2a$10$u1nYgYk5Z1gkFh8Wl3vC5e9i2sR5pTKtyfPBkO5RAwOB1p5MNDoAu', 'Year 10A'),
 (2, 'Ms Baker', 'baker@test.com', '$2a$10$u1nYgYk5Z1gkFh8Wl3vC5e9i2sR5pTKtyfPBkO5RAwOB1p5MNDoAu', 'Year 10B');
-
--- =========================
--- STUDENTS
--- =========================
 
 INSERT OR IGNORE INTO students (id, name, email, class_name, password_hash)
 VALUES
@@ -18,10 +9,6 @@ VALUES
 (2, 'Ella Brown', 'ella@test.com', 'Year 10A', 'unused'),
 (3, 'Noah Smith', 'noah@test.com', 'Year 10B', 'unused'),
 (4, 'Ruby Jones', 'ruby@test.com', 'Year 10B', 'unused');
-
--- =========================
--- ASSIGNMENTS
--- =========================
 
 INSERT OR IGNORE INTO assignments
 (id, teacher_id, title, instructions, class_name, due_date, word_target, ai_policy_note, require_declaration)

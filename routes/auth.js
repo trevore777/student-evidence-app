@@ -4,36 +4,22 @@ import { comparePassword, hashPassword } from "../lib/auth.js";
 
 const router = express.Router();
 
-// TEMP: hardcoded classes so /login can load even if DB class query is failing
+// Temporary fixed classes so /login always loads
 const fallbackClasses = [
   { class_name: "Year 10A" },
   { class_name: "Year 10B" }
 ];
 
-async function getClassesSafe() {
-  try {
-    const classesResult = await db.execute(`
-      SELECT DISTINCT class_name
-      FROM students
-      ORDER BY class_name
-    `);
-    return classesResult.rows?.length ? classesResult.rows : fallbackClasses;
-  } catch (err) {
-    console.error("getClassesSafe error:", err);
-    return fallbackClasses;
-  }
-}
-
 router.get("/login", async (req, res) => {
   try {
-    const classes = await getClassesSafe();
-    res.render("login", { error: null, classes });
+    res.render("login", { error: null, classes: fallbackClasses });
   } catch (err) {
     console.error("GET /login error:", err);
     res.status(500).send("Failed to load login page");
   }
 });
 
+// Keep this only if you still want app-based seeding later
 router.get("/seed-demo-users", async (req, res) => {
   try {
     const teacherHash = await hashPassword("teacher123");
@@ -68,23 +54,13 @@ router.get("/seed-demo-users", async (req, res) => {
       args: ["Ruby Jones", "ruby@test.com", "Year 10B", "unused"]
     });
 
-    const teacherA = await db.execute({
-      sql: `SELECT id FROM teachers WHERE email = ?`,
-      args: ["teacher@test.com"]
-    });
-
-    const teacherB = await db.execute({
-      sql: `SELECT id FROM teachers WHERE email = ?`,
-      args: ["baker@test.com"]
-    });
-
     await db.execute({
       sql: `INSERT OR IGNORE INTO assignments
             (id, teacher_id, title, instructions, class_name, due_date, word_target, ai_policy_note, require_declaration)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       args: [
         1,
-        teacherA.rows[0].id,
+        1,
         "AI and Academic Integrity Reflection",
         "Write a reflection explaining how you used AI appropriately in this task.",
         "Year 10A",
@@ -101,7 +77,7 @@ router.get("/seed-demo-users", async (req, res) => {
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       args: [
         2,
-        teacherB.rows[0].id,
+        2,
         "Evaluating Sources",
         "Compare two sources and explain which is more reliable.",
         "Year 10B",
@@ -136,7 +112,7 @@ router.post("/login", async (req, res) => {
       if (!user) {
         return res.render("login", {
           error: "Invalid login details",
-          classes: await getClassesSafe()
+          classes: fallbackClasses
         });
       }
 
@@ -145,7 +121,7 @@ router.post("/login", async (req, res) => {
       if (!valid) {
         return res.render("login", {
           error: "Invalid login details",
-          classes: await getClassesSafe()
+          classes: fallbackClasses
         });
       }
 
@@ -179,7 +155,7 @@ router.post("/login", async (req, res) => {
     if (!student) {
       return res.render("login", {
         error: "Please select a valid student",
-        classes: await getClassesSafe()
+        classes: fallbackClasses
       });
     }
 
