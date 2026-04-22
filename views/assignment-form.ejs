@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Create Assignment</title>
+  <title><%= mode === "edit" ? "Edit Assignment" : "Create Assignment" %></title>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -12,7 +12,7 @@
       color: #222;
     }
     .container {
-      max-width: 800px;
+      max-width: 900px;
       margin: 30px auto;
       padding: 20px;
     }
@@ -47,6 +47,17 @@
       cursor: pointer;
       margin-top: 16px;
     }
+    .button.secondary {
+      display: inline-block;
+      background: #666;
+      color: white;
+      text-decoration: none;
+      text-align: center;
+      padding: 12px 16px;
+      border-radius: 10px;
+      margin-right: 10px;
+      width: auto;
+    }
     .error {
       background: #fee2e2;
       color: #991b1b;
@@ -54,49 +65,111 @@
       border-radius: 10px;
       margin-bottom: 14px;
     }
+    .row {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+    .checkbox-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-top: 14px;
+    }
+    .checkbox-row input {
+      width: auto;
+      margin: 0;
+    }
+    .small {
+      color: #666;
+      font-size: 14px;
+      margin-top: 8px;
+    }
   </style>
+
+  <script src="https://cdn.tiny.cloud/1/no-api-key/tinymce/7/tinymce.min.js" referrerpolicy="origin"></script>
 </head>
 <body>
   <main class="container">
     <div class="card">
-      <h1>Create Assignment</h1>
+      <h1><%= mode === "edit" ? "Edit Assignment" : "Create Assignment" %></h1>
 
       <% if (error) { %>
         <div class="error"><%= error %></div>
       <% } %>
 
-      <form method="POST" action="/teacher/assignments/new">
+      <form method="POST" action="<%= mode === 'edit' ? `/teacher/assignments/${assignment.id}/edit` : '/teacher/assignments/new' %>">
         <label>Class</label>
         <select name="classId" required>
           <option value="">Select class</option>
           <% (classes || []).forEach(c => { %>
-            <option value="<%= c.id %>"><%= c.class_name %></option>
+            <option value="<%= c.id %>" <%= Number(assignment.class_id) === Number(c.id) ? "selected" : "" %>>
+              <%= c.class_name %>
+            </option>
           <% }) %>
         </select>
 
         <label>Title</label>
-        <input type="text" name="title" required />
+        <input type="text" name="title" value="<%= assignment.title || '' %>" required />
 
         <label>Instructions</label>
-        <textarea name="instructions" required></textarea>
+        <textarea id="instructions-editor" name="instructions" required><%= assignment.instructions || '' %></textarea>
 
         <label>Due date</label>
-        <input type="date" name="dueDate" />
+        <input type="date" name="dueDate" value="<%= assignment.due_date || '' %>" />
 
         <label>Word target</label>
-        <input type="number" name="wordTarget" />
+        <input type="number" name="wordTarget" value="<%= assignment.word_target || '' %>" />
 
         <label>AI policy note</label>
-        <textarea name="aiPolicyNote"></textarea>
+        <textarea id="policy-editor" name="aiPolicyNote"><%= assignment.ai_policy_note || '' %></textarea>
 
-        <label style="display:flex; gap:10px; align-items:center; margin-top:12px;">
-          <input type="checkbox" name="requireDeclaration" value="1" checked style="width:auto;" />
-          Require declaration
-        </label>
+        <div class="checkbox-row">
+          <input
+            type="checkbox"
+            id="requireDeclaration"
+            name="requireDeclaration"
+            value="1"
+            <%= assignment.require_declaration ? "checked" : "" %>
+          />
+          <label for="requireDeclaration" style="margin:0;">Require declaration</label>
+        </div>
 
-        <button class="button" type="submit">Create Assignment</button>
+        <p class="small">
+          Teachers can update the instructions, due date, declaration requirement, and AI guidance after creation.
+        </p>
+
+        <div class="row" style="margin-top: 16px;">
+          <a class="button secondary" href="/teacher/dashboard">Cancel</a>
+          <button class="button" type="submit">
+            <%= mode === "edit" ? "Save Changes" : "Create Assignment" %>
+          </button>
+        </div>
       </form>
     </div>
   </main>
+
+  <script>
+    function initTiny(selector, height) {
+      if (!window.tinymce) return;
+
+      tinymce.init({
+        selector,
+        height,
+        menubar: false,
+        branding: false,
+        plugins: "lists link wordcount table paste",
+        toolbar:
+          "undo redo | blocks fontfamily fontsize | bold italic underline | bullist numlist | outdent indent | link | removeformat",
+        paste_as_text: false
+      }).catch((err) => {
+        console.error("Tiny init failed:", err);
+      });
+    }
+
+    initTiny("#instructions-editor", 360);
+    initTiny("#policy-editor", 220);
+  </script>
 </body>
 </html>
