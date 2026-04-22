@@ -61,21 +61,6 @@
       color: #666;
     }
 
-    .pill {
-      display: inline-block;
-      background: #e0e7ff;
-      color: #1e3a8a;
-      padding: 6px 10px;
-      border-radius: 999px;
-      font-size: 12px;
-      margin-right: 8px;
-      margin-top: 8px;
-    }
-
-    .status {
-      font-weight: 600;
-    }
-
     .info-grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
@@ -105,6 +90,25 @@
       border-radius: 12px;
       padding: 12px 14px;
       margin-top: 12px;
+    }
+
+    .editor-wrap {
+      margin-top: 12px;
+    }
+
+    textarea#editor-fallback {
+      width: 100%;
+      min-height: 520px;
+      padding: 14px;
+      border-radius: 10px;
+      border: 1px solid #ccc;
+      box-sizing: border-box;
+      font-size: 16px;
+      resize: vertical;
+    }
+
+    .hidden {
+      display: none;
     }
 
     .modal-backdrop {
@@ -163,8 +167,8 @@
     }
   </style>
 
-  <!-- Replace YOUR_TINYMCE_API_KEY with your real key -->
-  <script src="https://cdn.tiny.cloud/r1tocpuc91a9rca9tehcaxzegc9la0c5tnz7p6kux9ikyl2s/tinymce/7/tinymce.min.js" referrerpolicy="origin"></script>
+  <!-- Replace with your Tiny API key if wanted. This page now survives if Tiny fails. -->
+  <script src="https://cdn.tiny.cloud/1/no-api-key/tinymce/7/tinymce.min.js" referrerpolicy="origin"></script>
 </head>
 <body>
   <main class="container">
@@ -223,7 +227,9 @@
         </div>
       </div>
 
-      <textarea id="editor"><%- latestContent || "" %></textarea>
+      <div class="editor-wrap">
+        <textarea id="editor-fallback"><%- latestContent || "" %></textarea>
+      </div>
 
       <div style="margin-top: 16px;">
         <button class="button" id="save-btn" type="button">Save Draft</button>
@@ -237,7 +243,6 @@
     </div>
   </main>
 
-  <!-- Declaration modal -->
   <div class="modal-backdrop" id="declaration-modal">
     <div class="modal">
       <h2>Declare Assistance or Pasted Content</h2>
@@ -277,12 +282,11 @@
     const requireDeclaration = <%- JSON.stringify(!!assignment.require_declaration) %>;
 
     let sessionId = null;
-    let startedAt = Date.now();
     let lastActivityAt = Date.now();
     let activeSeconds = 0;
     let idleSeconds = 0;
     let autosaveTimer = null;
-    let declarationDraftFromPaste = "";
+    let editorMode = "textarea"; // textarea | tiny
 
     const saveStatusEl = document.getElementById("save-status");
     const wordCountEl = document.getElementById("word-count");
@@ -300,28 +304,42 @@
     const cancelDeclarationBtn = document.getElementById("cancel-declaration-btn");
     const saveDeclarationBtn = document.getElementById("save-declaration-btn");
 
+    const editorFallback = document.getElementById("editor-fallback");
+
     function stripHtml(html = "") {
       const div = document.createElement("div");
       div.innerHTML = html;
       return (div.textContent || div.innerText || "").trim();
     }
 
-    function countWordsFromHtml(html = "") {
-      const text = stripHtml(html);
-      return text ? text.split(/\s+/).length : 0;
+    function countWords(text = "") {
+      const clean = stripHtml(text);
+      return clean ? clean.split(/\s+/).length : 0;
+    }
+
+    function getEditorContent() {
+      if (editorMode === "tiny" && window.tinymce && tinymce.get("editor-fallback")) {
+        return tinymce.get("editor-fallback").getContent() || "";
+      }
+      return editorFallback.value || "";
+    }
+
+    function setEditorContent(value) {
+      if (editorMode === "tiny" && window.tinymce && tinymce.get("editor-fallback")) {
+        tinymce.get("editor-fallback").setContent(value || "");
+      } else {
+        editorFallback.value = value || "";
+      }
     }
 
     function updateWordCount() {
-      const content = tinymce.get("editor")?.getContent() || "";
-      wordCountEl.textContent = countWordsFromHtml(content);
+      wordCountEl.textContent = countWords(getEditorContent());
     }
 
     async function postJson(url, payload) {
       const res = await fetch(url, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload)
       });
 
@@ -340,9 +358,11 @@
           deviceInfo: navigator.userAgent
         });
 
-        if (result.ok) {
+        if (result.ok && result.sessionId) {
           sessionId = result.sessionId;
-          saveStatusEl.textContent = "Editor ready";
+          saveStatusEl.textContent = editorMode === "tiny"
+            ? "Editor ready"
+            : "Editor ready (basic mode)";
         } else {
           saveStatusEl.textContent = "Session start failed";
         }
@@ -354,7 +374,6 @@
 
     async function endSession() {
       if (!sessionId) return;
-
       try {
         await postJson("/api/session/end", {
           sessionId,
@@ -367,11 +386,14 @@
     }
 
     async function saveDraft() {
-      if (!sessionId) return;
+      if (!sessionId) {
+        alert("Session not ready yet.");
+        return;
+      }
 
       try {
-        const content = tinymce.get("editor")?.getContent() || "";
-        const wordCount = countWordsFromHtml(content);
+        const content = getEditorContent();
+        const wordCount = countWords(content);
 
         saveStatusEl.textContent = "Saving…";
 
@@ -386,6 +408,7 @@
           saveStatusEl.textContent = "Draft saved";
         } else {
           saveStatusEl.textContent = "Save failed";
+          console.error("Autosave response:", result);
         }
       } catch (err) {
         console.error("saveDraft error:", err);
@@ -395,7 +418,6 @@
 
     async function logEvent(eventType, eventMeta = {}) {
       if (!sessionId) return;
-
       try {
         await postJson("/api/event", {
           submissionId,
@@ -422,6 +444,11 @@
     }
 
     async function saveDeclaration() {
+      if (!sessionId) {
+        alert("Session not ready yet.");
+        return;
+      }
+
       try {
         const result = await postJson("/api/declaration", {
           submissionId,
@@ -441,6 +468,7 @@
           saveStatusEl.textContent = "Declaration saved";
         } else {
           alert("Failed to save declaration.");
+          console.error("Declaration response:", result);
         }
       } catch (err) {
         console.error("saveDeclaration error:", err);
@@ -449,11 +477,15 @@
     }
 
     async function submitWork() {
+      if (!sessionId) {
+        alert("Session not ready yet.");
+        return;
+      }
+
       try {
-        const content = tinymce.get("editor")?.getContent() || "";
+        const content = getEditorContent();
 
         if (requireDeclaration) {
-          // soft reminder only; teacher can still review evidence trail
           const proceed = window.confirm(
             "Before submitting, have you recorded any pasted or AI-assisted content using the declaration tool?"
           );
@@ -469,13 +501,12 @@
 
         if (result.ok) {
           saveStatusEl.textContent = "Submitted";
-          await logEvent("submitted", {
-            wordCount: countWordsFromHtml(content)
-          });
+          await logEvent("submitted", { wordCount: countWords(content) });
           alert("Work submitted successfully.");
           window.location.href = "/student/dashboard";
         } else {
           saveStatusEl.textContent = "Submit failed";
+          console.error("Submit response:", result);
           alert("Failed to submit work.");
         }
       } catch (err) {
@@ -489,13 +520,8 @@
       const markActivity = () => {
         const now = Date.now();
         const diff = Math.floor((now - lastActivityAt) / 1000);
-
-        if (diff <= 20) {
-          activeSeconds += diff;
-        } else {
-          idleSeconds += diff;
-        }
-
+        if (diff <= 20) activeSeconds += diff;
+        else idleSeconds += diff;
         lastActivityAt = now;
       };
 
@@ -506,7 +532,6 @@
       setInterval(() => {
         const now = Date.now();
         const diff = Math.floor((now - lastActivityAt) / 1000);
-
         if (diff > 20) {
           idleSeconds += 5;
           lastActivityAt = now;
@@ -514,55 +539,98 @@
       }, 5000);
     }
 
-    tinymce.init({
-      selector: "#editor",
-      height: 520,
-      menubar: false,
-      branding: false,
-      plugins: "lists link wordcount paste",
-      toolbar:
-        "undo redo | blocks fontfamily fontsize | bold italic underline | bullist numlist | outdent indent | removeformat",
-      paste_as_text: true,
-      setup: function (editor) {
-        editor.on("init", async function () {
-          updateWordCount();
-          await startSession();
-          setupActivityTracking();
+    function bindTextareaMode() {
+      editorMode = "textarea";
+      saveStatusEl.textContent = "Basic editor mode";
+      editorFallback.addEventListener("input", () => {
+        updateWordCount();
+        if (autosaveTimer) clearTimeout(autosaveTimer);
+        autosaveTimer = setTimeout(saveDraft, 1500);
+      });
+
+      editorFallback.addEventListener("paste", (e) => {
+        const pastedText =
+          (e.clipboardData && e.clipboardData.getData("text/plain")) || "";
+
+        logEvent("paste", {
+          pastedLength: pastedText.length,
+          pastedPreview: pastedText.slice(0, 120)
         });
 
-        editor.on("input keyup change SetContent", function () {
-          updateWordCount();
+        if (requireDeclaration) {
+          setTimeout(() => {
+            openDeclarationModal({
+              declarationType: "pasted_research",
+              originalTextExcerpt: pastedText.slice(0, 500)
+            });
+          }, 150);
+        }
+      });
+    }
 
-          if (autosaveTimer) clearTimeout(autosaveTimer);
-          autosaveTimer = setTimeout(() => {
-            saveDraft();
-          }, 1500);
-        });
+    function tryInitTiny() {
+      if (!window.tinymce) {
+        bindTextareaMode();
+        return startSession().then(updateWordCount);
+      }
 
-        editor.on("paste", function (e) {
-          const pastedText =
-            (e.clipboardData && e.clipboardData.getData("text/plain")) ||
-            (window.clipboardData && window.clipboardData.getData("Text")) ||
-            "";
+      const fallbackValue = editorFallback.value || "";
 
-          declarationDraftFromPaste = pastedText.slice(0, 500);
-
-          logEvent("paste", {
-            pastedLength: pastedText.length,
-            pastedPreview: pastedText.slice(0, 120)
+      tinymce.init({
+        selector: "#editor-fallback",
+        height: 520,
+        menubar: false,
+        branding: false,
+        plugins: "lists link wordcount paste",
+        toolbar: "undo redo | blocks fontfamily fontsize | bold italic underline | bullist numlist | outdent indent | removeformat",
+        paste_as_text: true,
+        setup: function (editor) {
+          editor.on("init", async function () {
+            editorMode = "tiny";
+            editor.setContent(fallbackValue);
+            updateWordCount();
+            await startSession();
           });
 
-          if (requireDeclaration) {
-            setTimeout(() => {
-              openDeclarationModal({
-                declarationType: "pasted_research",
-                originalTextExcerpt: declarationDraftFromPaste
-              });
-            }, 250);
-          }
-        });
-      }
-    });
+          editor.on("input keyup change SetContent", function () {
+            updateWordCount();
+            if (autosaveTimer) clearTimeout(autosaveTimer);
+            autosaveTimer = setTimeout(saveDraft, 1500);
+          });
+
+          editor.on("paste", function (e) {
+            const pastedText =
+              (e.clipboardData && e.clipboardData.getData("text/plain")) || "";
+
+            logEvent("paste", {
+              pastedLength: pastedText.length,
+              pastedPreview: pastedText.slice(0, 120)
+            });
+
+            if (requireDeclaration) {
+              setTimeout(() => {
+                openDeclarationModal({
+                  declarationType: "pasted_research",
+                  originalTextExcerpt: pastedText.slice(0, 500)
+                });
+              }, 200);
+            }
+          });
+        }
+      }).catch((err) => {
+        console.error("Tiny init failed:", err);
+        bindTextareaMode();
+        startSession().then(updateWordCount);
+      });
+
+      setTimeout(() => {
+        if (editorMode !== "tiny") {
+          console.warn("Tiny timed out, using textarea fallback.");
+          bindTextareaMode();
+          startSession().then(updateWordCount);
+        }
+      }, 4000);
+    }
 
     saveBtn.addEventListener("click", saveDraft);
     declareBtn.addEventListener("click", () => openDeclarationModal());
@@ -573,6 +641,9 @@
     window.addEventListener("beforeunload", () => {
       endSession();
     });
+
+    setupActivityTracking();
+    tryInitTiny();
   </script>
 </body>
 </html>
