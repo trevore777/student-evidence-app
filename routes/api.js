@@ -8,9 +8,7 @@ router.get("/students/by-class", async (req, res) => {
   try {
     const { className } = req.query;
 
-    if (!className) {
-      return res.json([]);
-    }
+    if (!className) return res.json([]);
 
     const result = await db.execute({
       sql: `
