@@ -11,6 +11,8 @@ import studentRoutes from "./routes/student.js";
 import teacherRoutes from "./routes/teacher.js";
 import assignmentRoutes from "./routes/assignments.js";
 import apiRoutes from "./routes/api.js";
+import classRoutes from "./routes/classes.js";
+app.use("/teacher/classes", classRoutes);
 
 dotenv.config();
 
