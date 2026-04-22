@@ -61,6 +61,10 @@
       color: #666;
     }
 
+    .status {
+      font-weight: 600;
+    }
+
     .info-grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
@@ -109,6 +113,20 @@
 
     .hidden {
       display: none;
+    }
+
+    .paste-legend {
+      margin-top: 12px;
+    }
+
+    .legend-chip {
+      display: inline-block;
+      background: #fff3b0;
+      border-bottom: 2px solid #f59e0b;
+      padding: 4px 8px;
+      border-radius: 6px;
+      font-size: 12px;
+      color: #7c2d12;
     }
 
     .modal-backdrop {
@@ -167,7 +185,6 @@
     }
   </style>
 
-  <!-- Replace with your Tiny API key if wanted. This page now survives if Tiny fails. -->
   <script src="https://cdn.tiny.cloud/1/r1tocpuc91a9rca9tehcaxzegc9la0c5tnz7p6kux9ikyl2s/tinymce/7/tinymce.min.js" referrerpolicy="origin"></script>
 </head>
 <body>
@@ -225,6 +242,10 @@
           Word count:
           <span id="word-count">0</span>
         </div>
+      </div>
+
+      <div class="paste-legend">
+        <span class="legend-chip">Highlighted yellow = pasted content</span>
       </div>
 
       <div class="editor-wrap">
@@ -286,7 +307,7 @@
     let activeSeconds = 0;
     let idleSeconds = 0;
     let autosaveTimer = null;
-    let editorMode = "textarea"; // textarea | tiny
+    let editorMode = "textarea";
 
     const saveStatusEl = document.getElementById("save-status");
     const wordCountEl = document.getElementById("word-count");
@@ -306,6 +327,13 @@
 
     const editorFallback = document.getElementById("editor-fallback");
 
+    function escapeHtml(text = "") {
+      return String(text)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;");
+    }
+
     function stripHtml(html = "") {
       const div = document.createElement("div");
       div.innerHTML = html;
@@ -322,14 +350,6 @@
         return tinymce.get("editor-fallback").getContent() || "";
       }
       return editorFallback.value || "";
-    }
-
-    function setEditorContent(value) {
-      if (editorMode === "tiny" && window.tinymce && tinymce.get("editor-fallback")) {
-        tinymce.get("editor-fallback").setContent(value || "");
-      } else {
-        editorFallback.value = value || "";
-      }
     }
 
     function updateWordCount() {
@@ -365,6 +385,7 @@
             : "Editor ready (basic mode)";
         } else {
           saveStatusEl.textContent = "Session start failed";
+          console.error("session/start response:", result);
         }
       } catch (err) {
         console.error("startSession error:", err);
@@ -408,7 +429,7 @@
           saveStatusEl.textContent = "Draft saved";
         } else {
           saveStatusEl.textContent = "Save failed";
-          console.error("Autosave response:", result);
+          console.error("draft/autosave response:", result);
         }
       } catch (err) {
         console.error("saveDraft error:", err);
@@ -468,7 +489,7 @@
           saveStatusEl.textContent = "Declaration saved";
         } else {
           alert("Failed to save declaration.");
-          console.error("Declaration response:", result);
+          console.error("declaration response:", result);
         }
       } catch (err) {
         console.error("saveDeclaration error:", err);
@@ -506,7 +527,7 @@
           window.location.href = "/student/dashboard";
         } else {
           saveStatusEl.textContent = "Submit failed";
-          console.error("Submit response:", result);
+          console.error("submit response:", result);
           alert("Failed to submit work.");
         }
       } catch (err) {
@@ -541,7 +562,8 @@
 
     function bindTextareaMode() {
       editorMode = "textarea";
-      saveStatusEl.textContent = "Basic editor mode";
+      saveStatusEl.textContent = "Editor ready (basic mode)";
+
       editorFallback.addEventListener("input", () => {
         updateWordCount();
         if (autosaveTimer) clearTimeout(autosaveTimer);
@@ -566,15 +588,17 @@
           }, 150);
         }
       });
+
+      updateWordCount();
     }
 
     function tryInitTiny() {
       if (!window.tinymce) {
         bindTextareaMode();
-        return startSession().then(updateWordCount);
+        return startSession();
       }
 
-      const fallbackValue = editorFallback.value || "";
+      const initialValue = editorFallback.value || "";
 
       tinymce.init({
         selector: "#editor-fallback",
@@ -584,10 +608,19 @@
         plugins: "lists link wordcount paste",
         toolbar: "undo redo | blocks fontfamily fontsize | bold italic underline | bullist numlist | outdent indent | removeformat",
         paste_as_text: true,
+        extended_valid_elements: "span[class|data-pasted]",
+        content_style: `
+          body { font-family: Arial, sans-serif; font-size: 16px; }
+          .pasted-content {
+            background: #fff3b0;
+            border-bottom: 2px solid #f59e0b;
+            padding: 0 2px;
+          }
+        `,
         setup: function (editor) {
           editor.on("init", async function () {
             editorMode = "tiny";
-            editor.setContent(fallbackValue);
+            editor.setContent(initialValue);
             updateWordCount();
             await startSession();
           });
@@ -599,8 +632,15 @@
           });
 
           editor.on("paste", function (e) {
+            e.preventDefault();
+
             const pastedText =
-              (e.clipboardData && e.clipboardData.getData("text/plain")) || "";
+              (e.clipboardData && e.clipboardData.getData("text/plain")) ||
+              "";
+
+            const html = `<span class="pasted-content" data-pasted="true">${escapeHtml(pastedText).replace(/\n/g, "<br>")}</span>`;
+
+            editor.insertContent(html);
 
             logEvent("paste", {
               pastedLength: pastedText.length,
@@ -615,19 +655,24 @@
                 });
               }, 200);
             }
+
+            updateWordCount();
+
+            if (autosaveTimer) clearTimeout(autosaveTimer);
+            autosaveTimer = setTimeout(saveDraft, 1500);
           });
         }
       }).catch((err) => {
         console.error("Tiny init failed:", err);
         bindTextareaMode();
-        startSession().then(updateWordCount);
+        startSession();
       });
 
       setTimeout(() => {
         if (editorMode !== "tiny") {
           console.warn("Tiny timed out, using textarea fallback.");
           bindTextareaMode();
-          startSession().then(updateWordCount);
+          startSession();
         }
       }, 4000);
     }
