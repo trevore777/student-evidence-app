@@ -1,21 +1,34 @@
 import express from "express";
-import { db } from "../lib/db.js";
-import { comparePassword, hashPassword } from "../lib/auth.js";
 
 const router = express.Router();
 
-// Temporary fixed classes so /login always loads
 const fallbackClasses = [
   { class_name: "Year 10A" },
   { class_name: "Year 10B" }
 ];
 
-// Temporary hardcoded demo students so student login works even if DB is failing
 const demoStudents = {
   "1": { id: 1, name: "Demo Student", class_name: "Year 10A" },
   "2": { id: 2, name: "Ella Brown", class_name: "Year 10A" },
   "3": { id: 3, name: "Noah Smith", class_name: "Year 10B" },
   "4": { id: 4, name: "Ruby Jones", class_name: "Year 10B" }
+};
+
+const demoTeachers = {
+  "teacher@test.com": {
+    id: 1,
+    name: "Demo Teacher",
+    email: "teacher@test.com",
+    password: "teacher123",
+    class_name: "Year 10A"
+  },
+  "baker@test.com": {
+    id: 2,
+    name: "Ms Baker",
+    email: "baker@test.com",
+    password: "teacher123",
+    class_name: "Year 10B"
+  }
 };
 
 router.get("/login", async (req, res) => {
@@ -27,106 +40,15 @@ router.get("/login", async (req, res) => {
   }
 });
 
-// Optional: keep this for later if you want DB seeding through the app
-router.get("/seed-demo-users", async (req, res) => {
-  try {
-    const teacherHash = await hashPassword("teacher123");
-
-    await db.execute({
-      sql: `INSERT OR IGNORE INTO teachers (name, email, password_hash, class_name) VALUES (?, ?, ?, ?)`,
-      args: ["Demo Teacher", "teacher@test.com", teacherHash, "Year 10A"]
-    });
-
-    await db.execute({
-      sql: `INSERT OR IGNORE INTO teachers (name, email, password_hash, class_name) VALUES (?, ?, ?, ?)`,
-      args: ["Ms Baker", "baker@test.com", teacherHash, "Year 10B"]
-    });
-
-    await db.execute({
-      sql: `INSERT OR IGNORE INTO students (name, email, class_name, password_hash) VALUES (?, ?, ?, ?)`,
-      args: ["Demo Student", "student@test.com", "Year 10A", "unused"]
-    });
-
-    await db.execute({
-      sql: `INSERT OR IGNORE INTO students (name, email, class_name, password_hash) VALUES (?, ?, ?, ?)`,
-      args: ["Ella Brown", "ella@test.com", "Year 10A", "unused"]
-    });
-
-    await db.execute({
-      sql: `INSERT OR IGNORE INTO students (name, email, class_name, password_hash) VALUES (?, ?, ?, ?)`,
-      args: ["Noah Smith", "noah@test.com", "Year 10B", "unused"]
-    });
-
-    await db.execute({
-      sql: `INSERT OR IGNORE INTO students (name, email, class_name, password_hash) VALUES (?, ?, ?, ?)`,
-      args: ["Ruby Jones", "ruby@test.com", "Year 10B", "unused"]
-    });
-
-    await db.execute({
-      sql: `INSERT OR IGNORE INTO assignments
-            (id, teacher_id, title, instructions, class_name, due_date, word_target, ai_policy_note, require_declaration)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      args: [
-        1,
-        1,
-        "AI and Academic Integrity Reflection",
-        "Write a reflection explaining how you used AI appropriately in this task.",
-        "Year 10A",
-        "2026-05-01",
-        400,
-        "Declare any pasted or AI-assisted content honestly.",
-        1
-      ]
-    });
-
-    await db.execute({
-      sql: `INSERT OR IGNORE INTO assignments
-            (id, teacher_id, title, instructions, class_name, due_date, word_target, ai_policy_note, require_declaration)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      args: [
-        2,
-        2,
-        "Evaluating Sources",
-        "Compare two sources and explain which is more reliable.",
-        "Year 10B",
-        "2026-05-08",
-        500,
-        "Use the declaration tools if you paste notes or use AI assistance.",
-        1
-      ]
-    });
-
-    res.send("Demo users seeded");
-  } catch (err) {
-    console.error("GET /seed-demo-users error:", err);
-    res.status(500).send("Failed to seed demo users");
-  }
-});
-
 router.post("/login", async (req, res) => {
   try {
     const { role } = req.body;
 
     if (role === "teacher") {
       const { email, password } = req.body;
+      const user = demoTeachers[String(email).toLowerCase()];
 
-      const result = await db.execute({
-        sql: `SELECT * FROM teachers WHERE email = ?`,
-        args: [email]
-      });
-
-      const user = result.rows[0];
-
-      if (!user) {
-        return res.render("login", {
-          error: "Invalid login details",
-          classes: fallbackClasses
-        });
-      }
-
-      const valid = await comparePassword(password, user.password_hash);
-
-      if (!valid) {
+      if (!user || user.password !== password) {
         return res.render("login", {
           error: "Invalid login details",
           classes: fallbackClasses
@@ -139,7 +61,7 @@ router.post("/login", async (req, res) => {
           id: user.id,
           name: user.name,
           role: "teacher",
-          class_name: user.class_name || ""
+          class_name: user.class_name
         },
         {
           signed: true,
@@ -151,7 +73,6 @@ router.post("/login", async (req, res) => {
       return res.redirect("/teacher/dashboard");
     }
 
-    // Student login: temporary DB-free mode
     const { studentId } = req.body;
     const student = demoStudents[String(studentId)];
 
