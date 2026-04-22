@@ -14,13 +14,20 @@ router.get("/students/by-class", async (req, res) => {
       sql: `
         SELECT id, name
         FROM students
-        WHERE class_name = ?
+        WHERE TRIM(class_name) = TRIM(?)
         ORDER BY name
       `,
       args: [className]
     });
 
-    res.json(result.rows || []);
+    // 🔥 FIX: convert array rows → objects
+    const students = (result.rows || []).map(row => ({
+      id: row.id ?? row[0],
+      name: row.name ?? row[1]
+    }));
+
+    res.json(students);
+
   } catch (err) {
     console.error("GET /api/students/by-class error:", err);
     res.status(500).json([]);
