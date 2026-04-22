@@ -49,9 +49,22 @@
       border-radius: 10px;
       margin-bottom: 14px;
     }
+    .success {
+      background: #dcfce7;
+      color: #166534;
+      padding: 10px 12px;
+      border-radius: 10px;
+      margin-bottom: 14px;
+    }
     .small {
       color: #666;
       font-size: 14px;
+    }
+    pre {
+      background: #f8fafc;
+      padding: 12px;
+      border-radius: 10px;
+      overflow: auto;
     }
   </style>
 </head>
@@ -61,6 +74,7 @@
       <h1>Manage Students</h1>
       <p><strong>Class:</strong> <%= classItem.class_name %></p>
       <p><strong>Year level:</strong> <%= classItem.year_level || "—" %></p>
+      <p><strong>Join code:</strong> <%= classItem.join_code || "—" %></p>
       <a class="button" href="/teacher/classes">Back to classes</a>
     </div>
 
@@ -69,6 +83,10 @@
 
       <% if (error) { %>
         <div class="error"><%= error %></div>
+      <% } %>
+
+      <% if (success) { %>
+        <div class="success"><%= success %></div>
       <% } %>
 
       <form method="POST" action="/teacher/classes/<%= classItem.id %>/students/new">
@@ -83,6 +101,22 @@
 
         <button class="button" type="submit">Add Student</button>
       </form>
+    </div>
+
+    <div class="card">
+      <h2>Bulk Import Students (CSV)</h2>
+      <p class="small">Upload a CSV with headers: <strong>name,email,pin</strong></p>
+
+      <form method="POST" action="/teacher/classes/<%= classItem.id %>/students/import" enctype="multipart/form-data">
+        <input type="file" name="csvFile" accept=".csv" required />
+        <button class="button" type="submit">Import CSV</button>
+      </form>
+
+      <p class="small" style="margin-top: 16px;">Example CSV:</p>
+      <pre>name,email,pin
+John Smith,john@example.com,1234
+Ella Brown,ella@example.com,1234
+Noah Smith,noah@example.com,4321</pre>
     </div>
 
     <div class="card">
