@@ -1,190 +1,136 @@
 import express from "express";
+import { db } from "../lib/db.js";
 import requireTeacher from "../middleware/requireTeacher.js";
 import { computeFlags, estimateComposition } from "../lib/flags.js";
 
 const router = express.Router();
 
-// Temporary hardcoded teacher-side data
-const demoAssignmentsByClass = {
-  "Year 10A": [
-    {
-      id: 1,
-      teacher_id: 1,
-      title: "AI and Academic Integrity Reflection",
-      instructions: "Write a reflection explaining how you used AI appropriately in this task.",
-      class_name: "Year 10A",
-      due_date: "2026-05-01"
-    }
-  ],
-  "Year 10B": [
-    {
-      id: 2,
-      teacher_id: 2,
-      title: "Evaluating Sources",
-      instructions: "Compare two sources and explain which is more reliable.",
-      class_name: "Year 10B",
-      due_date: "2026-05-08"
-    }
-  ]
-};
+function normalizeRow(row, keys = []) {
+  if (!row) return {};
+  if (!Array.isArray(row)) return row;
 
-const demoSubmissionsByClass = {
-  "Year 10A": [
-    {
-      id: 1,
-      status: "submitted",
-      submitted_at: "2026-04-21 10:15:00",
-      final_text: "<p>I used AI to help me check my grammar and improve my wording. I wrote the main ideas myself and then edited the suggestions before submitting.</p>",
-      student_name: "Demo Student",
-      class_name: "Year 10A",
-      assignment_title: "AI and Academic Integrity Reflection",
-      assignment_id: 1
-    },
-    {
-      id: 2,
-      status: "draft",
-      submitted_at: null,
-      final_text: "<p>I copied some research notes and then rewrote them in my own words.</p>",
-      student_name: "Ella Brown",
-      class_name: "Year 10A",
-      assignment_title: "AI and Academic Integrity Reflection",
-      assignment_id: 1
-    }
-  ],
-  "Year 10B": [
-    {
-      id: 3,
-      status: "submitted",
-      submitted_at: "2026-04-21 09:05:00",
-      final_text: "<p>Source A is more reliable because it is current and written by an expert author.</p>",
-      student_name: "Noah Smith",
-      class_name: "Year 10B",
-      assignment_title: "Evaluating Sources",
-      assignment_id: 2
-    },
-    {
-      id: 4,
-      status: "draft",
-      submitted_at: null,
-      final_text: "<p>I am still comparing the two websites before deciding which source is stronger.</p>",
-      student_name: "Ruby Jones",
-      class_name: "Year 10B",
-      assignment_title: "Evaluating Sources",
-      assignment_id: 2
-    }
-  ]
-};
-
-const demoEventsBySubmission = {
-  1: [
-    {
-      event_type: "paste",
-      event_meta: JSON.stringify({ pastedLength: 120, pastedPreview: "AI improved sentence..." }),
-      created_at: "2026-04-21 10:05:00"
-    },
-    {
-      event_type: "autosave",
-      event_meta: JSON.stringify({ wordCount: 85 }),
-      created_at: "2026-04-21 10:10:00"
-    }
-  ],
-  2: [
-    {
-      event_type: "paste",
-      event_meta: JSON.stringify({ pastedLength: 220, pastedPreview: "research notes..." }),
-      created_at: "2026-04-21 09:55:00"
-    }
-  ],
-  3: [],
-  4: []
-};
-
-const demoDeclarationsBySubmission = {
-  1: [
-    {
-      declaration_type: "ai_modified",
-      tool_name: "ChatGPT",
-      prompt_text: "Improve grammar and clarity",
-      original_text_excerpt: "I used AI to improve grammar",
-      student_explanation: "I wrote the ideas and used AI to improve my wording.",
-      created_at: "2026-04-21 10:06:00"
-    }
-  ],
-  2: [
-    {
-      declaration_type: "pasted_research",
-      tool_name: "",
-      prompt_text: "",
-      original_text_excerpt: "Copied research notes",
-      student_explanation: "I used notes and planned to rewrite them.",
-      created_at: "2026-04-21 09:56:00"
-    }
-  ],
-  3: [],
-  4: []
-};
-
-const demoSessionsBySubmission = {
-  1: [
-    {
-      started_at: "2026-04-21 10:00:00",
-      ended_at: "2026-04-21 10:15:00",
-      active_seconds: 600,
-      idle_seconds: 60
-    }
-  ],
-  2: [
-    {
-      started_at: "2026-04-21 09:50:00",
-      ended_at: "2026-04-21 10:00:00",
-      active_seconds: 240,
-      idle_seconds: 120
-    }
-  ],
-  3: [
-    {
-      started_at: "2026-04-21 08:55:00",
-      ended_at: "2026-04-21 09:05:00",
-      active_seconds: 420,
-      idle_seconds: 20
-    }
-  ],
-  4: []
-};
-
-const demoSnapshotsBySubmission = {
-  1: [
-    {
-      id: 1,
-      content: "<p>I used AI to check my grammar.</p>",
-      word_count: 9,
-      saved_at: "2026-04-21 10:05:00"
-    },
-    {
-      id: 2,
-      content: "<p>I used AI to help me check my grammar and improve my wording. I wrote the main ideas myself and then edited the suggestions before submitting.</p>",
-      word_count: 24,
-      saved_at: "2026-04-21 10:12:00"
-    }
-  ],
-  2: [],
-  3: [],
-  4: []
-};
+  const obj = {};
+  keys.forEach((key, i) => {
+    obj[key] = row[i];
+  });
+  return obj;
+}
 
 router.get("/dashboard", requireTeacher, async (req, res) => {
   try {
     const teacher = req.signedCookies.user;
-    const selectedClass = teacher.class_name || req.query.class || "Year 10A";
+    const selectedClass = teacher.class_name || req.query.class || "";
     const flaggedOnly = req.query.flagged === "1";
 
-    const assignments = demoAssignmentsByClass[selectedClass] || [];
-    const submissions = demoSubmissionsByClass[selectedClass] || [];
+    const assignmentResult = await db.execute({
+      sql: `
+        SELECT id, teacher_id, title, instructions, class_name, due_date, word_target, ai_policy_note, require_declaration, created_at
+        FROM assignments
+        WHERE teacher_id = ? AND class_name = ?
+        ORDER BY created_at DESC
+      `,
+      args: [teacher.id, selectedClass]
+    });
 
-    const enriched = submissions.map((row) => {
-      const events = demoEventsBySubmission[row.id] || [];
-      const declarations = demoDeclarationsBySubmission[row.id] || [];
-      const sessions = demoSessionsBySubmission[row.id] || [];
+    const assignments = (assignmentResult.rows || []).map((row) =>
+      normalizeRow(row, [
+        "id",
+        "teacher_id",
+        "title",
+        "instructions",
+        "class_name",
+        "due_date",
+        "word_target",
+        "ai_policy_note",
+        "require_declaration",
+        "created_at"
+      ])
+    );
+
+    const submissionsResult = await db.execute({
+      sql: `
+        SELECT
+          sub.id,
+          sub.status,
+          sub.submitted_at,
+          sub.final_text,
+          s.name AS student_name,
+          s.class_name,
+          a.title AS assignment_title,
+          a.id AS assignment_id
+        FROM submissions sub
+        JOIN students s ON s.id = sub.student_id
+        JOIN assignments a ON a.id = sub.assignment_id
+        WHERE a.teacher_id = ? AND a.class_name = ?
+        ORDER BY sub.created_at DESC
+      `,
+      args: [teacher.id, selectedClass]
+    });
+
+    const submissionsRaw = (submissionsResult.rows || []).map((row) =>
+      normalizeRow(row, [
+        "id",
+        "status",
+        "submitted_at",
+        "final_text",
+        "student_name",
+        "class_name",
+        "assignment_title",
+        "assignment_id"
+      ])
+    );
+
+    const enriched = [];
+    for (const row of submissionsRaw) {
+      const [eventsResult, declarationsResult, sessionsResult] = await Promise.all([
+        db.execute({
+          sql: `SELECT event_type, event_meta, created_at FROM editor_events WHERE submission_id = ? ORDER BY created_at ASC`,
+          args: [row.id]
+        }),
+        db.execute({
+          sql: `
+            SELECT declaration_type, tool_name, prompt_text, original_text_excerpt, student_explanation, created_at
+            FROM source_declarations
+            WHERE submission_id = ?
+            ORDER BY created_at ASC
+          `,
+          args: [row.id]
+        }),
+        db.execute({
+          sql: `
+            SELECT started_at, ended_at, active_seconds, idle_seconds, device_info
+            FROM writing_sessions
+            WHERE submission_id = ?
+            ORDER BY started_at ASC
+          `,
+          args: [row.id]
+        })
+      ]);
+
+      const events = (eventsResult.rows || []).map((row) =>
+        normalizeRow(row, ["event_type", "event_meta", "created_at"])
+      );
+
+      const declarations = (declarationsResult.rows || []).map((row) =>
+        normalizeRow(row, [
+          "declaration_type",
+          "tool_name",
+          "prompt_text",
+          "original_text_excerpt",
+          "student_explanation",
+          "created_at"
+        ])
+      );
+
+      const sessions = (sessionsResult.rows || []).map((row) =>
+        normalizeRow(row, [
+          "started_at",
+          "ended_at",
+          "active_seconds",
+          "idle_seconds",
+          "device_info"
+        ])
+      );
 
       const flags = computeFlags({
         events,
@@ -193,18 +139,18 @@ router.get("/dashboard", requireTeacher, async (req, res) => {
         finalText: row.final_text || ""
       });
 
-      return { ...row, flags };
-    });
+      enriched.push({ ...row, flags });
+    }
 
-    const rows = flaggedOnly
+    const submissions = flaggedOnly
       ? enriched.filter((r) => r.flags.length > 0)
       : enriched;
 
     res.render("teacher-dashboard", {
       teacher,
       assignments,
-      submissions: rows,
-      classes: [selectedClass],
+      submissions,
+      classes: selectedClass ? [selectedClass] : [],
       selectedClass,
       flaggedOnly
     });
@@ -218,19 +164,114 @@ router.get("/submission/:id", requireTeacher, async (req, res) => {
   try {
     const teacher = req.signedCookies.user;
     const submissionId = Number(req.params.id);
-    const selectedClass = teacher.class_name || "Year 10A";
 
-    const submissions = demoSubmissionsByClass[selectedClass] || [];
-    const submission = submissions.find((s) => s.id === submissionId);
+    const submissionResult = await db.execute({
+      sql: `
+        SELECT
+          sub.id,
+          sub.assignment_id,
+          sub.student_id,
+          sub.final_text,
+          sub.status,
+          sub.submitted_at,
+          s.name AS student_name,
+          s.email AS student_email,
+          s.class_name,
+          a.title AS assignment_title,
+          a.instructions
+        FROM submissions sub
+        JOIN students s ON s.id = sub.student_id
+        JOIN assignments a ON a.id = sub.assignment_id
+        WHERE sub.id = ? AND a.teacher_id = ? AND a.class_name = ?
+      `,
+      args: [submissionId, teacher.id, teacher.class_name || ""]
+    });
 
-    if (!submission) {
+    const submission = normalizeRow(submissionResult.rows?.[0], [
+      "id",
+      "assignment_id",
+      "student_id",
+      "final_text",
+      "status",
+      "submitted_at",
+      "student_name",
+      "student_email",
+      "class_name",
+      "assignment_title",
+      "instructions"
+    ]);
+
+    if (!submission.id) {
       return res.status(404).send("Submission not found");
     }
 
-    const sessions = demoSessionsBySubmission[submissionId] || [];
-    const events = demoEventsBySubmission[submissionId] || [];
-    const declarations = demoDeclarationsBySubmission[submissionId] || [];
-    const snapshots = demoSnapshotsBySubmission[submissionId] || [];
+    const [sessionsResult, eventsResult, declarationsResult, snapshotsResult] = await Promise.all([
+      db.execute({
+        sql: `
+          SELECT started_at, ended_at, active_seconds, idle_seconds, device_info
+          FROM writing_sessions
+          WHERE submission_id = ?
+          ORDER BY started_at ASC
+        `,
+        args: [submissionId]
+      }),
+      db.execute({
+        sql: `
+          SELECT event_type, event_meta, created_at
+          FROM editor_events
+          WHERE submission_id = ?
+          ORDER BY created_at ASC
+        `,
+        args: [submissionId]
+      }),
+      db.execute({
+        sql: `
+          SELECT declaration_type, tool_name, prompt_text, original_text_excerpt, student_explanation, created_at
+          FROM source_declarations
+          WHERE submission_id = ?
+          ORDER BY created_at ASC
+        `,
+        args: [submissionId]
+      }),
+      db.execute({
+        sql: `
+          SELECT id, content, word_count, saved_at
+          FROM draft_snapshots
+          WHERE submission_id = ?
+          ORDER BY saved_at ASC
+        `,
+        args: [submissionId]
+      })
+    ]);
+
+    const sessions = (sessionsResult.rows || []).map((row) =>
+      normalizeRow(row, [
+        "started_at",
+        "ended_at",
+        "active_seconds",
+        "idle_seconds",
+        "device_info"
+      ])
+    );
+
+    const events = (eventsResult.rows || []).map((row) =>
+      normalizeRow(row, ["event_type", "event_meta", "created_at"])
+    );
+
+    const declarations = (declarationsResult.rows || []).map((row) =>
+      normalizeRow(row, [
+        "declaration_type",
+        "tool_name",
+        "prompt_text",
+        "original_text_excerpt",
+        "student_explanation",
+        "created_at"
+      ])
+    );
+
+    const snapshots = (snapshotsResult.rows || []).map((row) =>
+      normalizeRow(row, ["id", "content", "word_count", "saved_at"])
+    );
 
     const composition = estimateComposition({
       events,
@@ -247,21 +288,7 @@ router.get("/submission/:id", requireTeacher, async (req, res) => {
     });
 
     res.render("teacher-review", {
-      submission: {
-        ...submission,
-        student_email:
-          submission.student_name === "Demo Student"
-            ? "student@test.com"
-            : submission.student_name === "Ella Brown"
-            ? "ella@test.com"
-            : submission.student_name === "Noah Smith"
-            ? "noah@test.com"
-            : "ruby@test.com",
-        instructions:
-          selectedClass === "Year 10A"
-            ? "Write a reflection explaining how you used AI appropriately in this task."
-            : "Compare two sources and explain which is more reliable."
-      },
+      submission,
       sessions,
       events,
       declarations,
