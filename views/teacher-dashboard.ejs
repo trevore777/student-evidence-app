@@ -1,72 +1,104 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Teacher Dashboard</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <link rel="stylesheet" href="/css/styles.css" />
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      background: #f4f6f8;
+      color: #222;
+    }
+
+    .container {
+      max-width: 1000px;
+      margin: 30px auto;
+      padding: 20px;
+    }
+
+    .card {
+      background: #fff;
+      border-radius: 14px;
+      padding: 20px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+      margin-bottom: 16px;
+    }
+
+    .button {
+      display: inline-block;
+      padding: 10px 14px;
+      background: #1d4ed8;
+      color: #fff;
+      text-decoration: none;
+      border-radius: 10px;
+      margin-top: 10px;
+    }
+
+    .small {
+      font-size: 14px;
+      color: #666;
+    }
+
+    .flag {
+      display: inline-block;
+      background: #fee2e2;
+      color: #991b1b;
+      padding: 4px 8px;
+      border-radius: 8px;
+      font-size: 12px;
+      margin-right: 6px;
+    }
+  </style>
 </head>
 <body>
   <main class="container">
-    <header class="row-between wrap">
-      <div>
-        <h1>Teacher Dashboard</h1>
-        <p class="small">Signed in as <strong><%= teacher.name %></strong> for <strong><%= teacher.class_name || 'Unassigned class' %></strong>.</p>
-      </div>
-      <div class="row gap wrap">
-        <a class="button-link auto-width" href="/teacher/assignments/new">New assignment</a>
-        <a class="button-link auto-width secondary" href="/logout">Logout</a>
-      </div>
-    </header>
+    <div class="card">
+      <h1>Teacher Dashboard</h1>
+      <p><strong>Teacher:</strong> <%= teacher.name %></p>
+      <p><strong>Class:</strong> <%= selectedClass %></p>
+      <a class="button" href="/logout">Logout</a>
+    </div>
 
-    <section class="stats-grid">
-      <div class="card stat-card"><strong><%= assignments.length %></strong><span>Assignments</span></div>
-      <div class="card stat-card"><strong><%= submissions.filter(s => s.status === 'submitted').length %></strong><span>Submitted</span></div>
-      <div class="card stat-card"><strong><%= submissions.filter(s => s.flags.length > 0).length %></strong><span>Flagged</span></div>
-    </section>
+    <div class="card">
+      <h2>Assignments</h2>
+      <% if (!assignments || !assignments.length) { %>
+        <p>No assignments found.</p>
+      <% } %>
 
-    <section class="card">
-      <form class="row gap wrap" method="GET" action="/teacher/dashboard">
-        <input type="hidden" name="class" value="<%= selectedClass %>" />
-        <label class="checkbox-row">
-          <input type="checkbox" name="flagged" value="1" <%= flaggedOnly ? 'checked' : '' %> />
-          Flagged only
-        </label>
-        <button type="submit" class="auto-width">Apply filters</button>
-      </form>
-    </section>
-
-    <section class="card">
-      <h2>Assignments for <%= selectedClass %></h2>
-      <% if (!assignments.length) { %><p>No assignments yet for this class.</p><% } %>
-      <% assignments.forEach(a => { %>
-        <div class="assignment-item">
+      <% (assignments || []).forEach(a => { %>
+        <div style="margin-bottom: 18px; padding-bottom: 18px; border-bottom: 1px solid #ddd;">
           <h3><%= a.title %></h3>
-          <p class="small"><strong>Class:</strong> <%= a.class_name %> | <strong>Due:</strong> <%= a.due_date || 'No due date' %></p>
+          <p><%= a.instructions %></p>
+          <p class="small">Due: <%= a.due_date || "No due date" %></p>
         </div>
       <% }) %>
-    </section>
+    </div>
 
-    <section class="card">
+    <div class="card">
       <h2>Submissions</h2>
-      <% if (!submissions.length) { %><p>No submissions match the current filters.</p><% } %>
-      <% submissions.forEach(s => { %>
-        <div class="assignment-item">
-          <div class="row-between wrap gap">
-            <div>
-              <h3><%= s.student_name %> — <%= s.assignment_title %></h3>
-              <p class="small"><strong>Class:</strong> <%= s.class_name %> | <strong>Status:</strong> <%= s.status %> | <strong>Submitted:</strong> <%= s.submitted_at || 'Not yet' %></p>
-              <p class="small"><strong>Flags:</strong> <%= s.flags.length %></p>
-              <% if (s.flags.length) { %>
-                <ul class="flag-list compact">
-                  <% s.flags.forEach(flag => { %><li class="flag <%= flag.severity %>"><%= flag.message %></li><% }) %>
-                </ul>
-              <% } %>
+      <% if (!submissions || !submissions.length) { %>
+        <p>No submissions found.</p>
+      <% } %>
+
+      <% (submissions || []).forEach(s => { %>
+        <div style="margin-bottom: 18px; padding-bottom: 18px; border-bottom: 1px solid #ddd;">
+          <h3><%= s.student_name %> — <%= s.assignment_title %></h3>
+          <p class="small">Status: <%= s.status %> | Submitted: <%= s.submitted_at || "Not yet submitted" %></p>
+
+          <% if (s.flags && s.flags.length) { %>
+            <div style="margin: 8px 0;">
+              <% s.flags.forEach(flag => { %>
+                <span class="flag"><%= flag.flag_code %></span>
+              <% }) %>
             </div>
-            <a class="button-link auto-width" href="/teacher/submission/<%= s.id %>">Open review</a>
-          </div>
+          <% } %>
+
+          <a class="button" href="/teacher/submission/<%= s.id %>">Review submission</a>
         </div>
       <% }) %>
-    </section>
+    </div>
   </main>
 </body>
 </html>

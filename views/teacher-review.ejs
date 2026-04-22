@@ -1,140 +1,132 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Teacher Review</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <link rel="stylesheet" href="/css/styles.css" />
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      background: #f4f6f8;
+      color: #222;
+    }
+
+    .container {
+      max-width: 1000px;
+      margin: 30px auto;
+      padding: 20px;
+    }
+
+    .card {
+      background: #fff;
+      border-radius: 14px;
+      padding: 20px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+      margin-bottom: 16px;
+    }
+
+    .button {
+      display: inline-block;
+      padding: 10px 14px;
+      background: #1d4ed8;
+      color: #fff;
+      text-decoration: none;
+      border-radius: 10px;
+      margin-top: 10px;
+      border: none;
+      cursor: pointer;
+    }
+
+    .small {
+      font-size: 14px;
+      color: #666;
+    }
+
+    .flag {
+      display: inline-block;
+      background: #fee2e2;
+      color: #991b1b;
+      padding: 4px 8px;
+      border-radius: 8px;
+      font-size: 12px;
+      margin-right: 6px;
+    }
+
+    textarea {
+      width: 100%;
+      min-height: 120px;
+      padding: 12px;
+      border-radius: 10px;
+      border: 1px solid #ccc;
+      box-sizing: border-box;
+      margin-top: 6px;
+    }
+
+    .final-text {
+      background: #f9fafb;
+      padding: 16px;
+      border-radius: 10px;
+      border: 1px solid #ddd;
+    }
+  </style>
 </head>
 <body>
   <main class="container">
-    <header class="row-between wrap">
-      <div>
-        <h1><%= submission.assignment_title %></h1>
-        <p class="small"><strong>Student:</strong> <%= submission.student_name %> | <strong>Class:</strong> <%= submission.class_name %></p>
-      </div>
-      <a class="button-link auto-width" href="/teacher/dashboard">Back</a>
-    </header>
+    <div class="card">
+      <h1>Teacher Review</h1>
+      <p><strong>Student:</strong> <%= submission.student_name %></p>
+      <p><strong>Assignment:</strong> <%= submission.assignment_title %></p>
+      <p><strong>Email:</strong> <%= submission.student_email %></p>
+      <p class="small">Status: <%= submission.status %> | Submitted: <%= submission.submitted_at || "Not yet submitted" %></p>
+      <a class="button" href="/teacher/dashboard">Back</a>
+    </div>
 
-    <section class="card">
-      <h2>Estimated composition of submission</h2>
-      <div class="composition-grid">
-        <div class="composition-card">
-          <div class="composition-label">Estimated own work</div>
-          <div class="composition-value"><%= composition.ownPercent %>%</div>
-        </div>
-        <div class="composition-card">
-          <div class="composition-label">Estimated copy and paste</div>
-          <div class="composition-value"><%= composition.pastePercent %>%</div>
-        </div>
-        <div class="composition-card">
-          <div class="composition-label">Declared AI-assisted</div>
-          <div class="composition-value"><%= composition.aiPercent %>%</div>
-        </div>
-        <div class="composition-card">
-          <div class="composition-label">Confidence</div>
-          <div class="composition-value composition-small"><%= composition.confidence %></div>
-        </div>
-      </div>
-      <p class="small top-gap">These percentages are estimates based on writing activity, paste events, and student declarations. They are not proof of authorship.</p>
-    </section>
+    <div class="card">
+      <h2>Estimated Composition</h2>
+      <p><strong>Own work:</strong> <%= composition.own_work_percent %>%</p>
+      <p><strong>Copy and paste:</strong> <%= composition.paste_percent %>%</p>
+      <p><strong>AI declared:</strong> <%= composition.ai_declared_percent %>%</p>
+      <p><strong>Confidence:</strong> <%= composition.confidence %></p>
+    </div>
 
-    <section class="card">
+    <div class="card">
       <h2>Flags</h2>
-      <% if (!flags.length) { %>
-        <p>No flags generated for this submission.</p>
-      <% } else { %>
-        <ul class="flag-list">
-          <% flags.forEach(flag => { %><li class="flag <%= flag.severity %>"><strong><%= flag.code %>:</strong> <%= flag.message %></li><% }) %>
-        </ul>
+      <% if (!flags || !flags.length) { %>
+        <p>No flags raised.</p>
       <% } %>
-    </section>
 
-    <section class="card">
-      <h2>Email feedback to student</h2>
-      <p><strong>Student email:</strong> <%= submission.student_email || 'No email found' %></p>
+      <% (flags || []).forEach(flag => { %>
+        <span class="flag"><%= flag.flag_code %></span>
+      <% }) %>
+    </div>
+
+    <div class="card">
+      <h2>Final Submission</h2>
+      <div class="final-text"><%- submission.final_text %></div>
+    </div>
+
+    <div class="card">
+      <h2>Feedback to Student</h2>
 
       <label for="good-notes">What you did well</label>
-      <textarea id="good-notes" rows="4" placeholder="Add strengths here..."></textarea>
+      <textarea id="good-notes"></textarea>
 
       <label for="bad-notes">What needs improvement</label>
-      <textarea id="bad-notes" rows="4" placeholder="Add areas for improvement here..."></textarea>
+      <textarea id="bad-notes"></textarea>
 
       <label for="ugly-notes">Most important next step</label>
-      <textarea id="ugly-notes" rows="4" placeholder="Add the main concern or next step here..."></textarea>
+      <textarea id="ugly-notes"></textarea>
 
-      <div class="row gap wrap" style="margin-top: 12px;">
-        <button type="button" id="generate-ai-email-btn" class="auto-width">Generate AI Email Draft</button>
-        <button type="button" id="create-email-btn" class="auto-width">Create Email to Student</button>
-      </div>
+      <button class="button" id="create-email-btn" type="button">Create Email to Student</button>
+    </div>
 
-      <label for="ai-email-draft" style="margin-top: 12px;">AI draft email</label>
-      <textarea id="ai-email-draft" rows="12" placeholder="AI draft will appear here. You can edit it before creating the email."></textarea>
-
-      <div class="row gap" style="margin-top: 12px;">
-        <button type="button" id="create-email-from-ai-btn" class="auto-width">Create Email from AI Draft</button>
-      </div>
-
-      <p class="small">Use Generate AI Email Draft to draft a professional email based on the submission, flags, declarations, and your notes. The teacher still reviews the wording before sending.</p>
-    </section>
-
-    <section class="card">
-      <h2>Final text</h2>
-      <div class="rich-preview"><%- submission.final_text || "<p>No submission text.</p>" %></div>
-      <details class="top-gap">
-        <summary>View HTML source</summary>
-        <pre class="final-text"><%= submission.final_text %></pre>
-      </details>
-    </section>
-
-    <section class="card">
-      <h2>Writing sessions</h2>
-      <% sessions.forEach(s => { %>
-        <div class="timeline-item">
-          <p><strong>Started:</strong> <%= s.started_at %></p>
-          <p><strong>Ended:</strong> <%= s.ended_at || 'Still open' %></p>
-          <p><strong>Active seconds:</strong> <%= s.active_seconds %> | <strong>Idle seconds:</strong> <%= s.idle_seconds %></p>
-        </div>
-      <% }) %>
-    </section>
-
-    <section class="card">
-      <h2>Editor events</h2>
-      <% events.forEach(e => { %>
-        <div class="timeline-item">
-          <p><strong><%= e.event_type %></strong> — <%= e.created_at %></p>
-          <pre><%= e.event_meta %></pre>
-        </div>
-      <% }) %>
-    </section>
-
-    <section class="card">
-      <h2>Source declarations</h2>
-      <% declarations.forEach(d => { %>
-        <div class="timeline-item">
-          <p><strong>Type:</strong> <%= d.declaration_type %></p>
-          <p><strong>Tool:</strong> <%= d.tool_name || '-' %></p>
-          <p><strong>Prompt:</strong> <%= d.prompt_text || '-' %></p>
-          <p><strong>Explanation:</strong> <%= d.student_explanation || '-' %></p>
-        </div>
-      <% }) %>
-    </section>
-
-    <section class="card">
-      <h2>Snapshots</h2>
-      <% snapshots.forEach(s => { %>
-        <div class="timeline-item">
-          <p><strong>Saved:</strong> <%= s.saved_at %> | <strong>Words:</strong> <%= s.word_count %></p>
-          <details>
-            <summary>View snapshot</summary>
-            <div class="rich-preview top-gap"><%- s.content %></div>
-            <details class="top-gap">
-              <summary>View HTML source</summary>
-              <pre class="final-text"><%= s.content %></pre>
-            </details>
-          </details>
-        </div>
-      <% }) %>
-    </section>
+    <div class="card">
+      <h2>AI Email Draft</h2>
+      <textarea id="ai-email-draft" placeholder="AI draft area"></textarea>
+      <button class="button" id="generate-ai-email-btn" type="button">Generate AI Email Draft</button>
+      <button class="button" id="create-email-from-ai-btn" type="button">Create Email from AI Draft</button>
+    </div>
   </main>
 
   <script>
@@ -143,16 +135,17 @@
     const createEmailFromAiBtn = document.getElementById("create-email-from-ai-btn");
     const aiEmailDraft = document.getElementById("ai-email-draft");
 
-    function buildManualBody() {
+    createEmailBtn?.addEventListener("click", () => {
       const studentName = <%- JSON.stringify(submission.student_name || "") %>;
+      const studentEmail = <%- JSON.stringify(submission.student_email || "") %>;
       const assignmentTitle = <%- JSON.stringify(submission.assignment_title || "Your submission") %>;
+
       const good = document.getElementById("good-notes").value.trim();
       const bad = document.getElementById("bad-notes").value.trim();
       const ugly = document.getElementById("ugly-notes").value.trim();
 
-      return `Hi ${studentName},
-
-Thank you for submitting your work for "${assignmentTitle}".
+      const subject = `Feedback on ${assignmentTitle}`;
+      const body = `Hi ${studentName},
 
 What you did well:
 ${good || "-"}
@@ -163,80 +156,45 @@ ${bad || "-"}
 Most important next step:
 ${ugly || "-"}
 
-Please use this feedback to improve your future work.
+Regards,
+Teacher`;
+
+      const mailto = `mailto:${encodeURIComponent(studentEmail)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+      window.location.href = mailto;
+    });
+
+    generateAiEmailBtn?.addEventListener("click", () => {
+      const studentName = <%- JSON.stringify(submission.student_name || "") %>;
+      const assignmentTitle = <%- JSON.stringify(submission.assignment_title || "") %>;
+
+      const good = document.getElementById("good-notes").value.trim();
+      const bad = document.getElementById("bad-notes").value.trim();
+      const ugly = document.getElementById("ugly-notes").value.trim();
+
+      aiEmailDraft.value = `Hi ${studentName},
+
+Thank you for your work on "${assignmentTitle}".
+
+What you did well:
+${good || "You made a clear start and submitted work for review."}
+
+What needs improvement:
+${bad || "Keep developing your ideas with more detail and revision."}
+
+Most important next step:
+${ugly || "Revise your draft and strengthen your explanation before final submission."}
 
 Regards,
 Teacher`;
-    }
-
-    function openEmail(bodyText) {
-      const studentEmail = <%- JSON.stringify(submission.student_email || "") %>;
-      const assignmentTitle = <%- JSON.stringify(submission.assignment_title || "Your submission") %>;
-
-      if (!studentEmail) {
-        alert("This student does not have an email address saved.");
-        return;
-      }
-
-      const subject = `Feedback on ${assignmentTitle}`;
-      const mailto = `mailto:${encodeURIComponent(studentEmail)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(bodyText)}`;
-      window.location.href = mailto;
-    }
-
-    createEmailBtn?.addEventListener("click", () => {
-      openEmail(buildManualBody());
-    });
-
-    generateAiEmailBtn?.addEventListener("click", async () => {
-      const studentName = <%- JSON.stringify(submission.student_name || "") %>;
-      const studentEmail = <%- JSON.stringify(submission.student_email || "") %>;
-      const assignmentTitle = <%- JSON.stringify(submission.assignment_title || "") %>;
-      const finalText = <%- JSON.stringify(submission.final_text || "") %>;
-      const flags = <%- JSON.stringify(flags || []) %>;
-      const declarations = <%- JSON.stringify(declarations || []) %>;
-      const composition = <%- JSON.stringify(composition || {}) %>;
-
-      const goodNotes = document.getElementById("good-notes")?.value.trim() || "";
-      const badNotes = document.getElementById("bad-notes")?.value.trim() || "";
-      const uglyNotes = document.getElementById("ugly-notes")?.value.trim() || "";
-
-      aiEmailDraft.value = "Generating AI draft...";
-
-      try {
-        const res = await fetch("/api/ai/generate-feedback-email", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            studentName,
-            studentEmail,
-            assignmentTitle,
-            finalText,
-            flags,
-            declarations,
-            composition,
-            goodNotes,
-            badNotes,
-            uglyNotes
-          })
-        });
-
-        const data = await res.json();
-
-        if (!data.ok) {
-          aiEmailDraft.value = data.error || "Could not generate AI draft.";
-          return;
-        }
-
-        aiEmailDraft.value = data.draft || "Could not generate AI draft.";
-      } catch (err) {
-        console.error(err);
-        aiEmailDraft.value = "Could not generate AI draft.";
-      }
     });
 
     createEmailFromAiBtn?.addEventListener("click", () => {
-      const body = aiEmailDraft.value.trim() || buildManualBody();
-      openEmail(body);
+      const studentEmail = <%- JSON.stringify(submission.student_email || "") %>;
+      const assignmentTitle = <%- JSON.stringify(submission.assignment_title || "Your submission") %>;
+      const body = aiEmailDraft.value.trim();
+
+      const mailto = `mailto:${encodeURIComponent(studentEmail)}?subject=${encodeURIComponent(`Feedback on ${assignmentTitle}`)}&body=${encodeURIComponent(body)}`;
+      window.location.href = mailto;
     });
   </script>
 </body>
