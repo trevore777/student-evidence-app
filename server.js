@@ -10,9 +10,8 @@ import authRoutes from "./routes/auth.js";
 import studentRoutes from "./routes/student.js";
 import teacherRoutes from "./routes/teacher.js";
 import assignmentRoutes from "./routes/assignments.js";
-import apiRoutes from "./routes/api.js";
 import classRoutes from "./routes/classes.js";
-app.use("/teacher/classes", classRoutes);
+import apiRoutes from "./routes/api.js";
 
 dotenv.config();
 
@@ -67,8 +66,19 @@ if (process.env.NODE_ENV !== "production") {
       `);
 
       await db.execute(`
+        CREATE TABLE IF NOT EXISTS classes (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          teacher_id INTEGER NOT NULL,
+          class_name TEXT NOT NULL,
+          year_level TEXT,
+          created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+
+      await db.execute(`
         CREATE TABLE IF NOT EXISTS students (
           id INTEGER PRIMARY KEY AUTOINCREMENT,
+          class_id INTEGER,
           name TEXT NOT NULL,
           email TEXT,
           class_name TEXT NOT NULL,
@@ -82,6 +92,7 @@ if (process.env.NODE_ENV !== "production") {
         CREATE TABLE IF NOT EXISTS assignments (
           id INTEGER PRIMARY KEY AUTOINCREMENT,
           teacher_id INTEGER NOT NULL,
+          class_id INTEGER,
           title TEXT NOT NULL,
           instructions TEXT NOT NULL,
           class_name TEXT NOT NULL,
@@ -165,7 +176,9 @@ if (process.env.NODE_ENV !== "production") {
       `);
 
       try { await db.execute(`ALTER TABLE students ADD COLUMN student_pin TEXT`); } catch {}
+      try { await db.execute(`ALTER TABLE students ADD COLUMN class_id INTEGER`); } catch {}
       try { await db.execute(`ALTER TABLE teachers ADD COLUMN class_name TEXT`); } catch {}
+      try { await db.execute(`ALTER TABLE assignments ADD COLUMN class_id INTEGER`); } catch {}
       try { await db.execute(`ALTER TABLE assignments ADD COLUMN word_target INTEGER`); } catch {}
       try { await db.execute(`ALTER TABLE assignments ADD COLUMN ai_policy_note TEXT`); } catch {}
       try { await db.execute(`ALTER TABLE assignments ADD COLUMN require_declaration INTEGER NOT NULL DEFAULT 1`); } catch {}
@@ -188,6 +201,7 @@ app.use("/", authRoutes);
 app.use("/student", studentRoutes);
 app.use("/teacher", teacherRoutes);
 app.use("/teacher/assignments", assignmentRoutes);
+app.use("/teacher/classes", classRoutes);
 app.use("/api", apiRoutes);
 
 // error handling
