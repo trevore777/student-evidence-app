@@ -11,27 +11,34 @@
       background: #f4f6f8;
       color: #222;
     }
+
     .container {
       max-width: 520px;
       margin: 40px auto;
       padding: 20px;
     }
+
     .card {
       background: #fff;
       border-radius: 14px;
       padding: 20px;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
     }
+
     h1 {
       margin-top: 0;
       font-size: 2rem;
     }
+
     label {
       display: block;
       margin: 12px 0 6px;
       font-weight: 600;
     }
-    input, select, button {
+
+    input,
+    select,
+    button {
       width: 100%;
       padding: 12px;
       font-size: 16px;
@@ -39,6 +46,7 @@
       border: 1px solid #ccc;
       box-sizing: border-box;
     }
+
     button {
       margin-top: 18px;
       background: #1d4ed8;
@@ -46,6 +54,11 @@
       border: none;
       cursor: pointer;
     }
+
+    button:hover {
+      background: #1e40af;
+    }
+
     .error {
       background: #fee2e2;
       color: #991b1b;
@@ -53,10 +66,15 @@
       border-radius: 10px;
       margin-bottom: 14px;
     }
+
     .small {
       margin-top: 14px;
       font-size: 14px;
       color: #555;
+    }
+
+    .hidden {
+      display: none;
     }
   </style>
 </head>
@@ -76,7 +94,7 @@
           <option value="teacher">Teacher</option>
         </select>
 
-        <div id="teacher-fields" style="display:none;">
+        <div id="teacher-fields" class="hidden">
           <label for="teacher-email">Email</label>
           <input id="teacher-email" type="email" name="email" />
 
@@ -103,8 +121,7 @@
       </form>
 
       <p class="small">
-        Demo seed:
-        <a href="/seed-demo-users">create demo users</a>
+        Teacher demo login: teacher@test.com / teacher123
       </p>
     </div>
   </main>
@@ -113,24 +130,28 @@
     const roleSelect = document.getElementById("role-select");
     const teacherFields = document.getElementById("teacher-fields");
     const studentFields = document.getElementById("student-fields");
-    const classSelect = document.getElementById("class-select");
-    const studentSelect = document.getElementById("student-select");
+
     const teacherEmail = document.getElementById("teacher-email");
     const teacherPassword = document.getElementById("teacher-password");
+
+    const classSelect = document.getElementById("class-select");
+    const studentSelect = document.getElementById("student-select");
 
     function updateRoleUI() {
       const role = roleSelect.value;
 
       if (role === "teacher") {
-        teacherFields.style.display = "block";
-        studentFields.style.display = "none";
+        teacherFields.classList.remove("hidden");
+        studentFields.classList.add("hidden");
+
         teacherEmail.required = true;
         teacherPassword.required = true;
         classSelect.required = false;
         studentSelect.required = false;
       } else {
-        teacherFields.style.display = "none";
-        studentFields.style.display = "block";
+        teacherFields.classList.add("hidden");
+        studentFields.classList.remove("hidden");
+
         teacherEmail.required = false;
         teacherPassword.required = false;
         classSelect.required = true;
@@ -138,24 +159,33 @@
       }
     }
 
-    roleSelect.addEventListener("change", updateRoleUI);
-    updateRoleUI();
-
-    classSelect.addEventListener("change", async () => {
-      const className = classSelect.value;
+    async function loadStudentsForClass(className) {
       studentSelect.innerHTML = '<option value="">Select student</option>';
+
       if (!className) return;
 
-      const res = await fetch(`/api/students/by-class?className=${encodeURIComponent(className)}`);
-      const students = await res.json();
+      try {
+        const res = await fetch(`/api/students/by-class?className=${encodeURIComponent(className)}`);
+        const students = await res.json();
 
-      students.forEach(student => {
-        const option = document.createElement("option");
-        option.value = student.id;
-        option.textContent = student.name;
-        studentSelect.appendChild(option);
-      });
+        students.forEach((student) => {
+          const option = document.createElement("option");
+          option.value = student.id;
+          option.textContent = student.name;
+          studentSelect.appendChild(option);
+        });
+      } catch (err) {
+        console.error("Failed to load students:", err);
+      }
+    }
+
+    roleSelect.addEventListener("change", updateRoleUI);
+
+    classSelect.addEventListener("change", async () => {
+      await loadStudentsForClass(classSelect.value);
     });
+
+    updateRoleUI();
   </script>
 </body>
 </html>
