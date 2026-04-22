@@ -13,7 +13,7 @@
     }
 
     .container {
-      max-width: 1000px;
+      max-width: 1100px;
       margin: 30px auto;
       padding: 20px;
     }
@@ -38,6 +38,10 @@
       cursor: pointer;
     }
 
+    .button.secondary {
+      background: #666;
+    }
+
     .small {
       font-size: 14px;
       color: #666;
@@ -51,6 +55,19 @@
       border-radius: 8px;
       font-size: 12px;
       margin-right: 6px;
+      margin-bottom: 6px;
+    }
+
+    .final-text,
+    .snapshot-box,
+    .timeline-box,
+    .declaration-box,
+    .session-box {
+      background: #f9fafb;
+      padding: 16px;
+      border-radius: 10px;
+      border: 1px solid #ddd;
+      margin-top: 10px;
     }
 
     textarea {
@@ -63,11 +80,20 @@
       margin-top: 6px;
     }
 
-    .final-text {
-      background: #f9fafb;
-      padding: 16px;
-      border-radius: 10px;
-      border: 1px solid #ddd;
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 14px;
+    }
+
+    .section-title {
+      margin-bottom: 8px;
+    }
+
+    .mono {
+      font-family: monospace;
+      white-space: pre-wrap;
+      word-break: break-word;
     }
   </style>
 </head>
@@ -78,36 +104,120 @@
       <p><strong>Student:</strong> <%= submission.student_name %></p>
       <p><strong>Assignment:</strong> <%= submission.assignment_title %></p>
       <p><strong>Email:</strong> <%= submission.student_email %></p>
-      <p class="small">Status: <%= submission.status %> | Submitted: <%= submission.submitted_at || "Not yet submitted" %></p>
-      <a class="button" href="/teacher/dashboard">Back</a>
+      <p class="small">
+        Status: <%= submission.status %> |
+        Submitted: <%= submission.submitted_at || "Not yet submitted" %>
+      </p>
+      <a class="button secondary" href="/teacher/dashboard">Back</a>
     </div>
 
     <div class="card">
-      <h2>Estimated Composition</h2>
-      <p><strong>Own work:</strong> <%= composition.own_work_percent %>%</p>
-      <p><strong>Copy and paste:</strong> <%= composition.paste_percent %>%</p>
-      <p><strong>AI declared:</strong> <%= composition.ai_declared_percent %>%</p>
-      <p><strong>Confidence:</strong> <%= composition.confidence %></p>
+      <h2 class="section-title">Estimated Composition</h2>
+      <div class="grid">
+        <div class="snapshot-box">
+          <strong>Own work:</strong> <%= composition.own_work_percent %>%
+        </div>
+        <div class="snapshot-box">
+          <strong>Copy and paste:</strong> <%= composition.paste_percent %>%
+        </div>
+        <div class="snapshot-box">
+          <strong>AI declared:</strong> <%= composition.ai_declared_percent %>%
+        </div>
+        <div class="snapshot-box">
+          <strong>Confidence:</strong> <%= composition.confidence %>
+        </div>
+      </div>
     </div>
 
     <div class="card">
-      <h2>Flags</h2>
+      <h2 class="section-title">Flags</h2>
       <% if (!flags || !flags.length) { %>
         <p>No flags raised.</p>
+      <% } else { %>
+        <% flags.forEach(flag => { %>
+          <span class="flag"><%= flag.flag_code %></span>
+        <% }) %>
       <% } %>
-
-      <% (flags || []).forEach(flag => { %>
-        <span class="flag"><%= flag.flag_code %></span>
-      <% }) %>
     </div>
 
     <div class="card">
-      <h2>Final Submission</h2>
+      <h2 class="section-title">Final Submission</h2>
       <div class="final-text"><%- submission.final_text %></div>
     </div>
 
     <div class="card">
-      <h2>Feedback to Student</h2>
+      <h2 class="section-title">Draft Snapshots</h2>
+      <% if (!snapshots || !snapshots.length) { %>
+        <p>No draft snapshots found.</p>
+      <% } else { %>
+        <% snapshots.forEach((snapshot, index) => { %>
+          <div class="snapshot-box">
+            <p><strong>Snapshot <%= index + 1 %></strong></p>
+            <p class="small">Saved: <%= snapshot.saved_at || "Unknown" %></p>
+            <p class="small">Word count: <%= snapshot.word_count || 0 %></p>
+            <div><%- snapshot.content || "" %></div>
+          </div>
+        <% }) %>
+      <% } %>
+    </div>
+
+    <div class="card">
+      <h2 class="section-title">Source Declarations</h2>
+      <% if (!declarations || !declarations.length) { %>
+        <p>No declarations recorded.</p>
+      <% } else { %>
+        <% declarations.forEach((d, index) => { %>
+          <div class="declaration-box">
+            <p><strong>Declaration <%= index + 1 %></strong></p>
+            <p><strong>Type:</strong> <%= d.declaration_type || "—" %></p>
+            <p><strong>Tool:</strong> <%= d.tool_name || "—" %></p>
+            <p><strong>Prompt:</strong> <%= d.prompt_text || "—" %></p>
+            <p><strong>Excerpt:</strong> <%= d.original_text_excerpt || "—" %></p>
+            <p><strong>Student explanation:</strong> <%= d.student_explanation || "—" %></p>
+            <p class="small">Recorded: <%= d.created_at || "Unknown" %></p>
+          </div>
+        <% }) %>
+      <% } %>
+    </div>
+
+    <div class="card">
+      <h2 class="section-title">Writing Sessions</h2>
+      <% if (!sessions || !sessions.length) { %>
+        <p>No session data recorded.</p>
+      <% } else { %>
+        <% sessions.forEach((s, index) => { %>
+          <div class="session-box">
+            <p><strong>Session <%= index + 1 %></strong></p>
+            <p><strong>Started:</strong> <%= s.started_at || "Unknown" %></p>
+            <p><strong>Ended:</strong> <%= s.ended_at || "Unknown" %></p>
+            <p><strong>Active seconds:</strong> <%= s.active_seconds || 0 %></p>
+            <p><strong>Idle seconds:</strong> <%= s.idle_seconds || 0 %></p>
+            <% if (s.device_info) { %>
+              <p><strong>Device:</strong> <%= s.device_info %></p>
+            <% } %>
+          </div>
+        <% }) %>
+      <% } %>
+    </div>
+
+    <div class="card">
+      <h2 class="section-title">Evidence Timeline</h2>
+      <% if (!events || !events.length) { %>
+        <p>No editor events recorded.</p>
+      <% } else { %>
+        <% events.forEach((event, index) => { %>
+          <div class="timeline-box">
+            <p><strong>Event <%= index + 1 %></strong></p>
+            <p><strong>Type:</strong> <%= event.event_type || "—" %></p>
+            <p class="small">Time: <%= event.created_at || "Unknown" %></p>
+            <div class="mono"><%= event.event_meta || "—" %></div>
+          </div>
+        <% }) %>
+      <% } %>
+    </div>
+
+    <div class="card">
+      <h2 class="section-title">Feedback to Student</h2>
 
       <label for="good-notes">What you did well</label>
       <textarea id="good-notes"></textarea>
@@ -122,7 +232,7 @@
     </div>
 
     <div class="card">
-      <h2>AI Email Draft</h2>
+      <h2 class="section-title">AI Email Draft</h2>
       <textarea id="ai-email-draft" placeholder="AI draft area"></textarea>
       <button class="button" id="generate-ai-email-btn" type="button">Generate AI Email Draft</button>
       <button class="button" id="create-email-from-ai-btn" type="button">Create Email from AI Draft</button>
