@@ -7,7 +7,8 @@
     "db:init": "node lib/schema.js"
   },
   "dependencies": {
-    "@libsql/client": "^0.6.2",
+    "@libsql/client": "^0.17.2",
+    "@tursodatabase/serverless": "^1.1.0",
     "bcryptjs": "^3.0.3",
     "cookie-parser": "^1.4.7",
     "dotenv": "^16.6.1",
