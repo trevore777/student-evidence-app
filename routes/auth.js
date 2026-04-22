@@ -60,6 +60,48 @@ if (process.env.NODE_ENV !== "production") {
   });
 }
 
+router.get("/signup", (req, res) => {
+  res.render("signup", { error: null });
+});
+
+router.post("/signup", async (req, res) => {
+  try {
+    const { name, email, password } = req.body;
+
+    if (!name || !email || !password) {
+      return res.render("signup", {
+        error: "All fields are required"
+      });
+    }
+
+    const existing = await db.execute({
+      sql: `SELECT id FROM teachers WHERE email = ?`,
+      args: [email]
+    });
+
+    if (existing.rows.length > 0) {
+      return res.render("signup", {
+        error: "Email already in use"
+      });
+    }
+
+    const passwordHash = await hashPassword(password);
+
+    await db.execute({
+      sql: `
+        INSERT INTO teachers (name, email, password_hash)
+        VALUES (?, ?, ?)
+      `,
+      args: [name.trim(), email.trim(), passwordHash]
+    });
+
+    res.redirect("/login");
+  } catch (err) {
+    console.error("POST /signup error:", err);
+    res.status(500).send("Signup failed");
+  }
+});
+
 router.post("/login", async (req, res) => {
   try {
     const { role } = req.body;
