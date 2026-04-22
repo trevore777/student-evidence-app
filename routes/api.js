@@ -4,31 +4,31 @@ import { openai } from "../lib/openai.js";
 
 const router = express.Router();
 
-// Temporary hardcoded students so class dropdown works even if DB is failing
-const studentsByClass = {
-  "Year 10A": [
-    { id: 1, name: "Demo Student" },
-    { id: 2, name: "Ella Brown" }
-  ],
-  "Year 10B": [
-    { id: 3, name: "Noah Smith" },
-    { id: 4, name: "Ruby Jones" }
-  ]
-};
-
 router.get("/students/by-class", async (req, res) => {
   try {
     const { className } = req.query;
-    return res.json(studentsByClass[className] || []);
+
+    if (!className) {
+      return res.json([]);
+    }
+
+    const result = await db.execute({
+      sql: `
+        SELECT id, name
+        FROM students
+        WHERE class_name = ?
+        ORDER BY name
+      `,
+      args: [className]
+    });
+
+    res.json(result.rows || []);
   } catch (err) {
     console.error("GET /api/students/by-class error:", err);
-    return res.json([]);
+    res.status(500).json([]);
   }
 });
 
-// ======================
-// SESSION START
-// ======================
 router.post("/session/start", async (req, res) => {
   try {
     const { submissionId, deviceInfo } = req.body;
@@ -49,9 +49,6 @@ router.post("/session/start", async (req, res) => {
   }
 });
 
-// ======================
-// SESSION END
-// ======================
 router.post("/session/end", async (req, res) => {
   try {
     const { sessionId, activeSeconds = 0, idleSeconds = 0 } = req.body;
@@ -74,9 +71,6 @@ router.post("/session/end", async (req, res) => {
   }
 });
 
-// ======================
-// AUTOSAVE
-// ======================
 router.post("/draft/autosave", async (req, res) => {
   try {
     const { submissionId, sessionId, content, wordCount } = req.body;
@@ -101,9 +95,6 @@ router.post("/draft/autosave", async (req, res) => {
   }
 });
 
-// ======================
-// EDITOR EVENT
-// ======================
 router.post("/event", async (req, res) => {
   try {
     const { submissionId, sessionId, eventType, eventMeta } = req.body;
@@ -128,9 +119,6 @@ router.post("/event", async (req, res) => {
   }
 });
 
-// ======================
-// SOURCE DECLARATION
-// ======================
 router.post("/declaration", async (req, res) => {
   try {
     const {
@@ -173,9 +161,6 @@ router.post("/declaration", async (req, res) => {
   }
 });
 
-// ======================
-// SUBMIT
-// ======================
 router.post("/submit", async (req, res) => {
   try {
     const { submissionId, finalText } = req.body;
@@ -196,9 +181,6 @@ router.post("/submit", async (req, res) => {
   }
 });
 
-// ======================
-// AI FEEDBACK EMAIL DRAFT
-// ======================
 router.post("/ai/generate-feedback-email", async (req, res) => {
   try {
     if (!openai) {
@@ -271,7 +253,8 @@ Instructions:
       input: prompt
     });
 
-    const draft = response.output_text || "Unable to generate draft at this time.";
+    const draft =
+      response.output_text || "Unable to generate draft at this time.";
 
     res.json({ ok: true, draft });
   } catch (err) {
