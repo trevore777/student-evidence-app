@@ -53,13 +53,13 @@
       border-radius: 10px;
       margin-bottom: 14px;
     }
+    .hidden {
+      display: none;
+    }
     .small {
       margin-top: 14px;
       font-size: 14px;
       color: #555;
-    }
-    .hidden {
-      display: none;
     }
   </style>
 </head>
@@ -72,50 +72,46 @@
         <div class="error"><%= error %></div>
       <% } %>
 
-      <form method="POST" action="/login" id="login-form">
+      <form method="POST" action="/login">
         <label for="role-select">Role</label>
-        <select name="role" id="role-select" required>
+        <select id="role-select" name="role" required>
           <option value="student">Student</option>
           <option value="teacher">Teacher</option>
         </select>
 
         <div id="teacher-fields" class="hidden">
-          <label for="teacher-email">Email</label>
-          <input id="teacher-email" type="email" name="email" />
+          <label>Email</label>
+          <input type="email" name="email" />
 
-          <label for="teacher-password">Password</label>
-          <input id="teacher-password" type="password" name="password" />
+          <label>Password</label>
+          <input type="password" name="password" />
         </div>
 
         <div id="student-fields">
-          <label for="class-select">Class</label>
-          <select name="className" id="class-select" required>
-            <option value="">Select class</option>
-            <% (classes || []).forEach(c => { %>
-              <option value="<%= c.class_name %>"><%= c.class_name %></option>
+          <label>Teacher</label>
+          <select id="teacher-select" name="teacherId">
+            <option value="">Select teacher</option>
+            <% (teachers || []).forEach(t => { %>
+              <option value="<%= t.id %>"><%= t.name %></option>
             <% }) %>
           </select>
 
-          <label for="student-select">Student</label>
-          <select name="studentId" id="student-select" required>
+          <label>Class</label>
+          <select id="class-select" name="classId">
+            <option value="">Select class</option>
+          </select>
+
+          <label>Student</label>
+          <select id="student-select" name="studentId">
             <option value="">Select student</option>
           </select>
 
-          <label for="student-pin">PIN</label>
-          <input id="student-pin" type="password" name="studentPin" inputmode="numeric" maxlength="4" placeholder="Enter 4-digit PIN" />
+          <label>PIN</label>
+          <input type="password" name="studentPin" maxlength="4" inputmode="numeric" />
         </div>
 
         <button type="submit">Login</button>
       </form>
-
-      <p class="small">
-        Demo teacher logins:<br />
-        teacher@test.com / teacher123<br />
-        baker@test.com / teacher123
-      </p>
-      <p class="small">
-        Demo student PIN: 1234
-      </p>
     </div>
   </main>
 
@@ -124,64 +120,57 @@
     const teacherFields = document.getElementById("teacher-fields");
     const studentFields = document.getElementById("student-fields");
 
-    const teacherEmail = document.getElementById("teacher-email");
-    const teacherPassword = document.getElementById("teacher-password");
-
+    const teacherSelect = document.getElementById("teacher-select");
     const classSelect = document.getElementById("class-select");
     const studentSelect = document.getElementById("student-select");
-    const studentPin = document.getElementById("student-pin");
 
     function updateRoleUI() {
       const role = roleSelect.value;
-
       if (role === "teacher") {
         teacherFields.classList.remove("hidden");
         studentFields.classList.add("hidden");
-
-        teacherEmail.required = true;
-        teacherPassword.required = true;
-
-        classSelect.required = false;
-        studentSelect.required = false;
-        studentPin.required = false;
       } else {
         teacherFields.classList.add("hidden");
         studentFields.classList.remove("hidden");
-
-        teacherEmail.required = false;
-        teacherPassword.required = false;
-
-        classSelect.required = true;
-        studentSelect.required = true;
-        studentPin.required = true;
       }
     }
 
-    async function loadStudentsForClass(className) {
+    async function loadClasses(teacherId) {
+      classSelect.innerHTML = '<option value="">Select class</option>';
       studentSelect.innerHTML = '<option value="">Select student</option>';
 
-      if (!className) return;
+      if (!teacherId) return;
 
-      try {
-        const res = await fetch(`/api/students/by-class?className=${encodeURIComponent(className)}`);
-        const students = await res.json();
+      const res = await fetch(`/api/classes/by-teacher?teacherId=${encodeURIComponent(teacherId)}`);
+      const classes = await res.json();
 
-        students.forEach((student) => {
-          const option = document.createElement("option");
-          option.value = student.id;
-          option.textContent = student.name;
-          studentSelect.appendChild(option);
-        });
-      } catch (err) {
-        console.error("Failed to load students:", err);
-      }
+      classes.forEach(c => {
+        const option = document.createElement("option");
+        option.value = c.id;
+        option.textContent = c.class_name;
+        classSelect.appendChild(option);
+      });
+    }
+
+    async function loadStudents(classId) {
+      studentSelect.innerHTML = '<option value="">Select student</option>';
+
+      if (!classId) return;
+
+      const res = await fetch(`/api/students/by-class?classId=${encodeURIComponent(classId)}`);
+      const students = await res.json();
+
+      students.forEach(s => {
+        const option = document.createElement("option");
+        option.value = s.id;
+        option.textContent = s.name;
+        studentSelect.appendChild(option);
+      });
     }
 
     roleSelect.addEventListener("change", updateRoleUI);
-
-    classSelect.addEventListener("change", async () => {
-      await loadStudentsForClass(classSelect.value);
-    });
+    teacherSelect.addEventListener("change", () => loadClasses(teacherSelect.value));
+    classSelect.addEventListener("change", () => loadStudents(classSelect.value));
 
     updateRoleUI();
   </script>

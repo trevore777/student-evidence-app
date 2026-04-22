@@ -15,29 +15,28 @@ function normalizeRow(row, keys = []) {
   return obj;
 }
 
-async function getClasses() {
+async function getTeachers() {
   const result = await db.execute(`
-    SELECT DISTINCT class_name
-    FROM students
-    ORDER BY class_name
+    SELECT id, name, email
+    FROM teachers
+    ORDER BY name ASC
   `);
 
   return (result.rows || []).map((row) =>
-    normalizeRow(row, ["class_name"])
+    normalizeRow(row, ["id", "name", "email"])
   );
 }
 
 router.get("/login", async (req, res) => {
   try {
-    const classes = await getClasses();
-    res.render("login", { error: null, classes });
+    const teachers = await getTeachers();
+    res.render("login", { error: null, teachers });
   } catch (err) {
     console.error("GET /login error:", err);
     res.status(500).send("Failed to load login page");
   }
 });
 
-// DEV ONLY
 if (process.env.NODE_ENV !== "production") {
   router.get("/seed-demo-users", async (req, res) => {
     try {
@@ -53,61 +52,7 @@ if (process.env.NODE_ENV !== "production") {
         args: [2, "Ms Baker", "baker@test.com", teacherHash, "Year 10B"]
       });
 
-      await db.execute({
-        sql: `INSERT OR IGNORE INTO students (id, name, email, class_name, password_hash, student_pin) VALUES (?, ?, ?, ?, ?, ?)`,
-        args: [1, "Demo Student", "student@test.com", "Year 10A", "unused", "1234"]
-      });
-
-      await db.execute({
-        sql: `INSERT OR IGNORE INTO students (id, name, email, class_name, password_hash, student_pin) VALUES (?, ?, ?, ?, ?, ?)`,
-        args: [2, "Ella Brown", "ella@test.com", "Year 10A", "unused", "1234"]
-      });
-
-      await db.execute({
-        sql: `INSERT OR IGNORE INTO students (id, name, email, class_name, password_hash, student_pin) VALUES (?, ?, ?, ?, ?, ?)`,
-        args: [3, "Noah Smith", "noah@test.com", "Year 10B", "unused", "1234"]
-      });
-
-      await db.execute({
-        sql: `INSERT OR IGNORE INTO students (id, name, email, class_name, password_hash, student_pin) VALUES (?, ?, ?, ?, ?, ?)`,
-        args: [4, "Ruby Jones", "ruby@test.com", "Year 10B", "unused", "1234"]
-      });
-
-      await db.execute({
-        sql: `INSERT OR IGNORE INTO assignments
-              (id, teacher_id, title, instructions, class_name, due_date, word_target, ai_policy_note, require_declaration)
-              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        args: [
-          1,
-          1,
-          "AI and Academic Integrity Reflection",
-          "Write a reflection explaining how you used AI appropriately in this task.",
-          "Year 10A",
-          "2026-05-01",
-          400,
-          "Declare any pasted or AI-assisted content honestly.",
-          1
-        ]
-      });
-
-      await db.execute({
-        sql: `INSERT OR IGNORE INTO assignments
-              (id, teacher_id, title, instructions, class_name, due_date, word_target, ai_policy_note, require_declaration)
-              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        args: [
-          2,
-          2,
-          "Evaluating Sources",
-          "Compare two sources and explain which is more reliable.",
-          "Year 10B",
-          "2026-05-08",
-          500,
-          "Use the declaration tools if you paste notes or use AI assistance.",
-          1
-        ]
-      });
-
-      res.send("Demo users seeded");
+      res.send("Demo teachers seeded");
     } catch (err) {
       console.error("GET /seed-demo-users error:", err);
       res.status(500).send("Failed to seed demo users");
@@ -138,7 +83,7 @@ router.post("/login", async (req, res) => {
       if (!user.id) {
         return res.render("login", {
           error: "Invalid login details",
-          classes: await getClasses()
+          teachers: await getTeachers()
         });
       }
 
@@ -147,7 +92,7 @@ router.post("/login", async (req, res) => {
       if (!valid) {
         return res.render("login", {
           error: "Invalid login details",
-          classes: await getClasses()
+          teachers: await getTeachers()
         });
       }
 
@@ -170,11 +115,16 @@ router.post("/login", async (req, res) => {
       return res.redirect("/teacher/dashboard");
     }
 
-    const { studentId, studentPin } = req.body;
+    const { teacherId, classId, studentId, studentPin } = req.body;
 
     const result = await db.execute({
-      sql: `SELECT id, name, class_name, student_pin FROM students WHERE id = ?`,
-      args: [studentId]
+      sql: `
+        SELECT s.id, s.name, c.class_name, s.student_pin
+        FROM students s
+        JOIN classes c ON c.id = s.class_id
+        WHERE s.id = ? AND s.class_id = ? AND c.teacher_id = ?
+      `,
+      args: [studentId, classId, teacherId]
     });
 
     const student = normalizeRow(result.rows?.[0], [
@@ -187,14 +137,14 @@ router.post("/login", async (req, res) => {
     if (!student.id) {
       return res.render("login", {
         error: "Please select a valid student",
-        classes: await getClasses()
+        teachers: await getTeachers()
       });
     }
 
     if (!student.student_pin || String(student.student_pin) !== String(studentPin || "").trim()) {
       return res.render("login", {
         error: "Invalid student PIN",
-        classes: await getClasses()
+        teachers: await getTeachers()
       });
     }
 

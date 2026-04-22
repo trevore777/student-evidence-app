@@ -4,38 +4,132 @@ import requireTeacher from "../middleware/requireTeacher.js";
 
 const router = express.Router();
 
-router.get("/new", requireTeacher, (req, res) => {
-  const teacher = req.signedCookies.user;
-  res.render("assignment-form", { error: null, values: { class_name: teacher.class_name || "" }, teacher });
+function normalizeRow(row, keys = []) {
+  if (!row) return {};
+  if (!Array.isArray(row)) return row;
+
+  const obj = {};
+  keys.forEach((key, i) => {
+    obj[key] = row[i];
+  });
+  return obj;
+}
+
+router.get("/new", requireTeacher, async (req, res) => {
+  try {
+    const teacher = req.signedCookies.user;
+
+    const classesResult = await db.execute({
+      sql: `
+        SELECT id, class_name, year_level
+        FROM classes
+        WHERE teacher_id = ?
+        ORDER BY class_name ASC
+      `,
+      args: [teacher.id]
+    });
+
+    const classes = (classesResult.rows || []).map((row) =>
+      normalizeRow(row, ["id", "class_name", "year_level"])
+    );
+
+    res.render("assignment-form", {
+      teacher,
+      classes,
+      error: null
+    });
+  } catch (err) {
+    console.error("GET /teacher/assignments/new error:", err);
+    res.status(500).send("Failed to load assignment form");
+  }
 });
 
 router.post("/new", requireTeacher, async (req, res) => {
-  const teacher = req.signedCookies.user;
-  const { title, instructions, due_date, word_target, ai_policy_note, require_declaration } = req.body;
-  const class_name = teacher.class_name || req.body.class_name;
-
-  if (!title || !instructions || !class_name) {
-    return res.render("assignment-form", { error: "Title, instructions, and class are required.", values: { ...req.body, class_name }, teacher });
-  }
-
-  await db.execute({
-    sql: `
-      INSERT INTO assignments (teacher_id, title, instructions, class_name, due_date, word_target, ai_policy_note, require_declaration)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    `,
-    args: [
-      teacher.id,
+  try {
+    const teacher = req.signedCookies.user;
+    const {
+      classId,
       title,
       instructions,
-      class_name,
-      due_date || null,
-      word_target ? Number(word_target) : null,
-      ai_policy_note || "",
-      require_declaration ? 1 : 0
-    ]
-  });
+      dueDate,
+      wordTarget,
+      aiPolicyNote,
+      requireDeclaration
+    } = req.body;
 
-  res.redirect("/teacher/dashboard");
+    const classesResult = await db.execute({
+      sql: `
+        SELECT id, class_name, year_level
+        FROM classes
+        WHERE teacher_id = ?
+        ORDER BY class_name ASC
+      `,
+      args: [teacher.id]
+    });
+
+    const classes = (classesResult.rows || []).map((row) =>
+      normalizeRow(row, ["id", "class_name", "year_level"])
+    );
+
+    if (!classId || !title || !instructions) {
+      return res.render("assignment-form", {
+        teacher,
+        classes,
+        error: "Class, title, and instructions are required"
+      });
+    }
+
+    const classResult = await db.execute({
+      sql: `
+        SELECT id, class_name
+        FROM classes
+        WHERE id = ? AND teacher_id = ?
+      `,
+      args: [Number(classId), teacher.id]
+    });
+
+    const classRow = normalizeRow(classResult.rows?.[0], ["id", "class_name"]);
+
+    if (!classRow.id) {
+      return res.render("assignment-form", {
+        teacher,
+        classes,
+        error: "Invalid class selected"
+      });
+    }
+
+    await db.execute({
+      sql: `
+        INSERT INTO assignments (
+          teacher_id,
+          class_id,
+          title,
+          instructions,
+          class_name,
+          due_date,
+          word_target,
+          ai_policy_note,
+          require_declaration
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `,
+      args: [
+        teacher.id,
+        classRow.id,
+        title.trim(),
+        instructions.trim(),
+        classRow.class_name,
+        dueDate || "",
+        wordTarget ? Number(wordTarget) : null,
+        aiPolicyNote || "",
+        requireDeclaration ? 1 : 0
+      ]
+    });
+
+    res.redirect("/teacher/dashboard");
+  } catch (err) {
+    console.error("POST /teacher/assignments/new error:", err);
+    res.status(500).send("Failed to create assignment");
+  }
 });
 
 export default router;

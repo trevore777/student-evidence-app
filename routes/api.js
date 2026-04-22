@@ -2,6 +2,60 @@ import express from "express";
 import { db } from "../lib/db.js";
 import { openai } from "../lib/openai.js";
 
+router.get("/classes/by-teacher", async (req, res) => {
+  try {
+    const { teacherId } = req.query;
+    if (!teacherId) return res.json([]);
+
+    const result = await db.execute({
+      sql: `
+        SELECT id, class_name
+        FROM classes
+        WHERE teacher_id = ?
+        ORDER BY class_name ASC
+      `,
+      args: [teacherId]
+    });
+
+    const classes = (result.rows || []).map((row) => ({
+      id: row.id ?? row[0],
+      class_name: row.class_name ?? row[1]
+    }));
+
+    res.json(classes);
+  } catch (err) {
+    console.error("GET /api/classes/by-teacher error:", err);
+    res.status(500).json([]);
+  }
+});
+
+router.get("/students/by-class", async (req, res) => {
+  try {
+    const { classId } = req.query;
+    if (!classId) return res.json([]);
+
+    const result = await db.execute({
+      sql: `
+        SELECT id, name
+        FROM students
+        WHERE class_id = ?
+        ORDER BY name ASC
+      `,
+      args: [classId]
+    });
+
+    const students = (result.rows || []).map((row) => ({
+      id: row.id ?? row[0],
+      name: row.name ?? row[1]
+    }));
+
+    res.json(students);
+  } catch (err) {
+    console.error("GET /api/students/by-class error:", err);
+    res.status(500).json([]);
+  }
+});
+
 const router = express.Router();
 
 router.get("/students/by-class", async (req, res) => {
