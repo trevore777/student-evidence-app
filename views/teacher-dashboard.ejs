@@ -100,6 +100,9 @@
         <a class="button" href="/teacher/classes/<%= selectedClass.id %>/students">Manage Students</a>
         <span class="small">Join code: <strong><%= selectedClass.join_code || "—" %></strong></span>
       <% } %>
+      <% if (selectedClass) { %>
+  <a class="button" href="/teacher/print/class/<%= selectedClass.id %>/pdf" target="_blank">Print Class Set PDF</a>
+<% } %>
     </div>
 
     <div class="card">
@@ -172,6 +175,8 @@
               <% }) %>
             </div>
           <% } %>
+
+          <a class="button secondary" href="/teacher/print/submission/<%= s.id %>/pdf" target="_blank">Print PDF</a>
 
           <a class="button" href="/teacher/submission/<%= s.id %>">Review submission</a>
         </div>

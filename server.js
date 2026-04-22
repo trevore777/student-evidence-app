@@ -12,6 +12,7 @@ import teacherRoutes from "./routes/teacher.js";
 import assignmentRoutes from "./routes/assignments.js";
 import classRoutes from "./routes/classes.js";
 import apiRoutes from "./routes/api.js";
+import printRoutes from "./routes/print.js";
 
 dotenv.config();
 
@@ -27,7 +28,8 @@ app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 app.use(cookieParser(process.env.APP_SECRET || "dev-secret"));
 app.use(express.static(path.join(__dirname, "public")));
-
+app.use("/vendor/tinymce", express.static(path.join(__dirname, "node_modules", "tinymce")));
+app.use("/teacher/print", printRoutes);
 // health check
 app.get("/health", (req, res) => {
   res.send("ok");
