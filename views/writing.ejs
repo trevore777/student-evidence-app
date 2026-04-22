@@ -13,7 +13,7 @@
     }
 
     .container {
-      max-width: 1000px;
+      max-width: 1100px;
       margin: 30px auto;
       padding: 20px;
     }
@@ -26,52 +26,145 @@
       margin-bottom: 16px;
     }
 
-    h1, h2 {
-      margin-top: 0;
-    }
-
     .row {
       display: flex;
       gap: 12px;
       flex-wrap: wrap;
       align-items: center;
       justify-content: space-between;
-      margin-bottom: 12px;
     }
 
     .button {
       display: inline-block;
-      padding: 12px 16px;
+      padding: 10px 14px;
       background: #1d4ed8;
       color: #fff;
       text-decoration: none;
-      border: none;
       border-radius: 10px;
+      border: none;
       cursor: pointer;
-      font-size: 16px;
+      margin-right: 10px;
+      margin-bottom: 10px;
+      font-size: 15px;
     }
 
     .button.secondary {
       background: #666;
     }
 
+    .button.warning {
+      background: #b45309;
+    }
+
     .small {
-      color: #666;
       font-size: 14px;
+      color: #666;
+    }
+
+    .pill {
+      display: inline-block;
+      background: #e0e7ff;
+      color: #1e3a8a;
+      padding: 6px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      margin-right: 8px;
+      margin-top: 8px;
     }
 
     .status {
       font-weight: 600;
     }
 
-    textarea {
+    .info-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 12px;
+    }
+
+    .info-box {
+      background: #f8fafc;
+      border: 1px solid #e5e7eb;
+      border-radius: 12px;
+      padding: 12px;
+    }
+
+    .notice {
+      background: #eff6ff;
+      border: 1px solid #bfdbfe;
+      color: #1e3a8a;
+      border-radius: 12px;
+      padding: 12px 14px;
+      margin-top: 12px;
+    }
+
+    .warning-box {
+      background: #fff7ed;
+      border: 1px solid #fdba74;
+      color: #9a3412;
+      border-radius: 12px;
+      padding: 12px 14px;
+      margin-top: 12px;
+    }
+
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.45);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+      padding: 20px;
+    }
+
+    .modal {
+      background: #fff;
+      border-radius: 14px;
       width: 100%;
-      min-height: 320px;
+      max-width: 640px;
+      padding: 20px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+    }
+
+    .modal h2 {
+      margin-top: 0;
+    }
+
+    label {
+      display: block;
+      font-weight: 600;
+      margin-top: 12px;
+      margin-bottom: 6px;
+    }
+
+    input[type="text"],
+    textarea,
+    select {
+      width: 100%;
+      padding: 12px;
+      border-radius: 10px;
+      border: 1px solid #ccc;
+      box-sizing: border-box;
+      font-size: 15px;
+    }
+
+    textarea {
+      min-height: 100px;
+      resize: vertical;
+    }
+
+    .modal-actions {
+      margin-top: 16px;
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
     }
   </style>
 
-  <!-- Replace YOUR_TINYMCE_API_KEY with your actual TinyMCE key -->
-  <script src="https://cdn.tiny.cloud/1/r1tocpuc91a9rca9tehcaxzegc9la0c5tnz7p6kux9ikyl2s/tinymce/7/tinymce.min.js" referrerpolicy="origin"></script>
+  <!-- Replace YOUR_TINYMCE_API_KEY with your real key -->
+  <script src="https://cdn.tiny.cloud/1/Yr1tocpuc91a9rca9tehcaxzegc9la0c5tnz7p6kux9ikyl2s/tinymce/7/tinymce.min.js" referrerpolicy="origin"></script>
 </head>
 <body>
   <main class="container">
@@ -79,59 +172,142 @@
       <div class="row">
         <div>
           <h1><%= assignment.title %></h1>
-          <p class="small">Student: <%= student.name %> | Class: <%= student.class_name %></p>
+          <p class="small">
+            Student: <strong><%= student.name %></strong> |
+            Class: <strong><%= student.class_name %></strong>
+          </p>
         </div>
         <div>
-          <a class="button secondary" href="/student/dashboard">Back</a>
+          <a class="button secondary" href="/student/dashboard">Back to dashboard</a>
         </div>
       </div>
     </div>
 
     <div class="card">
-      <h2>Instructions</h2>
+      <h2>Assignment</h2>
       <p><%= assignment.instructions %></p>
-      <p class="small">Due: <%= assignment.due_date || "No due date" %></p>
+
+      <div class="info-grid">
+        <div class="info-box">
+          <strong>Due date</strong>
+          <div class="small"><%= assignment.due_date || "No due date" %></div>
+        </div>
+
+        <div class="info-box">
+          <strong>Word target</strong>
+          <div class="small"><%= assignment.word_target || "—" %></div>
+        </div>
+
+        <div class="info-box">
+          <strong>Declarations required</strong>
+          <div class="small"><%= assignment.require_declaration ? "Yes" : "No" %></div>
+        </div>
+      </div>
+
+      <% if (assignment.ai_policy_note) { %>
+        <div class="notice">
+          <strong>AI policy note:</strong> <%= assignment.ai_policy_note %>
+        </div>
+      <% } %>
     </div>
 
     <div class="card">
       <div class="row">
         <div class="small">
-          Status: <span class="status" id="save-status">Draft mode</span>
+          Status:
+          <span class="status" id="save-status">Loading editor…</span>
         </div>
         <div class="small">
-          Word count: <span id="word-count">0</span>
+          Word count:
+          <span id="word-count">0</span>
         </div>
       </div>
 
-      <textarea id="editor"><%= latestContent || "" %></textarea>
+      <textarea id="editor"><%- latestContent || "" %></textarea>
 
-      <div class="row" style="margin-top: 16px;">
+      <div style="margin-top: 16px;">
         <button class="button" id="save-btn" type="button">Save Draft</button>
-        <button class="button" id="submit-btn" type="button">Submit</button>
+        <button class="button warning" id="declare-btn" type="button">Add Declaration</button>
+        <button class="button" id="submit-btn" type="button">Submit Work</button>
       </div>
 
-      <p class="small" style="margin-top: 12px;">
-        Temporary mode: rich text editor with local save while database syncing is stabilised.
-      </p>
+      <div class="warning-box">
+        If you paste content, use AI, or modify content with AI, record it using the declaration button.
+      </div>
     </div>
   </main>
 
+  <!-- Declaration modal -->
+  <div class="modal-backdrop" id="declaration-modal">
+    <div class="modal">
+      <h2>Declare Assistance or Pasted Content</h2>
+      <p class="small">
+        Record any copied, pasted, AI-generated, or AI-modified content used in this draft.
+      </p>
+
+      <label for="declaration-type">Declaration type</label>
+      <select id="declaration-type">
+        <option value="pasted_research">Pasted research / notes</option>
+        <option value="ai_generated">AI generated content</option>
+        <option value="ai_modified">AI modified my writing</option>
+        <option value="other">Other assistance</option>
+      </select>
+
+      <label for="tool-name">Tool / source name</label>
+      <input type="text" id="tool-name" placeholder="e.g. ChatGPT, website notes, textbook" />
+
+      <label for="prompt-text">Prompt / source detail</label>
+      <textarea id="prompt-text" placeholder="What did you ask, or where did the content come from?"></textarea>
+
+      <label for="original-text-excerpt">Excerpt of content used</label>
+      <textarea id="original-text-excerpt" placeholder="Paste a small excerpt or summary of the material used"></textarea>
+
+      <label for="student-explanation">Explain how you used it</label>
+      <textarea id="student-explanation" placeholder="Describe what you changed, kept, or rewrote"></textarea>
+
+      <div class="modal-actions">
+        <button class="button secondary" type="button" id="cancel-declaration-btn">Cancel</button>
+        <button class="button" type="button" id="save-declaration-btn">Save Declaration</button>
+      </div>
+    </div>
+  </div>
+
   <script>
+    const submissionId = <%- JSON.stringify(submission.id) %>;
+    const requireDeclaration = <%- JSON.stringify(!!assignment.require_declaration) %>;
+
+    let sessionId = null;
+    let startedAt = Date.now();
+    let lastActivityAt = Date.now();
+    let activeSeconds = 0;
+    let idleSeconds = 0;
+    let autosaveTimer = null;
+    let declarationDraftFromPaste = "";
+
     const saveStatusEl = document.getElementById("save-status");
     const wordCountEl = document.getElementById("word-count");
+
     const saveBtn = document.getElementById("save-btn");
+    const declareBtn = document.getElementById("declare-btn");
     const submitBtn = document.getElementById("submit-btn");
 
-    const storageKey = "student_evidence_draft_<%= student.id %>_<%= assignment.id %>";
+    const declarationModal = document.getElementById("declaration-modal");
+    const declarationTypeEl = document.getElementById("declaration-type");
+    const toolNameEl = document.getElementById("tool-name");
+    const promptTextEl = document.getElementById("prompt-text");
+    const originalTextExcerptEl = document.getElementById("original-text-excerpt");
+    const studentExplanationEl = document.getElementById("student-explanation");
+    const cancelDeclarationBtn = document.getElementById("cancel-declaration-btn");
+    const saveDeclarationBtn = document.getElementById("save-declaration-btn");
 
-    function stripHtml(html) {
+    function stripHtml(html = "") {
       const div = document.createElement("div");
-      div.innerHTML = html || "";
-      return div.textContent || div.innerText || "";
+      div.innerHTML = html;
+      return (div.textContent || div.innerText || "").trim();
     }
 
-    function countWordsFromHtml(html) {
-      const text = stripHtml(html).trim();
+    function countWordsFromHtml(html = "") {
+      const text = stripHtml(html);
       return text ? text.split(/\s+/).length : 0;
     }
 
@@ -140,47 +316,262 @@
       wordCountEl.textContent = countWordsFromHtml(content);
     }
 
-    function saveDraft() {
-      const content = tinymce.get("editor")?.getContent() || "";
-      localStorage.setItem(storageKey, content);
-      saveStatusEl.textContent = "Draft saved locally";
-      updateWordCount();
+    async function postJson(url, payload) {
+      const res = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(payload)
+      });
+
+      const text = await res.text();
+      try {
+        return JSON.parse(text);
+      } catch {
+        return { ok: res.ok, raw: text };
+      }
     }
 
-    function loadDraftContent() {
-      const saved = localStorage.getItem(storageKey);
-      return saved !== null ? saved : document.getElementById("editor").value;
+    async function startSession() {
+      try {
+        const result = await postJson("/api/session/start", {
+          submissionId,
+          deviceInfo: navigator.userAgent
+        });
+
+        if (result.ok) {
+          sessionId = result.sessionId;
+          saveStatusEl.textContent = "Editor ready";
+        } else {
+          saveStatusEl.textContent = "Session start failed";
+        }
+      } catch (err) {
+        console.error("startSession error:", err);
+        saveStatusEl.textContent = "Session start failed";
+      }
+    }
+
+    async function endSession() {
+      if (!sessionId) return;
+
+      try {
+        await postJson("/api/session/end", {
+          sessionId,
+          activeSeconds,
+          idleSeconds
+        });
+      } catch (err) {
+        console.error("endSession error:", err);
+      }
+    }
+
+    async function saveDraft() {
+      if (!sessionId) return;
+
+      try {
+        const content = tinymce.get("editor")?.getContent() || "";
+        const wordCount = countWordsFromHtml(content);
+
+        saveStatusEl.textContent = "Saving…";
+
+        const result = await postJson("/api/draft/autosave", {
+          submissionId,
+          sessionId,
+          content,
+          wordCount
+        });
+
+        if (result.ok) {
+          saveStatusEl.textContent = "Draft saved";
+        } else {
+          saveStatusEl.textContent = "Save failed";
+        }
+      } catch (err) {
+        console.error("saveDraft error:", err);
+        saveStatusEl.textContent = "Save failed";
+      }
+    }
+
+    async function logEvent(eventType, eventMeta = {}) {
+      if (!sessionId) return;
+
+      try {
+        await postJson("/api/event", {
+          submissionId,
+          sessionId,
+          eventType,
+          eventMeta
+        });
+      } catch (err) {
+        console.error("logEvent error:", err);
+      }
+    }
+
+    function openDeclarationModal(prefill = {}) {
+      declarationTypeEl.value = prefill.declarationType || "pasted_research";
+      toolNameEl.value = prefill.toolName || "";
+      promptTextEl.value = prefill.promptText || "";
+      originalTextExcerptEl.value = prefill.originalTextExcerpt || "";
+      studentExplanationEl.value = prefill.studentExplanation || "";
+      declarationModal.style.display = "flex";
+    }
+
+    function closeDeclarationModal() {
+      declarationModal.style.display = "none";
+    }
+
+    async function saveDeclaration() {
+      try {
+        const result = await postJson("/api/declaration", {
+          submissionId,
+          sessionId,
+          declarationType: declarationTypeEl.value,
+          toolName: toolNameEl.value.trim(),
+          promptText: promptTextEl.value.trim(),
+          originalTextExcerpt: originalTextExcerptEl.value.trim(),
+          studentExplanation: studentExplanationEl.value.trim()
+        });
+
+        if (result.ok) {
+          closeDeclarationModal();
+          await logEvent("declaration_saved", {
+            declarationType: declarationTypeEl.value
+          });
+          saveStatusEl.textContent = "Declaration saved";
+        } else {
+          alert("Failed to save declaration.");
+        }
+      } catch (err) {
+        console.error("saveDeclaration error:", err);
+        alert("Failed to save declaration.");
+      }
+    }
+
+    async function submitWork() {
+      try {
+        const content = tinymce.get("editor")?.getContent() || "";
+
+        if (requireDeclaration) {
+          // soft reminder only; teacher can still review evidence trail
+          const proceed = window.confirm(
+            "Before submitting, have you recorded any pasted or AI-assisted content using the declaration tool?"
+          );
+          if (!proceed) return;
+        }
+
+        saveStatusEl.textContent = "Submitting…";
+
+        const result = await postJson("/api/submit", {
+          submissionId,
+          finalText: content
+        });
+
+        if (result.ok) {
+          saveStatusEl.textContent = "Submitted";
+          await logEvent("submitted", {
+            wordCount: countWordsFromHtml(content)
+          });
+          alert("Work submitted successfully.");
+          window.location.href = "/student/dashboard";
+        } else {
+          saveStatusEl.textContent = "Submit failed";
+          alert("Failed to submit work.");
+        }
+      } catch (err) {
+        console.error("submitWork error:", err);
+        saveStatusEl.textContent = "Submit failed";
+        alert("Failed to submit work.");
+      }
+    }
+
+    function setupActivityTracking() {
+      const markActivity = () => {
+        const now = Date.now();
+        const diff = Math.floor((now - lastActivityAt) / 1000);
+
+        if (diff <= 20) {
+          activeSeconds += diff;
+        } else {
+          idleSeconds += diff;
+        }
+
+        lastActivityAt = now;
+      };
+
+      ["mousemove", "keydown", "click"].forEach((eventName) => {
+        window.addEventListener(eventName, markActivity);
+      });
+
+      setInterval(() => {
+        const now = Date.now();
+        const diff = Math.floor((now - lastActivityAt) / 1000);
+
+        if (diff > 20) {
+          idleSeconds += 5;
+          lastActivityAt = now;
+        }
+      }, 5000);
     }
 
     tinymce.init({
       selector: "#editor",
-      height: 500,
+      height: 520,
       menubar: false,
-      plugins: "lists link wordcount paste",
-      toolbar: "undo redo | blocks fontfamily fontsize | bold italic underline | bullist numlist | outdent indent | removeformat",
       branding: false,
+      plugins: "lists link wordcount paste",
+      toolbar:
+        "undo redo | blocks fontfamily fontsize | bold italic underline | bullist numlist | outdent indent | removeformat",
       paste_as_text: true,
-      setup: function(editor) {
-        editor.on("init", function() {
-          editor.setContent(loadDraftContent());
-          saveStatusEl.textContent = "Editor ready";
+      setup: function (editor) {
+        editor.on("init", async function () {
           updateWordCount();
+          await startSession();
+          setupActivityTracking();
         });
 
-        editor.on("input keyup change SetContent", function() {
+        editor.on("input keyup change SetContent", function () {
           updateWordCount();
+
+          if (autosaveTimer) clearTimeout(autosaveTimer);
+          autosaveTimer = setTimeout(() => {
+            saveDraft();
+          }, 1500);
+        });
+
+        editor.on("paste", function (e) {
+          const pastedText =
+            (e.clipboardData && e.clipboardData.getData("text/plain")) ||
+            (window.clipboardData && window.clipboardData.getData("Text")) ||
+            "";
+
+          declarationDraftFromPaste = pastedText.slice(0, 500);
+
+          logEvent("paste", {
+            pastedLength: pastedText.length,
+            pastedPreview: pastedText.slice(0, 120)
+          });
+
+          if (requireDeclaration) {
+            setTimeout(() => {
+              openDeclarationModal({
+                declarationType: "pasted_research",
+                originalTextExcerpt: declarationDraftFromPaste
+              });
+            }, 250);
+          }
         });
       }
     });
 
-    saveBtn.addEventListener("click", () => {
-      saveDraft();
-    });
+    saveBtn.addEventListener("click", saveDraft);
+    declareBtn.addEventListener("click", () => openDeclarationModal());
+    submitBtn.addEventListener("click", submitWork);
+    cancelDeclarationBtn.addEventListener("click", closeDeclarationModal);
+    saveDeclarationBtn.addEventListener("click", saveDeclaration);
 
-    submitBtn.addEventListener("click", () => {
-      saveDraft();
-      saveStatusEl.textContent = "Submitted locally (temporary mode)";
-      alert("Submission saved locally for now.");
+    window.addEventListener("beforeunload", () => {
+      endSession();
     });
   </script>
 </body>
