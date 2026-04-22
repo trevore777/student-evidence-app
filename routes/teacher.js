@@ -19,139 +19,172 @@ function normalizeRow(row, keys = []) {
 router.get("/dashboard", requireTeacher, async (req, res) => {
   try {
     const teacher = req.signedCookies.user;
-    const selectedClass = teacher.class_name || req.query.class || "";
     const flaggedOnly = req.query.flagged === "1";
 
-    const assignmentResult = await db.execute({
+    const classesResult = await db.execute({
       sql: `
-        SELECT id, teacher_id, title, instructions, class_name, due_date, word_target, ai_policy_note, require_declaration, created_at
-        FROM assignments
-        WHERE teacher_id = ? AND class_name = ?
-        ORDER BY created_at DESC
+        SELECT id, class_name, year_level, join_code
+        FROM classes
+        WHERE teacher_id = ?
+        ORDER BY class_name ASC
       `,
-      args: [teacher.id, selectedClass]
+      args: [teacher.id]
     });
 
-    const assignments = (assignmentResult.rows || []).map((row) =>
-      normalizeRow(row, [
-        "id",
-        "teacher_id",
-        "title",
-        "instructions",
-        "class_name",
-        "due_date",
-        "word_target",
-        "ai_policy_note",
-        "require_declaration",
-        "created_at"
-      ])
+    const classes = (classesResult.rows || []).map((row) =>
+      normalizeRow(row, ["id", "class_name", "year_level", "join_code"])
     );
 
-    const submissionsResult = await db.execute({
-      sql: `
-        SELECT
-          sub.id,
-          sub.status,
-          sub.submitted_at,
-          sub.final_text,
-          s.name AS student_name,
-          s.class_name,
-          a.title AS assignment_title,
-          a.id AS assignment_id
-        FROM submissions sub
-        JOIN students s ON s.id = sub.student_id
-        JOIN assignments a ON a.id = sub.assignment_id
-        WHERE a.teacher_id = ? AND a.class_name = ?
-        ORDER BY sub.created_at DESC
-      `,
-      args: [teacher.id, selectedClass]
-    });
+    const selectedClassId =
+      Number(req.query.classId) ||
+      (classes.length ? classes[0].id : null);
 
-    const submissionsRaw = (submissionsResult.rows || []).map((row) =>
-      normalizeRow(row, [
-        "id",
-        "status",
-        "submitted_at",
-        "final_text",
-        "student_name",
-        "class_name",
-        "assignment_title",
-        "assignment_id"
-      ])
-    );
+    const selectedClass =
+      classes.find((c) => c.id === selectedClassId) || null;
 
-    const enriched = [];
-    for (const row of submissionsRaw) {
-      const [eventsResult, declarationsResult, sessionsResult] = await Promise.all([
-        db.execute({
-          sql: `SELECT event_type, event_meta, created_at FROM editor_events WHERE submission_id = ? ORDER BY created_at ASC`,
-          args: [row.id]
-        }),
-        db.execute({
-          sql: `
-            SELECT declaration_type, tool_name, prompt_text, original_text_excerpt, student_explanation, created_at
-            FROM source_declarations
-            WHERE submission_id = ?
-            ORDER BY created_at ASC
-          `,
-          args: [row.id]
-        }),
-        db.execute({
-          sql: `
-            SELECT started_at, ended_at, active_seconds, idle_seconds, device_info
-            FROM writing_sessions
-            WHERE submission_id = ?
-            ORDER BY started_at ASC
-          `,
-          args: [row.id]
-        })
-      ]);
+    let assignments = [];
+    let submissions = [];
 
-      const events = (eventsResult.rows || []).map((row) =>
-        normalizeRow(row, ["event_type", "event_meta", "created_at"])
-      );
+    if (selectedClass) {
+      const assignmentResult = await db.execute({
+        sql: `
+          SELECT id, teacher_id, class_id, title, instructions, class_name, due_date, word_target, ai_policy_note, require_declaration, created_at
+          FROM assignments
+          WHERE teacher_id = ? AND class_id = ?
+          ORDER BY created_at DESC
+        `,
+        args: [teacher.id, selectedClass.id]
+      });
 
-      const declarations = (declarationsResult.rows || []).map((row) =>
+      assignments = (assignmentResult.rows || []).map((row) =>
         normalizeRow(row, [
-          "declaration_type",
-          "tool_name",
-          "prompt_text",
-          "original_text_excerpt",
-          "student_explanation",
+          "id",
+          "teacher_id",
+          "class_id",
+          "title",
+          "instructions",
+          "class_name",
+          "due_date",
+          "word_target",
+          "ai_policy_note",
+          "require_declaration",
           "created_at"
         ])
       );
 
-      const sessions = (sessionsResult.rows || []).map((row) =>
+      const submissionResult = await db.execute({
+        sql: `
+          SELECT
+            sub.id,
+            sub.status,
+            sub.submitted_at,
+            sub.final_text,
+            s.name AS student_name,
+            c.class_name,
+            a.title AS assignment_title,
+            a.id AS assignment_id
+          FROM submissions sub
+          JOIN students s ON s.id = sub.student_id
+          JOIN classes c ON c.id = s.class_id
+          JOIN assignments a ON a.id = sub.assignment_id
+          WHERE a.teacher_id = ? AND a.class_id = ?
+          ORDER BY sub.created_at DESC
+        `,
+        args: [teacher.id, selectedClass.id]
+      });
+
+      const rawSubmissions = (submissionResult.rows || []).map((row) =>
         normalizeRow(row, [
-          "started_at",
-          "ended_at",
-          "active_seconds",
-          "idle_seconds",
-          "device_info"
+          "id",
+          "status",
+          "submitted_at",
+          "final_text",
+          "student_name",
+          "class_name",
+          "assignment_title",
+          "assignment_id"
         ])
       );
 
-      const flags = computeFlags({
-        events,
-        declarations,
-        sessions,
-        finalText: row.final_text || ""
-      });
+      const enriched = [];
+      for (const row of rawSubmissions) {
+        const [eventsResult, declarationsResult, sessionsResult] = await Promise.all([
+          db.execute({
+            sql: `
+              SELECT event_type, event_meta, created_at
+              FROM editor_events
+              WHERE submission_id = ?
+              ORDER BY created_at ASC
+            `,
+            args: [row.id]
+          }),
+          db.execute({
+            sql: `
+              SELECT declaration_type, tool_name, prompt_text, original_text_excerpt, student_explanation, created_at
+              FROM source_declarations
+              WHERE submission_id = ?
+              ORDER BY created_at ASC
+            `,
+            args: [row.id]
+          }),
+          db.execute({
+            sql: `
+              SELECT started_at, ended_at, active_seconds, idle_seconds, device_info
+              FROM writing_sessions
+              WHERE submission_id = ?
+              ORDER BY started_at ASC
+            `,
+            args: [row.id]
+          })
+        ]);
 
-      enriched.push({ ...row, flags });
+        const events = (eventsResult.rows || []).map((r) =>
+          normalizeRow(r, ["event_type", "event_meta", "created_at"])
+        );
+
+        const declarations = (declarationsResult.rows || []).map((r) =>
+          normalizeRow(r, [
+            "declaration_type",
+            "tool_name",
+            "prompt_text",
+            "original_text_excerpt",
+            "student_explanation",
+            "created_at"
+          ])
+        );
+
+        const sessions = (sessionsResult.rows || []).map((r) =>
+          normalizeRow(r, [
+            "started_at",
+            "ended_at",
+            "active_seconds",
+            "idle_seconds",
+            "device_info"
+          ])
+        );
+
+        const flags = computeFlags({
+          events,
+          declarations,
+          sessions,
+          finalText: row.final_text || ""
+        });
+
+        enriched.push({ ...row, flags });
+      }
+
+      submissions = flaggedOnly
+        ? enriched.filter((r) => r.flags.length > 0)
+        : enriched;
     }
-
-    const submissions = flaggedOnly
-      ? enriched.filter((r) => r.flags.length > 0)
-      : enriched;
 
     res.render("teacher-dashboard", {
       teacher,
+      classes,
+      selectedClass,
+      selectedClassId,
       assignments,
       submissions,
-      classes: selectedClass ? [selectedClass] : [],
-      selectedClass,
       flaggedOnly
     });
   } catch (err) {
@@ -176,15 +209,16 @@ router.get("/submission/:id", requireTeacher, async (req, res) => {
           sub.submitted_at,
           s.name AS student_name,
           s.email AS student_email,
-          s.class_name,
+          c.class_name,
           a.title AS assignment_title,
           a.instructions
         FROM submissions sub
         JOIN students s ON s.id = sub.student_id
+        JOIN classes c ON c.id = s.class_id
         JOIN assignments a ON a.id = sub.assignment_id
-        WHERE sub.id = ? AND a.teacher_id = ? AND a.class_name = ?
+        WHERE sub.id = ? AND a.teacher_id = ?
       `,
-      args: [submissionId, teacher.id, teacher.class_name || ""]
+      args: [submissionId, teacher.id]
     });
 
     const submission = normalizeRow(submissionResult.rows?.[0], [

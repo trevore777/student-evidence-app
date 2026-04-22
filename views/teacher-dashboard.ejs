@@ -84,7 +84,7 @@
         <div>
           <h1>Teacher Dashboard</h1>
           <p><strong>Teacher:</strong> <%= teacher.name %></p>
-          <p><strong>Class:</strong> <%= selectedClass || "No class selected" %></p>
+          <p><strong>Class:</strong> <%= selectedClass ? selectedClass.class_name : "No class selected" %></p>
         </div>
         <div>
           <a class="button secondary" href="/logout">Logout</a>
@@ -97,14 +97,27 @@
       <a class="button" href="/teacher/classes">Create / Manage Classes</a>
       <a class="button" href="/teacher/assignments/new">Create Assignment</a>
       <% if (selectedClass) { %>
-        <span class="small">Current class selected: <strong><%= selectedClass %></strong></span>
-      <% } else { %>
-        <p class="small">Create a class first, then add students and assignments.</p>
+        <a class="button" href="/teacher/classes/<%= selectedClass.id %>/students">Manage Students</a>
+        <span class="small">Join code: <strong><%= selectedClass.join_code || "—" %></strong></span>
       <% } %>
     </div>
 
     <div class="card">
       <form method="GET" action="/teacher/dashboard" class="row">
+        <div>
+          <label class="small" for="classId">Class</label><br />
+          <select name="classId" id="classId">
+            <% if (!classes || !classes.length) { %>
+              <option value="">No classes yet</option>
+            <% } %>
+            <% (classes || []).forEach(c => { %>
+              <option value="<%= c.id %>" <%= selectedClassId === c.id ? "selected" : "" %>>
+                <%= c.class_name %>
+              </option>
+            <% }) %>
+          </select>
+        </div>
+
         <div>
           <label class="small" for="flagged">Show</label><br />
           <select name="flagged" id="flagged">
@@ -112,6 +125,7 @@
             <option value="1" <%= flaggedOnly ? "selected" : "" %>>Flagged only</option>
           </select>
         </div>
+
         <div style="margin-top: 18px;">
           <button class="button" type="submit">Apply filter</button>
         </div>
