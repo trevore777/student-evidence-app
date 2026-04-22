@@ -10,6 +10,14 @@ const fallbackClasses = [
   { class_name: "Year 10B" }
 ];
 
+// Temporary hardcoded demo students so student login works even if DB is failing
+const demoStudents = {
+  "1": { id: 1, name: "Demo Student", class_name: "Year 10A" },
+  "2": { id: 2, name: "Ella Brown", class_name: "Year 10A" },
+  "3": { id: 3, name: "Noah Smith", class_name: "Year 10B" },
+  "4": { id: 4, name: "Ruby Jones", class_name: "Year 10B" }
+};
+
 router.get("/login", async (req, res) => {
   try {
     res.render("login", { error: null, classes: fallbackClasses });
@@ -19,7 +27,7 @@ router.get("/login", async (req, res) => {
   }
 });
 
-// Keep this only if you still want app-based seeding later
+// Optional: keep this for later if you want DB seeding through the app
 router.get("/seed-demo-users", async (req, res) => {
   try {
     const teacherHash = await hashPassword("teacher123");
@@ -143,14 +151,9 @@ router.post("/login", async (req, res) => {
       return res.redirect("/teacher/dashboard");
     }
 
+    // Student login: temporary DB-free mode
     const { studentId } = req.body;
-
-    const result = await db.execute({
-      sql: `SELECT * FROM students WHERE id = ?`,
-      args: [studentId]
-    });
-
-    const student = result.rows[0];
+    const student = demoStudents[String(studentId)];
 
     if (!student) {
       return res.render("login", {
