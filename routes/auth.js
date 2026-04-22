@@ -37,80 +37,83 @@ router.get("/login", async (req, res) => {
   }
 });
 
-router.get("/seed-demo-users", async (req, res) => {
-  try {
-    const teacherHash = await hashPassword("teacher123");
+// DEV ONLY
+if (process.env.NODE_ENV !== "production") {
+  router.get("/seed-demo-users", async (req, res) => {
+    try {
+      const teacherHash = await hashPassword("teacher123");
 
-    await db.execute({
-      sql: `INSERT OR IGNORE INTO teachers (id, name, email, password_hash, class_name) VALUES (?, ?, ?, ?, ?)`,
-      args: [1, "Demo Teacher", "teacher@test.com", teacherHash, "Year 10A"]
-    });
+      await db.execute({
+        sql: `INSERT OR IGNORE INTO teachers (id, name, email, password_hash, class_name) VALUES (?, ?, ?, ?, ?)`,
+        args: [1, "Demo Teacher", "teacher@test.com", teacherHash, "Year 10A"]
+      });
 
-    await db.execute({
-      sql: `INSERT OR IGNORE INTO teachers (id, name, email, password_hash, class_name) VALUES (?, ?, ?, ?, ?)`,
-      args: [2, "Ms Baker", "baker@test.com", teacherHash, "Year 10B"]
-    });
+      await db.execute({
+        sql: `INSERT OR IGNORE INTO teachers (id, name, email, password_hash, class_name) VALUES (?, ?, ?, ?, ?)`,
+        args: [2, "Ms Baker", "baker@test.com", teacherHash, "Year 10B"]
+      });
 
-    await db.execute({
-      sql: `INSERT OR IGNORE INTO students (id, name, email, class_name, password_hash, student_pin) VALUES (?, ?, ?, ?, ?, ?)`,
-      args: [1, "Demo Student", "student@test.com", "Year 10A", "unused", "1234"]
-    });
+      await db.execute({
+        sql: `INSERT OR IGNORE INTO students (id, name, email, class_name, password_hash, student_pin) VALUES (?, ?, ?, ?, ?, ?)`,
+        args: [1, "Demo Student", "student@test.com", "Year 10A", "unused", "1234"]
+      });
 
-    await db.execute({
-      sql: `INSERT OR IGNORE INTO students (id, name, email, class_name, password_hash, student_pin) VALUES (?, ?, ?, ?, ?, ?)`,
-      args: [2, "Ella Brown", "ella@test.com", "Year 10A", "unused", "1234"]
-    });
+      await db.execute({
+        sql: `INSERT OR IGNORE INTO students (id, name, email, class_name, password_hash, student_pin) VALUES (?, ?, ?, ?, ?, ?)`,
+        args: [2, "Ella Brown", "ella@test.com", "Year 10A", "unused", "1234"]
+      });
 
-    await db.execute({
-      sql: `INSERT OR IGNORE INTO students (id, name, email, class_name, password_hash, student_pin) VALUES (?, ?, ?, ?, ?, ?)`,
-      args: [3, "Noah Smith", "noah@test.com", "Year 10B", "unused", "1234"]
-    });
+      await db.execute({
+        sql: `INSERT OR IGNORE INTO students (id, name, email, class_name, password_hash, student_pin) VALUES (?, ?, ?, ?, ?, ?)`,
+        args: [3, "Noah Smith", "noah@test.com", "Year 10B", "unused", "1234"]
+      });
 
-    await db.execute({
-      sql: `INSERT OR IGNORE INTO students (id, name, email, class_name, password_hash, student_pin) VALUES (?, ?, ?, ?, ?, ?)`,
-      args: [4, "Ruby Jones", "ruby@test.com", "Year 10B", "unused", "1234"]
-    });
+      await db.execute({
+        sql: `INSERT OR IGNORE INTO students (id, name, email, class_name, password_hash, student_pin) VALUES (?, ?, ?, ?, ?, ?)`,
+        args: [4, "Ruby Jones", "ruby@test.com", "Year 10B", "unused", "1234"]
+      });
 
-    await db.execute({
-      sql: `INSERT OR IGNORE INTO assignments
-            (id, teacher_id, title, instructions, class_name, due_date, word_target, ai_policy_note, require_declaration)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      args: [
-        1,
-        1,
-        "AI and Academic Integrity Reflection",
-        "Write a reflection explaining how you used AI appropriately in this task.",
-        "Year 10A",
-        "2026-05-01",
-        400,
-        "Declare any pasted or AI-assisted content honestly.",
-        1
-      ]
-    });
+      await db.execute({
+        sql: `INSERT OR IGNORE INTO assignments
+              (id, teacher_id, title, instructions, class_name, due_date, word_target, ai_policy_note, require_declaration)
+              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        args: [
+          1,
+          1,
+          "AI and Academic Integrity Reflection",
+          "Write a reflection explaining how you used AI appropriately in this task.",
+          "Year 10A",
+          "2026-05-01",
+          400,
+          "Declare any pasted or AI-assisted content honestly.",
+          1
+        ]
+      });
 
-    await db.execute({
-      sql: `INSERT OR IGNORE INTO assignments
-            (id, teacher_id, title, instructions, class_name, due_date, word_target, ai_policy_note, require_declaration)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      args: [
-        2,
-        2,
-        "Evaluating Sources",
-        "Compare two sources and explain which is more reliable.",
-        "Year 10B",
-        "2026-05-08",
-        500,
-        "Use the declaration tools if you paste notes or use AI assistance.",
-        1
-      ]
-    });
+      await db.execute({
+        sql: `INSERT OR IGNORE INTO assignments
+              (id, teacher_id, title, instructions, class_name, due_date, word_target, ai_policy_note, require_declaration)
+              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        args: [
+          2,
+          2,
+          "Evaluating Sources",
+          "Compare two sources and explain which is more reliable.",
+          "Year 10B",
+          "2026-05-08",
+          500,
+          "Use the declaration tools if you paste notes or use AI assistance.",
+          1
+        ]
+      });
 
-    res.send("Demo users seeded");
-  } catch (err) {
-    console.error("GET /seed-demo-users error:", err);
-    res.status(500).send("Failed to seed demo users");
-  }
-});
+      res.send("Demo users seeded");
+    } catch (err) {
+      console.error("GET /seed-demo-users error:", err);
+      res.status(500).send("Failed to seed demo users");
+    }
+  });
+}
 
 router.post("/login", async (req, res) => {
   try {
@@ -159,7 +162,8 @@ router.post("/login", async (req, res) => {
         {
           signed: true,
           httpOnly: true,
-          sameSite: "lax"
+          sameSite: "strict",
+          secure: true
         }
       );
 
@@ -205,7 +209,8 @@ router.post("/login", async (req, res) => {
       {
         signed: true,
         httpOnly: true,
-        sameSite: "lax"
+        sameSite: "strict",
+        secure: true
       }
     );
 
