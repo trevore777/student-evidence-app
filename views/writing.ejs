@@ -1,94 +1,168 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title><%= assignment.title %></title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <link rel="stylesheet" href="/css/styles.css" />
-  <script src="https://cdn.tiny.cloud/1/no-api-key/tinymce/8/tinymce.min.js" referrerpolicy="origin"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      background: #f4f6f8;
+      color: #222;
+    }
+
+    .container {
+      max-width: 900px;
+      margin: 30px auto;
+      padding: 20px;
+    }
+
+    .card {
+      background: #fff;
+      border-radius: 14px;
+      padding: 20px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+      margin-bottom: 16px;
+    }
+
+    h1, h2 {
+      margin-top: 0;
+    }
+
+    textarea {
+      width: 100%;
+      min-height: 320px;
+      padding: 14px;
+      font-size: 16px;
+      border-radius: 10px;
+      border: 1px solid #ccc;
+      box-sizing: border-box;
+      resize: vertical;
+    }
+
+    .row {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+    }
+
+    .button {
+      display: inline-block;
+      padding: 12px 16px;
+      background: #1d4ed8;
+      color: #fff;
+      text-decoration: none;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      font-size: 16px;
+    }
+
+    .button.secondary {
+      background: #666;
+    }
+
+    .small {
+      color: #666;
+      font-size: 14px;
+    }
+
+    .status {
+      font-weight: 600;
+    }
+  </style>
 </head>
 <body>
   <main class="container">
-    <header class="row-between wrap">
-      <div>
-        <h1><%= assignment.title %></h1>
-        <p><strong>Student:</strong> <%= student.name %></p>
+    <div class="card">
+      <div class="row">
+        <div>
+          <h1><%= assignment.title %></h1>
+          <p class="small">Student: <%= student.name %> | Class: <%= student.class_name %></p>
+        </div>
+        <div>
+          <a class="button secondary" href="/student/dashboard">Back</a>
+        </div>
       </div>
-      <a class="button-link auto-width" href="/student/dashboard">Back</a>
-    </header>
+    </div>
 
-    <section class="card">
+    <div class="card">
       <h2>Instructions</h2>
       <p><%= assignment.instructions %></p>
-      <% if (assignment.ai_policy_note) { %>
-        <p class="small"><strong>AI note:</strong> <%= assignment.ai_policy_note %></p>
-      <% } %>
-    </section>
+      <p class="small">Due: <%= assignment.due_date || "No due date" %></p>
+    </div>
 
-    <section class="card">
-      <div class="row-between wrap gap">
-        <div>
-          <strong>Save status:</strong> <span id="save-status">Starting…</span><br />
-          <strong>Word count:</strong> <span id="word-count">0</span>
+    <div class="card">
+      <div class="row">
+        <div class="small">
+          Status: <span class="status" id="save-status">Draft mode</span>
         </div>
-        <div>
-          <strong>Session time:</strong> <span id="session-time">00:00</span>
+        <div class="small">
+          Word count: <span id="word-count">0</span>
         </div>
       </div>
 
-      <p class="small top-gap">Formatting tools are enabled for headings, bold, italics, bullet lists, numbering, indenting, font family, and font size.</p>
+      <textarea id="editor" placeholder="Start writing here..."><%= latestContent || "" %></textarea>
 
-      <textarea id="editor" class="editor" placeholder="Start writing here..."><%= latestContent %></textarea>
-
-      <div class="row gap wrap top-gap">
-        <button id="submit-btn" type="button" class="auto-width">Submit work</button>
+      <div class="row" style="margin-top: 16px;">
+        <button class="button" id="save-btn" type="button">Save Draft</button>
+        <button class="button" id="submit-btn" type="button">Submit</button>
       </div>
-    </section>
+
+      <p class="small" style="margin-top: 12px;">
+        Temporary offline mode: this page is running without live DB save while we stabilise deployment.
+      </p>
+    </div>
   </main>
 
-  <div id="declaration-overlay" class="modal-overlay hidden"></div>
-  <div id="declaration-modal" class="modal hidden" aria-hidden="true">
-    <h2>Paste declaration</h2>
-    <p class="small">Please classify the content you pasted.</p>
-    <form id="declaration-form">
-      <label>What is this pasted content?</label>
-      <select id="declaration-type" required>
-        <option value="">Select one</option>
-        <option value="self_written">My own self-written content</option>
-        <option value="pasted_own_work">My own earlier draft</option>
-        <option value="pasted_research">Research or source notes</option>
-        <option value="teacher_scaffold">Teacher scaffold</option>
-        <option value="ai_generated">AI-generated text</option>
-        <option value="ai_modified">AI-modified text</option>
-        <option value="other">Other</option>
-      </select>
-
-      <div id="ai-fields" class="hidden">
-        <label>AI tool used</label>
-        <input type="text" id="tool-name" />
-        <label>Prompt used</label>
-        <textarea id="prompt-text" rows="4"></textarea>
-      </div>
-
-      <label>Explain how you used or changed this content</label>
-      <textarea id="student-explanation" rows="4" required></textarea>
-
-      <label>Pasted excerpt preview</label>
-      <textarea id="pasted-preview" rows="4" readonly></textarea>
-
-      <div class="row gap wrap top-gap">
-        <button type="submit" class="auto-width">Save declaration</button>
-      </div>
-    </form>
-  </div>
-
   <script>
-    window.APP_DATA = {
-      submissionId: <%= submission.id %>,
-      assignmentId: <%= assignment.id %>,
-      initialContent: <%- JSON.stringify(latestContent) %>,
-      requireDeclaration: <%= assignment.require_declaration ? 'true' : 'false' %>
-    };
+    const editor = document.getElementById("editor");
+    const wordCountEl = document.getElementById("word-count");
+    const saveStatusEl = document.getElementById("save-status");
+    const saveBtn = document.getElementById("save-btn");
+    const submitBtn = document.getElementById("submit-btn");
+
+    const storageKey = "student_evidence_draft_<%= student.id %>_<%= assignment.id %>";
+
+    function countWords(text) {
+      const clean = text.trim();
+      return clean ? clean.split(/\s+/).length : 0;
+    }
+
+    function updateWordCount() {
+      wordCountEl.textContent = countWords(editor.value);
+    }
+
+    function saveDraft() {
+      localStorage.setItem(storageKey, editor.value);
+      saveStatusEl.textContent = "Draft saved locally";
+      updateWordCount();
+    }
+
+    function loadDraft() {
+      const saved = localStorage.getItem(storageKey);
+      if (saved !== null) {
+        editor.value = saved;
+        saveStatusEl.textContent = "Draft restored";
+      }
+      updateWordCount();
+    }
+
+    saveBtn.addEventListener("click", saveDraft);
+
+    submitBtn.addEventListener("click", () => {
+      saveDraft();
+      saveStatusEl.textContent = "Submitted locally (temporary mode)";
+      alert("Submission saved locally for now.");
+    });
+
+    editor.addEventListener("input", updateWordCount);
+
+    loadDraft();
   </script>
-  <script src="/js/writing-editor.js"></script>
 </body>
 </html>
