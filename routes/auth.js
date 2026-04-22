@@ -4,13 +4,27 @@ import { comparePassword, hashPassword } from "../lib/auth.js";
 
 const router = express.Router();
 
+function normalizeRow(row, keys = []) {
+  if (!row) return {};
+  if (!Array.isArray(row)) return row;
+
+  const obj = {};
+  keys.forEach((key, i) => {
+    obj[key] = row[i];
+  });
+  return obj;
+}
+
 async function getClasses() {
   const result = await db.execute(`
     SELECT DISTINCT class_name
     FROM students
     ORDER BY class_name
   `);
-  return result.rows || [];
+
+  return (result.rows || []).map((row) =>
+    normalizeRow(row, ["class_name"])
+  );
 }
 
 router.get("/login", async (req, res) => {
@@ -38,23 +52,23 @@ router.get("/seed-demo-users", async (req, res) => {
     });
 
     await db.execute({
-      sql: `INSERT OR IGNORE INTO students (id, name, email, class_name, password_hash) VALUES (?, ?, ?, ?, ?)`,
-      args: [1, "Demo Student", "student@test.com", "Year 10A", "unused"]
+      sql: `INSERT OR IGNORE INTO students (id, name, email, class_name, password_hash, student_pin) VALUES (?, ?, ?, ?, ?, ?)`,
+      args: [1, "Demo Student", "student@test.com", "Year 10A", "unused", "1234"]
     });
 
     await db.execute({
-      sql: `INSERT OR IGNORE INTO students (id, name, email, class_name, password_hash) VALUES (?, ?, ?, ?, ?)`,
-      args: [2, "Ella Brown", "ella@test.com", "Year 10A", "unused"]
+      sql: `INSERT OR IGNORE INTO students (id, name, email, class_name, password_hash, student_pin) VALUES (?, ?, ?, ?, ?, ?)`,
+      args: [2, "Ella Brown", "ella@test.com", "Year 10A", "unused", "1234"]
     });
 
     await db.execute({
-      sql: `INSERT OR IGNORE INTO students (id, name, email, class_name, password_hash) VALUES (?, ?, ?, ?, ?)`,
-      args: [3, "Noah Smith", "noah@test.com", "Year 10B", "unused"]
+      sql: `INSERT OR IGNORE INTO students (id, name, email, class_name, password_hash, student_pin) VALUES (?, ?, ?, ?, ?, ?)`,
+      args: [3, "Noah Smith", "noah@test.com", "Year 10B", "unused", "1234"]
     });
 
     await db.execute({
-      sql: `INSERT OR IGNORE INTO students (id, name, email, class_name, password_hash) VALUES (?, ?, ?, ?, ?)`,
-      args: [4, "Ruby Jones", "ruby@test.com", "Year 10B", "unused"]
+      sql: `INSERT OR IGNORE INTO students (id, name, email, class_name, password_hash, student_pin) VALUES (?, ?, ?, ?, ?, ?)`,
+      args: [4, "Ruby Jones", "ruby@test.com", "Year 10B", "unused", "1234"]
     });
 
     await db.execute({
@@ -106,13 +120,19 @@ router.post("/login", async (req, res) => {
       const { email, password } = req.body;
 
       const result = await db.execute({
-        sql: `SELECT * FROM teachers WHERE email = ?`,
+        sql: `SELECT id, name, email, password_hash, class_name FROM teachers WHERE email = ?`,
         args: [email]
       });
 
-      const user = result.rows[0];
+      const user = normalizeRow(result.rows?.[0], [
+        "id",
+        "name",
+        "email",
+        "password_hash",
+        "class_name"
+      ]);
 
-      if (!user) {
+      if (!user.id) {
         return res.render("login", {
           error: "Invalid login details",
           classes: await getClasses()
@@ -146,18 +166,30 @@ router.post("/login", async (req, res) => {
       return res.redirect("/teacher/dashboard");
     }
 
-    const { studentId } = req.body;
+    const { studentId, studentPin } = req.body;
 
     const result = await db.execute({
-      sql: `SELECT * FROM students WHERE id = ?`,
+      sql: `SELECT id, name, class_name, student_pin FROM students WHERE id = ?`,
       args: [studentId]
     });
 
-    const student = result.rows[0];
+    const student = normalizeRow(result.rows?.[0], [
+      "id",
+      "name",
+      "class_name",
+      "student_pin"
+    ]);
 
-    if (!student) {
+    if (!student.id) {
       return res.render("login", {
         error: "Please select a valid student",
+        classes: await getClasses()
+      });
+    }
+
+    if (!student.student_pin || String(student.student_pin) !== String(studentPin || "").trim()) {
+      return res.render("login", {
+        error: "Invalid student PIN",
         classes: await getClasses()
       });
     }

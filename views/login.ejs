@@ -11,34 +11,27 @@
       background: #f4f6f8;
       color: #222;
     }
-
     .container {
       max-width: 520px;
       margin: 40px auto;
       padding: 20px;
     }
-
     .card {
       background: #fff;
       border-radius: 14px;
       padding: 20px;
-      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+      box-shadow: 0 2px 10px rgba(0,0,0,0.08);
     }
-
     h1 {
       margin-top: 0;
       font-size: 2rem;
     }
-
     label {
       display: block;
       margin: 12px 0 6px;
       font-weight: 600;
     }
-
-    input,
-    select,
-    button {
+    input, select, button {
       width: 100%;
       padding: 12px;
       font-size: 16px;
@@ -46,7 +39,6 @@
       border: 1px solid #ccc;
       box-sizing: border-box;
     }
-
     button {
       margin-top: 18px;
       background: #1d4ed8;
@@ -54,11 +46,6 @@
       border: none;
       cursor: pointer;
     }
-
-    button:hover {
-      background: #1e40af;
-    }
-
     .error {
       background: #fee2e2;
       color: #991b1b;
@@ -66,13 +53,11 @@
       border-radius: 10px;
       margin-bottom: 14px;
     }
-
     .small {
       margin-top: 14px;
       font-size: 14px;
       color: #555;
     }
-
     .hidden {
       display: none;
     }
@@ -115,13 +100,21 @@
           <select name="studentId" id="student-select" required>
             <option value="">Select student</option>
           </select>
+
+          <label for="student-pin">PIN</label>
+          <input id="student-pin" type="password" name="studentPin" inputmode="numeric" maxlength="4" placeholder="Enter 4-digit PIN" />
         </div>
 
         <button type="submit">Login</button>
       </form>
 
       <p class="small">
-        Teacher demo login: teacher@test.com / teacher123
+        Demo teacher logins:<br />
+        teacher@test.com / teacher123<br />
+        baker@test.com / teacher123
+      </p>
+      <p class="small">
+        Demo student PIN: 1234
       </p>
     </div>
   </main>
@@ -136,6 +129,7 @@
 
     const classSelect = document.getElementById("class-select");
     const studentSelect = document.getElementById("student-select");
+    const studentPin = document.getElementById("student-pin");
 
     function updateRoleUI() {
       const role = roleSelect.value;
@@ -146,16 +140,20 @@
 
         teacherEmail.required = true;
         teacherPassword.required = true;
+
         classSelect.required = false;
         studentSelect.required = false;
+        studentPin.required = false;
       } else {
         teacherFields.classList.add("hidden");
         studentFields.classList.remove("hidden");
 
         teacherEmail.required = false;
         teacherPassword.required = false;
+
         classSelect.required = true;
         studentSelect.required = true;
+        studentPin.required = true;
       }
     }
 
