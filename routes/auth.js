@@ -102,6 +102,59 @@ router.post("/signup", async (req, res) => {
   }
 });
 
+router.get("/join-class", (req, res) => {
+  res.render("join-class", { error: null });
+});
+
+router.post("/join-class", async (req, res) => {
+  try {
+    const { joinCode, studentName, studentEmail, studentPin } = req.body;
+
+    if (!joinCode || !studentName || !studentPin) {
+      return res.render("join-class", {
+        error: "Join code, name, and PIN are required"
+      });
+    }
+
+    const classResult = await db.execute({
+      sql: `
+        SELECT id, class_name
+        FROM classes
+        WHERE join_code = ?
+      `,
+      args: [String(joinCode).trim()]
+    });
+
+    const classRow = normalizeRow(classResult.rows?.[0], ["id", "class_name"]);
+
+    if (!classRow.id) {
+      return res.render("join-class", {
+        error: "Invalid join code"
+      });
+    }
+
+    await db.execute({
+      sql: `
+        INSERT INTO students (class_id, class_name, name, email, student_pin, password_hash)
+        VALUES (?, ?, ?, ?, ?, ?)
+      `,
+      args: [
+        classRow.id,
+        classRow.class_name,
+        studentName.trim(),
+        studentEmail?.trim() || "",
+        studentPin.trim(),
+        "unused"
+      ]
+    });
+
+    res.redirect("/login");
+  } catch (err) {
+    console.error("POST /join-class error:", err);
+    res.status(500).send("Failed to join class");
+  }
+});
+
 router.post("/login", async (req, res) => {
   try {
     const { role } = req.body;

@@ -32,6 +32,8 @@
       border-radius: 10px;
       border: none;
       cursor: pointer;
+      margin-right: 10px;
+      margin-bottom: 10px;
     }
     .button.secondary {
       background: #666;
@@ -82,12 +84,23 @@
         <div>
           <h1>Teacher Dashboard</h1>
           <p><strong>Teacher:</strong> <%= teacher.name %></p>
-          <p><strong>Class:</strong> <%= selectedClass %></p>
+          <p><strong>Class:</strong> <%= selectedClass || "No class selected" %></p>
         </div>
         <div>
           <a class="button secondary" href="/logout">Logout</a>
         </div>
       </div>
+    </div>
+
+    <div class="card">
+      <h2>Quick Actions</h2>
+      <a class="button" href="/teacher/classes">Create / Manage Classes</a>
+      <a class="button" href="/teacher/assignments/new">Create Assignment</a>
+      <% if (selectedClass) { %>
+        <span class="small">Current class selected: <strong><%= selectedClass %></strong></span>
+      <% } else { %>
+        <p class="small">Create a class first, then add students and assignments.</p>
+      <% } %>
     </div>
 
     <div class="card">
