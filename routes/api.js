@@ -2,6 +2,8 @@ import express from "express";
 import { db } from "../lib/db.js";
 import { openai } from "../lib/openai.js";
 
+const router = express.Router();
+
 router.get("/classes/by-teacher", async (req, res) => {
   try {
     const { teacherId } = req.query;
@@ -56,38 +58,6 @@ router.get("/students/by-class", async (req, res) => {
   }
 });
 
-const router = express.Router();
-
-router.get("/students/by-class", async (req, res) => {
-  try {
-    const { className } = req.query;
-
-    if (!className) return res.json([]);
-
-    const result = await db.execute({
-      sql: `
-        SELECT id, name
-        FROM students
-        WHERE TRIM(class_name) = TRIM(?)
-        ORDER BY name
-      `,
-      args: [className]
-    });
-
-    // 🔥 FIX: convert array rows → objects
-    const students = (result.rows || []).map(row => ({
-      id: row.id ?? row[0],
-      name: row.name ?? row[1]
-    }));
-
-    res.json(students);
-
-  } catch (err) {
-    console.error("GET /api/students/by-class error:", err);
-    res.status(500).json([]);
-  }
-});
-
 router.post("/session/start", async (req, res) => {
   try {
     const { submissionId, deviceInfo } = req.body;
@@ -101,7 +71,7 @@ router.post("/session/start", async (req, res) => {
       args: [submissionId, deviceInfo || ""]
     });
 
-    res.json({ ok: true, sessionId: result.rows[0].id });
+    res.json({ ok: true, sessionId: result.rows[0]?.id ?? result.rows[0]?.[0] });
   } catch (err) {
     console.error("POST /api/session/start error:", err);
     res.status(500).json({ ok: false, error: "Failed to start session" });
@@ -312,8 +282,7 @@ Instructions:
       input: prompt
     });
 
-    const draft =
-      response.output_text || "Unable to generate draft at this time.";
+    const draft = response.output_text || "Unable to generate draft at this time.";
 
     res.json({ ok: true, draft });
   } catch (err) {
