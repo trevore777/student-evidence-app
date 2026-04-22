@@ -186,6 +186,18 @@
   </style>
 
   <script src="/vendor/tinymce/tinymce.min.js"></script>
+
+<script>
+tinymce.init({
+  selector: "#editor-fallback, #instructions-editor, #policy-editor",
+  height: 500,
+  menubar: false,
+  branding: false,
+  plugins: "lists link wordcount paste table",
+  toolbar: "undo redo | bold italic underline | bullist numlist | link | removeformat",
+  paste_as_text: false
+});
+</script>
 </head>
 <body>
   <main class="container">
