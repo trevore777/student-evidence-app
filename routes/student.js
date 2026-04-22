@@ -1,68 +1,80 @@
 import express from "express";
-import { db } from "../lib/db.js";
-import requireStudent from "../middleware/requireStudent.js";
 
 const router = express.Router();
 
-router.get("/dashboard", requireStudent, async (req, res) => {
-  const student = req.signedCookies.user;
-  const result = await db.execute({
-    sql: `
-      SELECT a.*, sub.id AS submission_id, sub.status, sub.submitted_at,
-             (SELECT MAX(saved_at) FROM draft_snapshots ds WHERE ds.submission_id = sub.id) AS last_saved,
-             (SELECT COUNT(*) FROM writing_sessions ws WHERE ws.submission_id = sub.id) AS session_count,
-             (SELECT COUNT(*) FROM source_declarations sd WHERE sd.submission_id = sub.id) AS declaration_count,
-             (SELECT COUNT(*) FROM draft_snapshots ds2 WHERE ds2.submission_id = sub.id) AS snapshot_count,
-             COALESCE(LENGTH(sub.final_text), 0) AS char_count
-      FROM assignments a
-      JOIN students s ON s.class_name = a.class_name
-      LEFT JOIN submissions sub ON sub.assignment_id = a.id AND sub.student_id = s.id
-      WHERE s.id = ?
-      ORDER BY a.created_at DESC
-    `,
-    args: [student.id]
-  });
+function requireStudent(req, res, next) {
+  const user = req.signedCookies?.user;
+  if (!user || user.role !== "student") {
+    return res.redirect("/login");
+  }
+  next();
+}
 
-  res.render("student-dashboard", { student, assignments: result.rows });
+// Temporary hardcoded assignments by class
+const assignmentsByClass = {
+  "Year 10A": [
+    {
+      id: 1,
+      title: "AI and Academic Integrity Reflection",
+      instructions: "Write a reflection explaining how you used AI appropriately in this task.",
+      due_date: "2026-05-01"
+    }
+  ],
+  "Year 10B": [
+    {
+      id: 2,
+      title: "Evaluating Sources",
+      instructions: "Compare two sources and explain which is more reliable.",
+      due_date: "2026-05-08"
+    }
+  ]
+};
+
+router.get("/dashboard", requireStudent, async (req, res) => {
+  try {
+    const student = req.signedCookies.user;
+    const assignments = assignmentsByClass[student.class_name] || [];
+
+    res.render("student-dashboard", {
+      student,
+      assignments
+    });
+  } catch (err) {
+    console.error("GET /student/dashboard error:", err);
+    res.status(500).send("Failed to load student dashboard");
+  }
 });
 
 router.get("/assignment/:id", requireStudent, async (req, res) => {
-  const student = req.signedCookies.user;
-  const assignmentId = Number(req.params.id);
+  try {
+    const student = req.signedCookies.user;
+    const assignmentId = Number(req.params.id);
+    const assignments = assignmentsByClass[student.class_name] || [];
+    const assignment = assignments.find((a) => a.id === assignmentId);
 
-  const assignmentResult = await db.execute({ sql: `SELECT * FROM assignments WHERE id = ?`, args: [assignmentId] });
-  const assignment = assignmentResult.rows[0];
-  if (!assignment) return res.status(404).send("Assignment not found");
+    if (!assignment) {
+      return res.status(404).send("Assignment not found");
+    }
 
-  let submissionResult = await db.execute({
-    sql: `SELECT * FROM submissions WHERE assignment_id = ? AND student_id = ?`,
-    args: [assignmentId, student.id]
-  });
-  let submission = submissionResult.rows[0];
+    // Temporary fake submission payload
+    const submission = {
+      id: assignment.id,
+      assignment_id: assignment.id,
+      student_id: student.id,
+      final_text: "",
+      status: "draft"
+    };
 
-  if (!submission) {
-    await db.execute({
-      sql: `INSERT INTO submissions (assignment_id, student_id, final_text, status) VALUES (?, ?, '', 'draft')`,
-      args: [assignmentId, student.id]
+    res.render("writing", {
+      student,
+      assignment,
+      submission,
+      latestContent: ""
     });
-    submissionResult = await db.execute({
-      sql: `SELECT * FROM submissions WHERE assignment_id = ? AND student_id = ?`,
-      args: [assignmentId, student.id]
-    });
-    submission = submissionResult.rows[0];
+  } catch (err) {
+    console.error("GET /student/assignment/:id error:", err);
+    res.status(500).send("Failed to load assignment");
   }
-
-  const latestDraft = await db.execute({
-    sql: `SELECT * FROM draft_snapshots WHERE submission_id = ? ORDER BY saved_at DESC LIMIT 1`,
-    args: [submission.id]
-  });
-
-  res.render("writing", {
-    student,
-    assignment,
-    submission,
-    latestContent: latestDraft.rows[0]?.content || submission.final_text || ""
-  });
 });
 
 export default router;
