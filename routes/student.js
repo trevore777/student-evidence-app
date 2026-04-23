@@ -15,6 +15,111 @@ function normalizeRow(row, keys = []) {
   return obj;
 }
 
+router.get("/change-pin", requireStudent, async (req, res) => {
+  try {
+    const student = req.signedCookies.user;
+
+    const result = await db.execute({
+      sql: `
+        SELECT id, name, pin_needs_reset
+        FROM students
+        WHERE id = ?
+      `,
+      args: [student.id]
+    });
+
+    const studentRow = normalizeRow(result.rows?.[0], [
+      "id",
+      "name",
+      "pin_needs_reset"
+    ]);
+
+    if (!studentRow.id) {
+      return res.status(404).send("Student not found");
+    }
+
+    res.render("change-pin", {
+      student,
+      error: null,
+      success: null
+    });
+  } catch (err) {
+    console.error("GET /student/change-pin error:", err);
+    res.status(500).send("Failed to load change PIN page");
+  }
+});
+
+router.post("/change-pin", requireStudent, async (req, res) => {
+  try {
+    const student = req.signedCookies.user;
+    const { currentPin, newPin, confirmPin } = req.body;
+
+    const result = await db.execute({
+      sql: `
+        SELECT id, student_pin
+        FROM students
+        WHERE id = ?
+      `,
+      args: [student.id]
+    });
+
+    const studentRow = normalizeRow(result.rows?.[0], [
+      "id",
+      "student_pin"
+    ]);
+
+    if (!studentRow.id) {
+      return res.status(404).send("Student not found");
+    }
+
+    if (String(currentPin || "").trim() !== String(studentRow.student_pin || "").trim()) {
+      return res.render("change-pin", {
+        student,
+        error: "Current PIN is incorrect",
+        success: null
+      });
+    }
+
+    if (!/^\d{4}$/.test(String(newPin || "").trim())) {
+      return res.render("change-pin", {
+        student,
+        error: "New PIN must be exactly 4 digits",
+        success: null
+      });
+    }
+
+    if (["1234", "0000", "1111"].includes(String(newPin).trim())) {
+      return res.render("change-pin", {
+        student,
+        error: "Please choose a stronger PIN",
+        success: null
+      });
+    }
+
+    if (String(newPin).trim() !== String(confirmPin || "").trim()) {
+      return res.render("change-pin", {
+        student,
+        error: "PIN confirmation does not match",
+        success: null
+      });
+    }
+
+    await db.execute({
+      sql: `
+        UPDATE students
+        SET student_pin = ?, pin_needs_reset = 0
+        WHERE id = ?
+      `,
+      args: [String(newPin).trim(), student.id]
+    });
+
+    res.redirect("/student/dashboard");
+  } catch (err) {
+    console.error("POST /student/change-pin error:", err);
+    res.status(500).send("Failed to change PIN");
+  }
+});
+
 router.get("/dashboard", requireStudent, async (req, res) => {
   try {
     const student = req.signedCookies.user;

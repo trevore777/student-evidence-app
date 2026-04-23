@@ -37,71 +37,6 @@ router.get("/login", async (req, res) => {
   }
 });
 
-if (process.env.NODE_ENV !== "production") {
-  router.get("/seed-demo-users", async (req, res) => {
-    try {
-      const teacherHash = await hashPassword("teacher123");
-
-      await db.execute({
-        sql: `INSERT OR IGNORE INTO teachers (id, name, email, password_hash, class_name) VALUES (?, ?, ?, ?, ?)`,
-        args: [1, "Demo Teacher", "teacher@test.com", teacherHash, "Year 10A"]
-      });
-
-      await db.execute({
-        sql: `INSERT OR IGNORE INTO teachers (id, name, email, password_hash, class_name) VALUES (?, ?, ?, ?, ?)`,
-        args: [2, "Ms Baker", "baker@test.com", teacherHash, "Year 10B"]
-      });
-
-      res.send("Demo teachers seeded");
-    } catch (err) {
-      console.error("GET /seed-demo-users error:", err);
-      res.status(500).send("Failed to seed demo users");
-    }
-  });
-}
-
-router.get("/signup", (req, res) => {
-  res.render("signup", { error: null });
-});
-
-router.post("/signup", async (req, res) => {
-  try {
-    const { name, email, password } = req.body;
-
-    if (!name || !email || !password) {
-      return res.render("signup", {
-        error: "All fields are required"
-      });
-    }
-
-    const existing = await db.execute({
-      sql: `SELECT id FROM teachers WHERE email = ?`,
-      args: [email]
-    });
-
-    if (existing.rows.length > 0) {
-      return res.render("signup", {
-        error: "Email already in use"
-      });
-    }
-
-    const passwordHash = await hashPassword(password);
-
-    await db.execute({
-      sql: `
-        INSERT INTO teachers (name, email, password_hash)
-        VALUES (?, ?, ?)
-      `,
-      args: [name.trim(), email.trim(), passwordHash]
-    });
-
-    res.redirect("/login");
-  } catch (err) {
-    console.error("POST /signup error:", err);
-    res.status(500).send("Signup failed");
-  }
-});
-
 router.get("/join-class", (req, res) => {
   res.render("join-class", { error: null });
 });
@@ -135,8 +70,8 @@ router.post("/join-class", async (req, res) => {
 
     await db.execute({
       sql: `
-        INSERT INTO students (class_id, class_name, name, email, student_pin, password_hash)
-        VALUES (?, ?, ?, ?, ?, ?)
+        INSERT INTO students (class_id, class_name, name, email, student_pin, pin_needs_reset, password_hash)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
       `,
       args: [
         classRow.id,
@@ -144,6 +79,7 @@ router.post("/join-class", async (req, res) => {
         studentName.trim(),
         studentEmail?.trim() || "",
         studentPin.trim(),
+        0,
         "unused"
       ]
     });
@@ -214,7 +150,12 @@ router.post("/login", async (req, res) => {
 
     const result = await db.execute({
       sql: `
-        SELECT s.id, s.name, c.class_name, s.student_pin
+        SELECT
+          s.id,
+          s.name,
+          c.class_name,
+          s.student_pin,
+          s.pin_needs_reset
         FROM students s
         JOIN classes c ON c.id = s.class_id
         WHERE s.id = ? AND s.class_id = ? AND c.teacher_id = ?
@@ -226,7 +167,8 @@ router.post("/login", async (req, res) => {
       "id",
       "name",
       "class_name",
-      "student_pin"
+      "student_pin",
+      "pin_needs_reset"
     ]);
 
     if (!student.id) {
@@ -258,6 +200,10 @@ router.post("/login", async (req, res) => {
         secure: true
       }
     );
+
+    if (Number(student.pin_needs_reset) === 1) {
+      return res.redirect("/student/change-pin");
+    }
 
     return res.redirect("/student/dashboard");
   } catch (err) {
