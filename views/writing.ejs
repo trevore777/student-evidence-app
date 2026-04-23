@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title><%= assignment.title %></title>
+
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -26,30 +27,14 @@
       margin-bottom: 16px;
     }
 
-    .row {
-      display: flex;
-      gap: 12px;
-      flex-wrap: wrap;
-      align-items: center;
-      justify-content: space-between;
-    }
-
     .button {
-      display: inline-block;
       padding: 10px 14px;
       background: #1d4ed8;
       color: #fff;
-      text-decoration: none;
       border-radius: 10px;
       border: none;
       cursor: pointer;
       margin-right: 10px;
-      margin-bottom: 10px;
-      font-size: 15px;
-    }
-
-    .button.secondary {
-      background: #666;
     }
 
     .button.warning {
@@ -61,631 +46,230 @@
       color: #666;
     }
 
-    .status {
-      font-weight: 600;
-    }
-
-    .info-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-      gap: 12px;
-    }
-
-    .info-box {
-      background: #f8fafc;
-      border: 1px solid #e5e7eb;
-      border-radius: 12px;
-      padding: 12px;
-    }
-
-    .notice {
-      background: #eff6ff;
-      border: 1px solid #bfdbfe;
-      color: #1e3a8a;
-      border-radius: 12px;
-      padding: 12px 14px;
-      margin-top: 12px;
-    }
-
-    .warning-box {
-      background: #fff7ed;
-      border: 1px solid #fdba74;
-      color: #9a3412;
-      border-radius: 12px;
-      padding: 12px 14px;
-      margin-top: 12px;
-    }
-
-    .editor-wrap {
-      margin-top: 12px;
-    }
-
-    textarea#editor-fallback {
-      width: 100%;
-      min-height: 520px;
-      padding: 14px;
-      border-radius: 10px;
-      border: 1px solid #ccc;
-      box-sizing: border-box;
-      font-size: 16px;
-      resize: vertical;
-    }
-
-    .paste-legend {
-      margin-top: 12px;
-    }
-
-    .legend-chip {
-      display: inline-block;
+    .pasted-content {
       background: #fff3b0;
       border-bottom: 2px solid #f59e0b;
-      padding: 4px 8px;
-      border-radius: 6px;
-      font-size: 12px;
-      color: #7c2d12;
+      padding: 0 2px;
     }
 
-    .modal-backdrop {
-      position: fixed;
-      inset: 0;
-      background: rgba(0,0,0,0.45);
-      display: none;
-      align-items: center;
-      justify-content: center;
-      z-index: 9999;
-      padding: 20px;
+    img {
+      max-width: 100%;
+      border-radius: 8px;
     }
 
     .modal {
-      background: #fff;
-      border-radius: 14px;
-      width: 100%;
-      max-width: 640px;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.5);
+      display: none;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .modal-box {
+      background: white;
       padding: 20px;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-    }
-
-    .modal h2 {
-      margin-top: 0;
-    }
-
-    label {
-      display: block;
-      font-weight: 600;
-      margin-top: 12px;
-      margin-bottom: 6px;
-    }
-
-    input[type="text"],
-    textarea,
-    select {
-      width: 100%;
-      padding: 12px;
-      border-radius: 10px;
-      border: 1px solid #ccc;
-      box-sizing: border-box;
-      font-size: 15px;
+      border-radius: 12px;
+      width: 400px;
     }
 
     textarea {
+      width: 100%;
       min-height: 100px;
-      resize: vertical;
-    }
-
-    .modal-actions {
-      margin-top: 16px;
-      display: flex;
-      gap: 10px;
-      flex-wrap: wrap;
-      justify-content: flex-end;
     }
   </style>
 
+  <!-- LOCAL TinyMCE -->
   <script src="/vendor/tinymce/tinymce.min.js"></script>
 </head>
+
 <body>
-  <main class="container">
-    <div class="card">
-      <div class="row">
-        <div>
-          <h1><%= assignment.title %></h1>
-          <p class="small">
-            Student: <strong><%= student.name %></strong> |
-            Class: <strong><%= student.class_name %></strong>
-          </p>
-        </div>
-        <div>
-          <a class="button secondary" href="/student/dashboard">Back to dashboard</a>
-        </div>
-      </div>
-    </div>
 
-    <div class="card">
-      <h2>Assignment</h2>
-      <p><%= assignment.instructions %></p>
+<main class="container">
 
-      <div class="info-grid">
-        <div class="info-box">
-          <strong>Due date</strong>
-          <div class="small"><%= assignment.due_date || "No due date" %></div>
-        </div>
-
-        <div class="info-box">
-          <strong>Word target</strong>
-          <div class="small"><%= assignment.word_target || "—" %></div>
-        </div>
-
-        <div class="info-box">
-          <strong>Declarations required</strong>
-          <div class="small"><%= assignment.require_declaration ? "Yes" : "No" %></div>
-        </div>
-      </div>
-
-      <% if (assignment.ai_policy_note) { %>
-        <div class="notice">
-          <strong>AI policy note:</strong> <%= assignment.ai_policy_note %>
-        </div>
-      <% } %>
-    </div>
-
-    <div class="card">
-      <div class="row">
-        <div class="small">
-          Status:
-          <span class="status" id="save-status">Loading editor…</span>
-        </div>
-        <div class="small">
-          Word count:
-          <span id="word-count">0</span>
-        </div>
-      </div>
-
-      <div class="paste-legend">
-        <span class="legend-chip">Highlighted yellow = pasted content</span>
-      </div>
-
-      <div class="editor-wrap">
-        <textarea id="editor-fallback"><%- latestContent || "" %></textarea>
-      </div>
-
-      <div style="margin-top: 16px;">
-        <button class="button" id="save-btn" type="button">Save Draft</button>
-        <button class="button warning" id="declare-btn" type="button">Add Declaration</button>
-        <button class="button" id="submit-btn" type="button">Submit Work</button>
-      </div>
-
-      <div class="warning-box">
-        If you paste content, use AI, or modify content with AI, record it using the declaration button.
-      </div>
-    </div>
-  </main>
-
-  <div class="modal-backdrop" id="declaration-modal">
-    <div class="modal">
-      <h2>Declare Assistance or Pasted Content</h2>
-      <p class="small">
-        Record any copied, pasted, AI-generated, or AI-modified content used in this draft.
-      </p>
-
-      <label for="declaration-type">Declaration type</label>
-      <select id="declaration-type">
-        <option value="pasted_research">Pasted research / notes</option>
-        <option value="ai_generated">AI generated content</option>
-        <option value="ai_modified">AI modified my writing</option>
-        <option value="other">Other assistance</option>
-      </select>
-
-      <label for="tool-name">Tool / source name</label>
-      <input type="text" id="tool-name" placeholder="e.g. ChatGPT, website notes, textbook" />
-
-      <label for="prompt-text">Prompt / source detail</label>
-      <textarea id="prompt-text" placeholder="What did you ask, or where did the content come from?"></textarea>
-
-      <label for="original-text-excerpt">Excerpt of content used</label>
-      <textarea id="original-text-excerpt" placeholder="Paste a small excerpt or summary of the material used"></textarea>
-
-      <label for="student-explanation">Explain how you used it</label>
-      <textarea id="student-explanation" placeholder="Describe what you changed, kept, or rewrote"></textarea>
-
-      <div class="modal-actions">
-        <button class="button secondary" type="button" id="cancel-declaration-btn">Cancel</button>
-        <button class="button" type="button" id="save-declaration-btn">Save Declaration</button>
-      </div>
-    </div>
+  <div class="card">
+    <h1><%= assignment.title %></h1>
+    <p class="small">
+      <strong><%= student.name %></strong> |
+      <%= student.class_name %>
+    </p>
   </div>
 
-  <script>
-    const submissionId = <%- JSON.stringify(submission.id) %>;
-    const requireDeclaration = <%- JSON.stringify(!!assignment.require_declaration) %>;
+  <div class="card">
+    <h2>Instructions</h2>
+    <div><%- assignment.instructions %></div>
+  </div>
 
-    let sessionId = null;
-    let lastActivityAt = Date.now();
-    let activeSeconds = 0;
-    let idleSeconds = 0;
-    let autosaveTimer = null;
-    let editorMode = "textarea";
+  <div class="card">
 
-    const saveStatusEl = document.getElementById("save-status");
-    const wordCountEl = document.getElementById("word-count");
+    <div class="small">
+      Status: <span id="status">Loading…</span> |
+      Words: <span id="word-count">0</span>
+    </div>
 
-    const saveBtn = document.getElementById("save-btn");
-    const declareBtn = document.getElementById("declare-btn");
-    const submitBtn = document.getElementById("submit-btn");
+    <textarea id="editor"><%- latestContent || "" %></textarea>
 
-    const declarationModal = document.getElementById("declaration-modal");
-    const declarationTypeEl = document.getElementById("declaration-type");
-    const toolNameEl = document.getElementById("tool-name");
-    const promptTextEl = document.getElementById("prompt-text");
-    const originalTextExcerptEl = document.getElementById("original-text-excerpt");
-    const studentExplanationEl = document.getElementById("student-explanation");
-    const cancelDeclarationBtn = document.getElementById("cancel-declaration-btn");
-    const saveDeclarationBtn = document.getElementById("save-declaration-btn");
+    <div style="margin-top:15px;">
+      <button class="button" onclick="saveDraft()">Save</button>
+      <button class="button warning" onclick="openDeclaration()">Declare</button>
+      <button class="button" onclick="submitWork()">Submit</button>
+    </div>
 
-    const editorFallback = document.getElementById("editor-fallback");
+  </div>
 
-    function escapeHtml(text = "") {
-      return String(text)
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;");
-    }
+</main>
 
-    function stripHtml(html = "") {
-      const div = document.createElement("div");
-      div.innerHTML = html;
-      return (div.textContent || div.innerText || "").trim();
-    }
+<!-- Declaration Modal -->
+<div id="modal" class="modal">
+  <div class="modal-box">
+    <h3>Declare Use</h3>
 
-    function countWords(text = "") {
-      const clean = stripHtml(text);
-      return clean ? clean.split(/\s+/).length : 0;
-    }
+    <select id="type">
+      <option value="pasted">Pasted</option>
+      <option value="ai">AI Used</option>
+    </select>
 
-    function getEditorContent() {
-      if (editorMode === "tiny" && window.tinymce && tinymce.get("editor-fallback")) {
-        return tinymce.get("editor-fallback").getContent() || "";
-      }
-      return editorFallback.value || "";
-    }
+    <textarea id="explain" placeholder="Explain use..."></textarea>
 
-    function updateWordCount() {
-      wordCountEl.textContent = countWords(getEditorContent());
-    }
+    <button onclick="saveDeclaration()">Save</button>
+    <button onclick="closeDeclaration()">Cancel</button>
+  </div>
+</div>
 
-    async function postJson(url, payload) {
-      const res = await fetch(url, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload)
-      });
+<script>
 
-      const text = await res.text();
-      try {
-        return JSON.parse(text);
-      } catch {
-        return { ok: res.ok, raw: text };
-      }
-    }
+const submissionId = <%- submission.id %>;
 
-    async function startSession() {
-      try {
-        const result = await postJson("/api/session/start", {
-          submissionId,
-          deviceInfo: navigator.userAgent
-        });
+function escapeHtml(text="") {
+  return text
+    .replace(/&/g,"&amp;")
+    .replace(/</g,"&lt;")
+    .replace(/>/g,"&gt;");
+}
 
-        if (result.ok && result.sessionId) {
-          sessionId = result.sessionId;
-          saveStatusEl.textContent = editorMode === "tiny"
-            ? "Editor ready"
-            : "Editor ready (basic mode)";
-        } else {
-          saveStatusEl.textContent = "Session start failed";
-          console.error("session/start response:", result);
-        }
-      } catch (err) {
-        console.error("startSession error:", err);
-        saveStatusEl.textContent = "Session start failed";
-      }
-    }
+tinymce.init({
+  selector: "#editor",
+  license_key: "gpl",
 
-    async function endSession() {
-      if (!sessionId) return;
-      try {
-        await postJson("/api/session/end", {
-          sessionId,
-          activeSeconds,
-          idleSeconds
-        });
-      } catch (err) {
-        console.error("endSession error:", err);
-      }
-    }
+  height: 500,
+  menubar: false,
 
-    async function saveDraft() {
-      if (!sessionId) {
-        alert("Session not ready yet.");
-        return;
-      }
+  plugins: "lists link image table code",
 
-      try {
-        const content = getEditorContent();
-        const wordCount = countWords(content);
+  toolbar:
+    "undo redo | bold italic underline | bullist numlist | alignleft aligncenter alignright | image",
 
-        saveStatusEl.textContent = "Saving…";
+  images_upload_url: "/api/upload",
 
-        const result = await postJson("/api/draft/autosave", {
-          submissionId,
-          sessionId,
-          content,
-          wordCount
-        });
+  automatic_uploads: true,
 
-        if (result.ok) {
-          saveStatusEl.textContent = "Draft saved";
-        } else {
-          saveStatusEl.textContent = "Save failed";
-          console.error("draft/autosave response:", result);
-        }
-      } catch (err) {
-        console.error("saveDraft error:", err);
-        saveStatusEl.textContent = "Save failed";
-      }
-    }
+  images_upload_handler: async (blobInfo) => {
+    const form = new FormData();
+    form.append("file", blobInfo.blob());
 
-    async function logEvent(eventType, eventMeta = {}) {
-      if (!sessionId) return;
-      try {
-        await postJson("/api/event", {
-          submissionId,
-          sessionId,
-          eventType,
-          eventMeta
-        });
-      } catch (err) {
-        console.error("logEvent error:", err);
-      }
-    }
-
-    function openDeclarationModal(prefill = {}) {
-      declarationTypeEl.value = prefill.declarationType || "pasted_research";
-      toolNameEl.value = prefill.toolName || "";
-      promptTextEl.value = prefill.promptText || "";
-      originalTextExcerptEl.value = prefill.originalTextExcerpt || "";
-      studentExplanationEl.value = prefill.studentExplanation || "";
-      declarationModal.style.display = "flex";
-    }
-
-    function closeDeclarationModal() {
-      declarationModal.style.display = "none";
-    }
-
-    async function saveDeclaration() {
-      if (!sessionId) {
-        alert("Session not ready yet.");
-        return;
-      }
-
-      try {
-        const result = await postJson("/api/declaration", {
-          submissionId,
-          sessionId,
-          declarationType: declarationTypeEl.value,
-          toolName: toolNameEl.value.trim(),
-          promptText: promptTextEl.value.trim(),
-          originalTextExcerpt: originalTextExcerptEl.value.trim(),
-          studentExplanation: studentExplanationEl.value.trim()
-        });
-
-        if (result.ok) {
-          closeDeclarationModal();
-          await logEvent("declaration_saved", {
-            declarationType: declarationTypeEl.value
-          });
-          saveStatusEl.textContent = "Declaration saved";
-        } else {
-          alert("Failed to save declaration.");
-          console.error("declaration response:", result);
-        }
-      } catch (err) {
-        console.error("saveDeclaration error:", err);
-        alert("Failed to save declaration.");
-      }
-    }
-
-    async function submitWork() {
-      if (!sessionId) {
-        alert("Session not ready yet.");
-        return;
-      }
-
-      try {
-        const content = getEditorContent();
-
-        if (requireDeclaration) {
-          const proceed = window.confirm(
-            "Before submitting, have you recorded any pasted or AI-assisted content using the declaration tool?"
-          );
-          if (!proceed) return;
-        }
-
-        saveStatusEl.textContent = "Submitting…";
-
-        const result = await postJson("/api/submit", {
-          submissionId,
-          finalText: content
-        });
-
-        if (result.ok) {
-          saveStatusEl.textContent = "Submitted";
-          await logEvent("submitted", { wordCount: countWords(content) });
-          alert("Work submitted successfully.");
-          window.location.href = "/student/dashboard";
-        } else {
-          saveStatusEl.textContent = "Submit failed";
-          console.error("submit response:", result);
-          alert("Failed to submit work.");
-        }
-      } catch (err) {
-        console.error("submitWork error:", err);
-        saveStatusEl.textContent = "Submit failed";
-        alert("Failed to submit work.");
-      }
-    }
-
-    function setupActivityTracking() {
-      const markActivity = () => {
-        const now = Date.now();
-        const diff = Math.floor((now - lastActivityAt) / 1000);
-        if (diff <= 20) activeSeconds += diff;
-        else idleSeconds += diff;
-        lastActivityAt = now;
-      };
-
-      ["mousemove", "keydown", "click"].forEach((eventName) => {
-        window.addEventListener(eventName, markActivity);
-      });
-
-      setInterval(() => {
-        const now = Date.now();
-        const diff = Math.floor((now - lastActivityAt) / 1000);
-        if (diff > 20) {
-          idleSeconds += 5;
-          lastActivityAt = now;
-        }
-      }, 5000);
-    }
-
-    function bindTextareaMode() {
-      editorMode = "textarea";
-      saveStatusEl.textContent = "Editor ready (basic mode)";
-
-      editorFallback.addEventListener("input", () => {
-        updateWordCount();
-        if (autosaveTimer) clearTimeout(autosaveTimer);
-        autosaveTimer = setTimeout(saveDraft, 1500);
-      });
-
-      editorFallback.addEventListener("paste", (e) => {
-        const pastedText =
-          (e.clipboardData && e.clipboardData.getData("text/plain")) || "";
-
-        logEvent("paste", {
-          pastedLength: pastedText.length,
-          pastedPreview: pastedText.slice(0, 120)
-        });
-
-        if (requireDeclaration) {
-          setTimeout(() => {
-            openDeclarationModal({
-              declarationType: "pasted_research",
-              originalTextExcerpt: pastedText.slice(0, 500)
-            });
-          }, 150);
-        }
-      });
-
-      updateWordCount();
-    }
-
-    function tryInitTiny() {
-      if (!window.tinymce) {
-        bindTextareaMode();
-        return startSession();
-      }
-
-      const initialValue = editorFallback.value || "";
-
-      tinymce.init({
-        selector: "#editor-fallback",
-        license_key: "gpl",
-        height: 520,
-        menubar: false,
-        branding: false,
-        plugins: "lists link wordcount paste",
-        toolbar: "undo redo | blocks fontfamily fontsize | bold italic underline | bullist numlist | outdent indent | removeformat",
-        paste_as_text: true,
-        extended_valid_elements: "span[class|data-pasted]",
-        content_style: `
-          body { font-family: Arial, sans-serif; font-size: 16px; }
-          .pasted-content {
-            background: #fff3b0;
-            border-bottom: 2px solid #f59e0b;
-            padding: 0 2px;
-          }
-        `,
-        setup: function (editor) {
-          editor.on("init", async function () {
-            editorMode = "tiny";
-            editor.setContent(initialValue);
-            updateWordCount();
-            await startSession();
-          });
-
-          editor.on("input keyup change SetContent", function () {
-            updateWordCount();
-            if (autosaveTimer) clearTimeout(autosaveTimer);
-            autosaveTimer = setTimeout(saveDraft, 1500);
-          });
-
-          editor.on("paste", function (e) {
-            e.preventDefault();
-
-            const pastedText =
-              (e.clipboardData && e.clipboardData.getData("text/plain")) ||
-              "";
-
-            const html = `<span class="pasted-content" data-pasted="true">${escapeHtml(pastedText).replace(/\n/g, "<br>")}</span>`;
-
-            editor.insertContent(html);
-
-            logEvent("paste", {
-              pastedLength: pastedText.length,
-              pastedPreview: pastedText.slice(0, 120)
-            });
-
-            if (requireDeclaration) {
-              setTimeout(() => {
-                openDeclarationModal({
-                  declarationType: "pasted_research",
-                  originalTextExcerpt: pastedText.slice(0, 500)
-                });
-              }, 200);
-            }
-
-            updateWordCount();
-
-            if (autosaveTimer) clearTimeout(autosaveTimer);
-            autosaveTimer = setTimeout(saveDraft, 1500);
-          });
-        }
-      }).catch((err) => {
-        console.error("Tiny init failed:", err);
-        bindTextareaMode();
-        startSession();
-      });
-
-      setTimeout(() => {
-        if (editorMode !== "tiny") {
-          console.warn("Tiny timed out, using textarea fallback.");
-          bindTextareaMode();
-          startSession();
-        }
-      }, 4000);
-    }
-
-    saveBtn.addEventListener("click", saveDraft);
-    declareBtn.addEventListener("click", () => openDeclarationModal());
-    submitBtn.addEventListener("click", submitWork);
-    cancelDeclarationBtn.addEventListener("click", closeDeclarationModal);
-    saveDeclarationBtn.addEventListener("click", saveDeclaration);
-
-    window.addEventListener("beforeunload", () => {
-      endSession();
+    const res = await fetch("/api/upload", {
+      method: "POST",
+      body: form
     });
 
-    setupActivityTracking();
-    tryInitTiny();
-  </script>
+    const data = await res.json();
+    return data.location;
+  },
+
+  setup: (editor) => {
+
+    editor.on("init", () => {
+      document.getElementById("status").textContent = "Ready";
+      updateWordCount();
+    });
+
+    editor.on("keyup change", () => {
+      updateWordCount();
+      debounceSave();
+    });
+
+    editor.on("paste", (e) => {
+      e.preventDefault();
+
+      const text = e.clipboardData.getData("text/plain");
+
+      const html =
+        `<span class="pasted-content">${escapeHtml(text).replace(/\n/g,"<br>")}</span>`;
+
+      editor.insertContent(html);
+
+      openDeclaration(text);
+    });
+  }
+});
+
+function updateWordCount() {
+  const text = tinymce.get("editor").getContent({format:"text"});
+  document.getElementById("word-count").textContent =
+    text.split(/\s+/).filter(Boolean).length;
+}
+
+let saveTimer;
+function debounceSave() {
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(saveDraft, 1500);
+}
+
+async function saveDraft() {
+  const content = tinymce.get("editor").getContent();
+
+  await fetch("/api/draft/autosave", {
+    method: "POST",
+    headers: {"Content-Type":"application/json"},
+    body: JSON.stringify({
+      submissionId,
+      content
+    })
+  });
+
+  document.getElementById("status").textContent = "Saved";
+}
+
+async function submitWork() {
+  const content = tinymce.get("editor").getContent();
+
+  await fetch("/api/submit", {
+    method: "POST",
+    headers: {"Content-Type":"application/json"},
+    body: JSON.stringify({
+      submissionId,
+      finalText: content
+    })
+  });
+
+  alert("Submitted");
+  window.location = "/student/dashboard";
+}
+
+function openDeclaration(text="") {
+  document.getElementById("modal").style.display = "flex";
+  document.getElementById("explain").value = text || "";
+}
+
+function closeDeclaration() {
+  document.getElementById("modal").style.display = "none";
+}
+
+async function saveDeclaration() {
+  await fetch("/api/declaration", {
+    method: "POST",
+    headers: {"Content-Type":"application/json"},
+    body: JSON.stringify({
+      submissionId,
+      type: document.getElementById("type").value,
+      explanation: document.getElementById("explain").value
+    })
+  });
+
+  closeDeclaration();
+}
+
+</script>
+
 </body>
 </html>

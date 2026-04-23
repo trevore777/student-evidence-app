@@ -30,6 +30,7 @@ app.use(cookieParser(process.env.APP_SECRET || "dev-secret"));
 app.use(express.static(path.join(__dirname, "public")));
 app.use("/vendor/tinymce", express.static(path.join(__dirname, "node_modules", "tinymce")));
 app.use("/teacher/print", printRoutes);
+app.use("/uploads", express.static("uploads"));
 // health check
 app.get("/health", (req, res) => {
   res.send("ok");
