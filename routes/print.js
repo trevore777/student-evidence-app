@@ -1,13 +1,9 @@
 import express from "express";
-import path from "path";
-import { fileURLToPath } from "url";
 import puppeteer from "puppeteer";
 import { db } from "../lib/db.js";
 import requireTeacher from "../middleware/requireTeacher.js";
 
 const router = express.Router();
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 
 function normalizeRow(row, keys = []) {
   if (!row) return {};
@@ -24,9 +20,11 @@ function formatDate(dateStr) {
   if (!dateStr) return "—";
   const d = new Date(dateStr);
   if (isNaN(d)) return dateStr;
+
   const day = String(d.getDate()).padStart(2, "0");
   const month = String(d.getMonth() + 1).padStart(2, "0");
   const year = d.getFullYear();
+
   return `${day}/${month}/${year}`;
 }
 
@@ -124,6 +122,11 @@ router.get("/submission/:id/pdf", requireTeacher, async (req, res) => {
             background: #fff3b0;
             border-bottom: 2px solid #f59e0b;
             padding: 0 2px;
+          }
+          img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 8px;
           }
         </style>
       </head>
@@ -254,6 +257,11 @@ router.get("/class/:classId/pdf", requireTeacher, async (req, res) => {
             background: #fff3b0;
             border-bottom: 2px solid #f59e0b;
             padding: 0 2px;
+          }
+          img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 8px;
           }
         </style>
       </head>
