@@ -1,5 +1,6 @@
 import express from "express";
 import path from "path";
+import fs from "fs";
 import { fileURLToPath } from "url";
 import cookieParser from "cookie-parser";
 import dotenv from "dotenv";
@@ -12,16 +13,19 @@ import teacherRoutes from "./routes/teacher.js";
 import assignmentRoutes from "./routes/assignments.js";
 import classRoutes from "./routes/classes.js";
 import apiRoutes from "./routes/api.js";
-import printRoutes from "./routes/print.js";
 import uploadRoutes from "./routes/upload.js";
-
-app.use("/api/upload", uploadRoutes);
+import printRoutes from "./routes/print.js";
 
 dotenv.config();
 
 const app = express();
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+const uploadsDir = path.join(__dirname, "uploads");
+
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
+}
 
 // views + middleware
 app.set("view engine", "ejs");
@@ -32,14 +36,14 @@ app.use(express.json());
 app.use(cookieParser(process.env.APP_SECRET || "dev-secret"));
 app.use(express.static(path.join(__dirname, "public")));
 app.use("/vendor/tinymce", express.static(path.join(__dirname, "node_modules", "tinymce")));
-app.use("/teacher/print", printRoutes);
-app.use("/uploads", express.static("uploads"));
-// health check
+app.use("/uploads", express.static(uploadsDir));
+
+// health
 app.get("/health", (req, res) => {
   res.send("ok");
 });
 
-// DEV ONLY ROUTES
+// dev-only helpers
 if (process.env.NODE_ENV !== "production") {
   app.get("/db-probe", async (req, res) => {
     try {
@@ -77,6 +81,7 @@ if (process.env.NODE_ENV !== "production") {
           teacher_id INTEGER NOT NULL,
           class_name TEXT NOT NULL,
           year_level TEXT,
+          join_code TEXT,
           created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
         )
       `);
@@ -90,6 +95,7 @@ if (process.env.NODE_ENV !== "production") {
           class_name TEXT NOT NULL,
           password_hash TEXT,
           student_pin TEXT,
+          pin_needs_reset INTEGER DEFAULT 0,
           created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
         )
       `);
@@ -183,11 +189,13 @@ if (process.env.NODE_ENV !== "production") {
 
       try { await db.execute(`ALTER TABLE students ADD COLUMN student_pin TEXT`); } catch {}
       try { await db.execute(`ALTER TABLE students ADD COLUMN class_id INTEGER`); } catch {}
+      try { await db.execute(`ALTER TABLE students ADD COLUMN pin_needs_reset INTEGER DEFAULT 0`); } catch {}
       try { await db.execute(`ALTER TABLE teachers ADD COLUMN class_name TEXT`); } catch {}
       try { await db.execute(`ALTER TABLE assignments ADD COLUMN class_id INTEGER`); } catch {}
       try { await db.execute(`ALTER TABLE assignments ADD COLUMN word_target INTEGER`); } catch {}
       try { await db.execute(`ALTER TABLE assignments ADD COLUMN ai_policy_note TEXT`); } catch {}
       try { await db.execute(`ALTER TABLE assignments ADD COLUMN require_declaration INTEGER NOT NULL DEFAULT 1`); } catch {}
+      try { await db.execute(`ALTER TABLE classes ADD COLUMN join_code TEXT`); } catch {}
 
       res.send("Database tables created");
     } catch (err) {
@@ -202,19 +210,22 @@ app.get("/", (req, res) => {
   res.redirect("/login");
 });
 
-// routes
+// route mounts
 app.use("/", authRoutes);
 app.use("/student", studentRoutes);
 app.use("/teacher", teacherRoutes);
 app.use("/teacher/assignments", assignmentRoutes);
 app.use("/teacher/classes", classRoutes);
+app.use("/teacher/print", printRoutes);
 app.use("/api", apiRoutes);
+app.use("/api/upload", uploadRoutes);
 
-// error handling
+// 404
 app.use((req, res) => {
   res.status(404).send("Page not found");
 });
 
+// error handler
 app.use((err, req, res, next) => {
   console.error("SERVER ERROR:", err);
   res.status(500).send("Server error");
