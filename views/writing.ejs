@@ -35,6 +35,7 @@
       border: none;
       cursor: pointer;
       margin-right: 10px;
+      margin-bottom: 10px;
     }
 
     .button.warning {
@@ -114,6 +115,36 @@
       height: auto;
       border-radius: 8px;
     }
+
+    details {
+      border-radius: 10px;
+    }
+
+    summary {
+      cursor: pointer;
+      font-size: 18px;
+      font-weight: 600;
+      list-style: none;
+      user-select: none;
+    }
+
+    summary::-webkit-details-marker {
+      display: none;
+    }
+
+    summary::after {
+      content: " ▼";
+      font-size: 14px;
+      color: #666;
+    }
+
+    details[open] summary::after {
+      content: " ▲";
+    }
+
+    .details-body {
+      margin-top: 14px;
+    }
   </style>
 
   <script src="/vendor/tinymce/tinymce.min.js"></script>
@@ -131,14 +162,43 @@
     </div>
 
     <div class="card">
-      <h2>Instructions</h2>
-      <div><%- assignment.instructions %></div>
-
-      <% if (assignment.ai_policy_note) { %>
-        <div class="notice">
-          <strong>AI policy note:</strong> <%= assignment.ai_policy_note %>
+      <details open>
+        <summary>Assessment Instructions</summary>
+        <div class="details-body">
+          <div><%- assignment.instructions %></div>
         </div>
-      <% } %>
+      </details>
+    </div>
+
+    <% if (assignment.ai_policy_note) { %>
+      <div class="card">
+        <details>
+          <summary>AI Policy / Rules</summary>
+          <div class="details-body">
+            <div class="notice">
+              <strong>AI policy note:</strong> <%= assignment.ai_policy_note %>
+            </div>
+          </div>
+        </details>
+      </div>
+    <% } %>
+
+    <div class="card">
+      <details>
+        <summary>Declaration and Evidence Help</summary>
+        <div class="details-body">
+          <p class="small">Use declarations when you:</p>
+          <ul>
+            <li>paste research or notes</li>
+            <li>use AI to generate content</li>
+            <li>use AI to improve or rewrite your work</li>
+            <li>insert supporting materials that are not fully your own writing</li>
+          </ul>
+          <div class="warning-box">
+            Highlighted yellow = pasted content.
+          </div>
+        </div>
+      </details>
     </div>
 
     <div class="card">
@@ -148,7 +208,7 @@
       </div>
 
       <p class="small" style="margin-top:10px;">
-        Highlighted yellow = pasted content. You can drag and drop images into the editor.
+        You can type, paste, drag in images, save drafts, and submit when ready.
       </p>
 
       <textarea id="editor"><%- latestContent || "" %></textarea>
@@ -157,10 +217,6 @@
         <button class="button" id="save-btn" type="button">Save</button>
         <button class="button warning" id="declare-btn" type="button">Declare</button>
         <button class="button" id="submit-btn" type="button">Submit</button>
-      </div>
-
-      <div class="warning-box">
-        If you paste content, use AI, or insert supporting material, declare it.
       </div>
     </div>
 
@@ -410,7 +466,6 @@
       plugins: "lists link image table code paste wordcount",
       toolbar:
         "undo redo | bold italic underline | bullist numlist | alignleft aligncenter alignright | image table | removeformat",
-
       extended_valid_elements: "span[class|data-pasted],img[src|alt|width|height|style]",
       content_style: `
         body { font-family: Arial, sans-serif; font-size: 16px; }
@@ -425,12 +480,10 @@
           border-radius: 8px;
         }
       `,
-
       automatic_uploads: true,
       images_upload_url: "/api/upload",
       file_picker_types: "image",
       paste_as_text: false,
-
       images_upload_handler: async (blobInfo) => {
         const formData = new FormData();
         formData.append("file", blobInfo.blob(), blobInfo.filename());
@@ -448,7 +501,6 @@
 
         return data.location;
       },
-
       setup: (editor) => {
         editor.on("init", async () => {
           updateWordCount();
