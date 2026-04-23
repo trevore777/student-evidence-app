@@ -41,9 +41,17 @@
       background: #b45309;
     }
 
+    .button.secondary {
+      background: #666;
+    }
+
     .small {
       font-size: 14px;
       color: #666;
+    }
+
+    .status {
+      font-weight: 600;
     }
 
     .pasted-content {
@@ -52,9 +60,22 @@
       padding: 0 2px;
     }
 
-    img {
-      max-width: 100%;
-      border-radius: 8px;
+    .notice {
+      background: #eff6ff;
+      border: 1px solid #bfdbfe;
+      color: #1e3a8a;
+      border-radius: 12px;
+      padding: 12px 14px;
+      margin-top: 12px;
+    }
+
+    .warning-box {
+      background: #fff7ed;
+      border: 1px solid #fdba74;
+      color: #9a3412;
+      border-radius: 12px;
+      padding: 12px 14px;
+      margin-top: 12px;
     }
 
     .modal {
@@ -64,212 +85,422 @@
       display: none;
       align-items: center;
       justify-content: center;
+      z-index: 9999;
+      padding: 20px;
     }
 
     .modal-box {
       background: white;
       padding: 20px;
       border-radius: 12px;
-      width: 400px;
+      width: 100%;
+      max-width: 500px;
     }
 
-    textarea {
+    .modal-box textarea,
+    .modal-box select,
+    .modal-box input {
       width: 100%;
-      min-height: 100px;
+      box-sizing: border-box;
+      margin-top: 8px;
+      margin-bottom: 12px;
+      padding: 10px;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+    }
+
+    img {
+      max-width: 100%;
+      height: auto;
+      border-radius: 8px;
     }
   </style>
 
-  <!-- LOCAL TinyMCE -->
   <script src="/vendor/tinymce/tinymce.min.js"></script>
 </head>
-
 <body>
+  <main class="container">
 
-<main class="container">
-
-  <div class="card">
-    <h1><%= assignment.title %></h1>
-    <p class="small">
-      <strong><%= student.name %></strong> |
-      <%= student.class_name %>
-    </p>
-  </div>
-
-  <div class="card">
-    <h2>Instructions</h2>
-    <div><%- assignment.instructions %></div>
-  </div>
-
-  <div class="card">
-
-    <div class="small">
-      Status: <span id="status">Loading…</span> |
-      Words: <span id="word-count">0</span>
+    <div class="card">
+      <h1><%= assignment.title %></h1>
+      <p class="small">
+        Student: <strong><%= student.name %></strong> |
+        Class: <strong><%= student.class_name %></strong>
+      </p>
+      <a class="button secondary" href="/student/dashboard">Back to dashboard</a>
     </div>
 
-    <textarea id="editor"><%- latestContent || "" %></textarea>
+    <div class="card">
+      <h2>Instructions</h2>
+      <div><%- assignment.instructions %></div>
 
-    <div style="margin-top:15px;">
-      <button class="button" onclick="saveDraft()">Save</button>
-      <button class="button warning" onclick="openDeclaration()">Declare</button>
-      <button class="button" onclick="submitWork()">Submit</button>
+      <% if (assignment.ai_policy_note) { %>
+        <div class="notice">
+          <strong>AI policy note:</strong> <%= assignment.ai_policy_note %>
+        </div>
+      <% } %>
     </div>
 
+    <div class="card">
+      <div class="small">
+        Status: <span id="status" class="status">Loading…</span> |
+        Words: <span id="word-count">0</span>
+      </div>
+
+      <p class="small" style="margin-top:10px;">
+        Highlighted yellow = pasted content. You can drag and drop images into the editor.
+      </p>
+
+      <textarea id="editor"><%- latestContent || "" %></textarea>
+
+      <div style="margin-top: 16px;">
+        <button class="button" id="save-btn" type="button">Save</button>
+        <button class="button warning" id="declare-btn" type="button">Declare</button>
+        <button class="button" id="submit-btn" type="button">Submit</button>
+      </div>
+
+      <div class="warning-box">
+        If you paste content, use AI, or insert supporting material, declare it.
+      </div>
+    </div>
+
+  </main>
+
+  <div id="modal" class="modal">
+    <div class="modal-box">
+      <h3>Declare Use</h3>
+
+      <label for="type">Declaration type</label>
+      <select id="type">
+        <option value="pasted_research">Pasted research / notes</option>
+        <option value="ai_generated">AI generated</option>
+        <option value="ai_modified">AI modified my writing</option>
+        <option value="other">Other</option>
+      </select>
+
+      <label for="tool-name">Tool / source</label>
+      <input id="tool-name" type="text" placeholder="e.g. ChatGPT, textbook, website notes" />
+
+      <label for="prompt-text">Prompt / source detail</label>
+      <textarea id="prompt-text" placeholder="What did you ask or where did the material come from?"></textarea>
+
+      <label for="original-text-excerpt">Excerpt</label>
+      <textarea id="original-text-excerpt" placeholder="Paste a short excerpt or summary"></textarea>
+
+      <label for="explain">How did you use it?</label>
+      <textarea id="explain" placeholder="Explain what you changed or used"></textarea>
+
+      <button class="button" id="save-declaration-btn" type="button">Save</button>
+      <button class="button secondary" id="cancel-declaration-btn" type="button">Cancel</button>
+    </div>
   </div>
 
-</main>
+  <script>
+    const submissionId = <%- JSON.stringify(submission.id) %>;
+    let sessionId = null;
+    let saveTimer = null;
+    let activeSeconds = 0;
+    let idleSeconds = 0;
+    let lastActivityAt = Date.now();
 
-<!-- Declaration Modal -->
-<div id="modal" class="modal">
-  <div class="modal-box">
-    <h3>Declare Use</h3>
+    const statusEl = document.getElementById("status");
+    const wordCountEl = document.getElementById("word-count");
+    const modalEl = document.getElementById("modal");
 
-    <select id="type">
-      <option value="pasted">Pasted</option>
-      <option value="ai">AI Used</option>
-    </select>
+    function escapeHtml(text = "") {
+      return String(text)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;");
+    }
 
-    <textarea id="explain" placeholder="Explain use..."></textarea>
+    function stripHtml(html = "") {
+      const div = document.createElement("div");
+      div.innerHTML = html;
+      return (div.textContent || div.innerText || "").trim();
+    }
 
-    <button onclick="saveDeclaration()">Save</button>
-    <button onclick="closeDeclaration()">Cancel</button>
-  </div>
-</div>
+    function countWords(text = "") {
+      const clean = stripHtml(text);
+      return clean ? clean.split(/\s+/).filter(Boolean).length : 0;
+    }
 
-<script>
+    function editorInstance() {
+      return window.tinymce ? tinymce.get("editor") : null;
+    }
 
-const submissionId = <%- submission.id %>;
+    function getEditorContent() {
+      const ed = editorInstance();
+      return ed ? ed.getContent() : "";
+    }
 
-function escapeHtml(text="") {
-  return text
-    .replace(/&/g,"&amp;")
-    .replace(/</g,"&lt;")
-    .replace(/>/g,"&gt;");
-}
+    function updateWordCount() {
+      wordCountEl.textContent = countWords(getEditorContent());
+    }
 
-tinymce.init({
-  selector: "#editor",
-  license_key: "gpl",
+    async function postJson(url, payload) {
+      const res = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
 
-  height: 500,
-  menubar: false,
+      const text = await res.text();
+      try {
+        return JSON.parse(text);
+      } catch {
+        return { ok: res.ok, raw: text };
+      }
+    }
 
-  plugins: "lists link image table code",
+    async function startSession() {
+      const result = await postJson("/api/session/start", {
+        submissionId,
+        deviceInfo: navigator.userAgent
+      });
 
-  toolbar:
-    "undo redo | bold italic underline | bullist numlist | alignleft aligncenter alignright | image",
+      if (result.ok && result.sessionId) {
+        sessionId = result.sessionId;
+        statusEl.textContent = "Ready";
+      } else {
+        statusEl.textContent = "Session failed";
+        console.error(result);
+      }
+    }
 
-  images_upload_url: "/api/upload",
+    async function saveDraft() {
+      if (!sessionId) return;
 
-  automatic_uploads: true,
+      const content = getEditorContent();
 
-  images_upload_handler: async (blobInfo) => {
-    const form = new FormData();
-    form.append("file", blobInfo.blob());
+      statusEl.textContent = "Saving…";
 
-    const res = await fetch("/api/upload", {
-      method: "POST",
-      body: form
+      const result = await postJson("/api/draft/autosave", {
+        submissionId,
+        sessionId,
+        content,
+        wordCount: countWords(content)
+      });
+
+      if (result.ok) {
+        statusEl.textContent = "Saved";
+      } else {
+        statusEl.textContent = "Save failed";
+        console.error(result);
+      }
+    }
+
+    async function submitWork() {
+      if (!sessionId) {
+        alert("Session not ready.");
+        return;
+      }
+
+      const content = getEditorContent();
+
+      const result = await postJson("/api/submit", {
+        submissionId,
+        finalText: content
+      });
+
+      if (result.ok) {
+        alert("Submitted");
+        window.location = "/student/dashboard";
+      } else {
+        alert("Submit failed");
+        console.error(result);
+      }
+    }
+
+    async function logEvent(eventType, eventMeta = {}) {
+      if (!sessionId) return;
+
+      await postJson("/api/event", {
+        submissionId,
+        sessionId,
+        eventType,
+        eventMeta
+      });
+    }
+
+    function openDeclaration(prefill = {}) {
+      document.getElementById("type").value = prefill.type || "pasted_research";
+      document.getElementById("tool-name").value = prefill.toolName || "";
+      document.getElementById("prompt-text").value = prefill.promptText || "";
+      document.getElementById("original-text-excerpt").value = prefill.originalTextExcerpt || "";
+      document.getElementById("explain").value = prefill.explain || "";
+      modalEl.style.display = "flex";
+    }
+
+    function closeDeclaration() {
+      modalEl.style.display = "none";
+    }
+
+    async function saveDeclaration() {
+      if (!sessionId) {
+        alert("Session not ready.");
+        return;
+      }
+
+      const result = await postJson("/api/declaration", {
+        submissionId,
+        sessionId,
+        declarationType: document.getElementById("type").value,
+        toolName: document.getElementById("tool-name").value,
+        promptText: document.getElementById("prompt-text").value,
+        originalTextExcerpt: document.getElementById("original-text-excerpt").value,
+        studentExplanation: document.getElementById("explain").value
+      });
+
+      if (result.ok) {
+        closeDeclaration();
+        statusEl.textContent = "Declaration saved";
+      } else {
+        alert("Failed to save declaration");
+        console.error(result);
+      }
+    }
+
+    function debounceSave() {
+      clearTimeout(saveTimer);
+      saveTimer = setTimeout(saveDraft, 1500);
+    }
+
+    function setupActivityTracking() {
+      const markActivity = () => {
+        const now = Date.now();
+        const diff = Math.floor((now - lastActivityAt) / 1000);
+
+        if (diff <= 20) activeSeconds += diff;
+        else idleSeconds += diff;
+
+        lastActivityAt = now;
+      };
+
+      ["mousemove", "keydown", "click"].forEach((eventName) => {
+        window.addEventListener(eventName, markActivity);
+      });
+
+      setInterval(() => {
+        const now = Date.now();
+        const diff = Math.floor((now - lastActivityAt) / 1000);
+        if (diff > 20) {
+          idleSeconds += 5;
+          lastActivityAt = now;
+        }
+      }, 5000);
+    }
+
+    async function endSession() {
+      if (!sessionId) return;
+
+      await postJson("/api/session/end", {
+        sessionId,
+        activeSeconds,
+        idleSeconds
+      });
+    }
+
+    tinymce.init({
+      selector: "#editor",
+      license_key: "gpl",
+      height: 520,
+      menubar: false,
+      branding: false,
+      plugins: "lists link image table code paste wordcount",
+      toolbar:
+        "undo redo | bold italic underline | bullist numlist | alignleft aligncenter alignright | image table | removeformat",
+
+      extended_valid_elements: "span[class|data-pasted],img[src|alt|width|height|style]",
+      content_style: `
+        body { font-family: Arial, sans-serif; font-size: 16px; }
+        .pasted-content {
+          background: #fff3b0;
+          border-bottom: 2px solid #f59e0b;
+          padding: 0 2px;
+        }
+        img {
+          max-width: 100%;
+          height: auto;
+          border-radius: 8px;
+        }
+      `,
+
+      automatic_uploads: true,
+      images_upload_url: "/api/upload",
+      file_picker_types: "image",
+      paste_as_text: false,
+
+      images_upload_handler: async (blobInfo) => {
+        const formData = new FormData();
+        formData.append("file", blobInfo.blob(), blobInfo.filename());
+
+        const res = await fetch("/api/upload", {
+          method: "POST",
+          body: formData
+        });
+
+        const data = await res.json();
+
+        if (!data.location) {
+          throw new Error("Upload failed");
+        }
+
+        return data.location;
+      },
+
+      setup: (editor) => {
+        editor.on("init", async () => {
+          updateWordCount();
+          await startSession();
+          setupActivityTracking();
+        });
+
+        editor.on("keyup change input SetContent", () => {
+          updateWordCount();
+          debounceSave();
+        });
+
+        editor.on("paste", async (e) => {
+          e.preventDefault();
+
+          const pastedText =
+            (e.clipboardData && e.clipboardData.getData("text/plain")) || "";
+
+          const html =
+            `<span class="pasted-content" data-pasted="true">${escapeHtml(pastedText).replace(/\n/g, "<br>")}</span>`;
+
+          editor.insertContent(html);
+
+          await logEvent("paste", {
+            pastedLength: pastedText.length,
+            pastedPreview: pastedText.slice(0, 120)
+          });
+
+          openDeclaration({
+            type: "pasted_research",
+            originalTextExcerpt: pastedText.slice(0, 500)
+          });
+
+          updateWordCount();
+          debounceSave();
+        });
+
+        editor.on("drop", async () => {
+          await logEvent("image_drop", {});
+        });
+      }
     });
 
-    const data = await res.json();
-    return data.location;
-  },
+    document.getElementById("save-btn").addEventListener("click", saveDraft);
+    document.getElementById("submit-btn").addEventListener("click", submitWork);
+    document.getElementById("declare-btn").addEventListener("click", () => openDeclaration());
+    document.getElementById("save-declaration-btn").addEventListener("click", saveDeclaration);
+    document.getElementById("cancel-declaration-btn").addEventListener("click", closeDeclaration);
 
-  setup: (editor) => {
-
-    editor.on("init", () => {
-      document.getElementById("status").textContent = "Ready";
-      updateWordCount();
+    window.addEventListener("beforeunload", () => {
+      endSession();
     });
-
-    editor.on("keyup change", () => {
-      updateWordCount();
-      debounceSave();
-    });
-
-    editor.on("paste", (e) => {
-      e.preventDefault();
-
-      const text = e.clipboardData.getData("text/plain");
-
-      const html =
-        `<span class="pasted-content">${escapeHtml(text).replace(/\n/g,"<br>")}</span>`;
-
-      editor.insertContent(html);
-
-      openDeclaration(text);
-    });
-  }
-});
-
-function updateWordCount() {
-  const text = tinymce.get("editor").getContent({format:"text"});
-  document.getElementById("word-count").textContent =
-    text.split(/\s+/).filter(Boolean).length;
-}
-
-let saveTimer;
-function debounceSave() {
-  clearTimeout(saveTimer);
-  saveTimer = setTimeout(saveDraft, 1500);
-}
-
-async function saveDraft() {
-  const content = tinymce.get("editor").getContent();
-
-  await fetch("/api/draft/autosave", {
-    method: "POST",
-    headers: {"Content-Type":"application/json"},
-    body: JSON.stringify({
-      submissionId,
-      content
-    })
-  });
-
-  document.getElementById("status").textContent = "Saved";
-}
-
-async function submitWork() {
-  const content = tinymce.get("editor").getContent();
-
-  await fetch("/api/submit", {
-    method: "POST",
-    headers: {"Content-Type":"application/json"},
-    body: JSON.stringify({
-      submissionId,
-      finalText: content
-    })
-  });
-
-  alert("Submitted");
-  window.location = "/student/dashboard";
-}
-
-function openDeclaration(text="") {
-  document.getElementById("modal").style.display = "flex";
-  document.getElementById("explain").value = text || "";
-}
-
-function closeDeclaration() {
-  document.getElementById("modal").style.display = "none";
-}
-
-async function saveDeclaration() {
-  await fetch("/api/declaration", {
-    method: "POST",
-    headers: {"Content-Type":"application/json"},
-    body: JSON.stringify({
-      submissionId,
-      type: document.getElementById("type").value,
-      explanation: document.getElementById("explain").value
-    })
-  });
-
-  closeDeclaration();
-}
-
-</script>
-
+  </script>
 </body>
 </html>
