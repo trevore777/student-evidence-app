@@ -31,15 +31,26 @@ function formatDate(dateStr) {
 async function renderPdfFromHtml(html) {
   const browser = await puppeteer.launch({
     headless: true,
-    args: ["--no-sandbox", "--disable-setuid-sandbox"]
+    args: ["--no-sandbox", "--disable-setuid-sandbox"],
+    timeout: 60000
   });
 
   try {
     const page = await browser.newPage();
-    await page.setContent(html, { waitUntil: "networkidle0" });
+    await page.setViewport({ width: 1200, height: 1600 });
+
+    // Load the HTML without waiting for full network idle
+    await page.setContent(html, {
+      waitUntil: "domcontentloaded",
+      timeout: 60000
+    });
+
+    // Give images and layout a short moment to settle
+    await new Promise((resolve) => setTimeout(resolve, 1500));
+
     await page.emulateMediaType("screen");
 
-    const pdf = await page.pdf({
+    return await page.pdf({
       format: "A4",
       printBackground: true,
       margin: {
@@ -49,8 +60,6 @@ async function renderPdfFromHtml(html) {
         left: "12mm"
       }
     });
-
-    return pdf;
   } finally {
     await browser.close();
   }
@@ -142,7 +151,8 @@ router.get("/submission/:id/pdf", requireTeacher, async (req, res) => {
 
         <div class="box">
           <h3>Instructions</h3>
-          <div>${submission.instructions || ""}</div>
+          <div>${String(submission.instructions || "")}</div>
+          <div class="final-text">${String(submission.final_text || "")}</div>
         </div>
 
         <div class="box">
@@ -226,7 +236,7 @@ router.get("/class/:classId/pdf", requireTeacher, async (req, res) => {
           <strong>Status:</strong> ${s.status}<br />
           <strong>Submitted:</strong> ${formatDate(s.submitted_at)}
         </div>
-        <div class="final-text">${s.final_text || ""}</div>
+        <div class="final-text">${String(s.final_text || "")}</div>
       </section>
     `).join("");
 
