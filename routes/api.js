@@ -1,6 +1,7 @@
 import express from "express";
 import { db } from "../lib/db.js";
 import { openai } from "../lib/openai.js";
+import { sanitizeRichText } from "../lib/sanitize.js";
 
 const router = express.Router();
 
@@ -109,12 +110,12 @@ router.post("/draft/autosave", async (req, res) => {
         INSERT INTO draft_snapshots (submission_id, session_id, content, word_count)
         VALUES (?, ?, ?, ?)
       `,
-      args: [submissionId, sessionId, content || "", wordCount || 0]
+      args: [submissionId, sessionId, sanitizeRichText(content || ""), wordCount || 0]
     });
 
     await db.execute({
       sql: `UPDATE submissions SET final_text = ? WHERE id = ?`,
-      args: [content || "", submissionId]
+      args: [sanitizeRichText(content || ""), submissionId]
     });
 
     res.json({ ok: true, savedAt: new Date().toISOString() });
@@ -200,7 +201,7 @@ router.post("/submit", async (req, res) => {
         SET final_text = ?, status = 'submitted', submitted_at = CURRENT_TIMESTAMP
         WHERE id = ?
       `,
-      args: [finalText || "", submissionId]
+      args: [sanitizeRichText(finalText || ""), submissionId]
     });
 
     res.json({ ok: true });

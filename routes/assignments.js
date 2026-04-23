@@ -1,6 +1,7 @@
 import express from "express";
 import { db } from "../lib/db.js";
 import requireTeacher from "../middleware/requireTeacher.js";
+import { sanitizeRichText } from "../lib/sanitize.js";
 
 const router = express.Router();
 
@@ -138,14 +139,14 @@ router.post("/new", requireTeacher, async (req, res) => {
       `,
       args: [
         teacher.id,
-        classRow.id,
-        title.trim(),
-        instructions.trim(),
-        classRow.class_name,
-        dueDate || "",
-        wordTarget ? Number(wordTarget) : null,
-        aiPolicyNote || "",
-        requireDeclaration ? 1 : 0
+    classRow.id,
+    title.trim(),
+    sanitizeRichText(instructions),
+    classRow.class_name,
+    dueDate || "",
+    wordTarget ? Number(wordTarget) : null,
+    sanitizeRichText(aiPolicyNote || ""),
+    requireDeclaration ? 1 : 0
       ]
     });
 
@@ -290,15 +291,15 @@ router.post("/:id/edit", requireTeacher, async (req, res) => {
       `,
       args: [
         classRow.id,
-        classRow.class_name,
-        title.trim(),
-        instructions.trim(),
-        dueDate || "",
-        wordTarget ? Number(wordTarget) : null,
-        aiPolicyNote || "",
-        requireDeclaration ? 1 : 0,
-        assignmentId,
-        teacher.id
+    classRow.class_name,
+    title.trim(),
+    sanitizeRichText(instructions),
+    dueDate || "",
+    wordTarget ? Number(wordTarget) : null,
+    sanitizeRichText(aiPolicyNote || ""),
+    requireDeclaration ? 1 : 0,
+    assignmentId,
+    teacher.id
       ]
     });
 
