@@ -13,6 +13,9 @@ import assignmentRoutes from "./routes/assignments.js";
 import classRoutes from "./routes/classes.js";
 import apiRoutes from "./routes/api.js";
 import printRoutes from "./routes/print.js";
+import uploadRoutes from "./routes/upload.js";
+
+app.use("/api/upload", uploadRoutes);
 
 dotenv.config();
 
