@@ -12,7 +12,7 @@
       color: #222;
     }
     .container {
-      max-width: 1000px;
+      max-width: 1100px;
       margin: 30px auto;
       padding: 20px;
     }
@@ -33,7 +33,9 @@
       border: none;
       cursor: pointer;
     }
-    input {
+    input[type="text"],
+    input[type="email"],
+    input[type="file"] {
       width: 100%;
       padding: 12px;
       margin-top: 6px;
@@ -59,6 +61,33 @@
     .small {
       color: #666;
       font-size: 14px;
+    }
+    .student-row {
+      margin-bottom: 18px;
+      padding-bottom: 18px;
+      border-bottom: 1px solid #ddd;
+    }
+    .student-grid {
+      display: grid;
+      grid-template-columns: 1.4fr 1fr;
+      gap: 18px;
+      align-items: start;
+    }
+    .pin-form {
+      background: #f8fafc;
+      border: 1px solid #e5e7eb;
+      border-radius: 12px;
+      padding: 12px;
+    }
+    .checkbox-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin: 10px 0 14px;
+    }
+    .checkbox-row input {
+      width: auto;
+      margin: 0;
     }
     pre {
       background: #f8fafc;
@@ -127,10 +156,40 @@ Noah Smith,noah@example.com,4321</pre>
       <% } %>
 
       <% (students || []).forEach(s => { %>
-        <div style="margin-bottom: 16px; padding-bottom: 16px; border-bottom: 1px solid #ddd;">
-          <h3><%= s.name %></h3>
-          <p class="small">Email: <%= s.email || "—" %></p>
-          <p class="small">PIN: <%= s.student_pin || "—" %></p>
+        <div class="student-row">
+          <div class="student-grid">
+            <div>
+              <h3><%= s.name %></h3>
+              <p class="small">Email: <%= s.email || "—" %></p>
+              <p class="small">Current PIN: <%= s.student_pin || "—" %></p>
+              <p class="small">
+                Must reset on next login:
+                <strong><%= Number(s.pin_needs_reset) === 1 ? "Yes" : "No" %></strong>
+              </p>
+            </div>
+
+            <div class="pin-form">
+              <form method="POST" action="/teacher/classes/<%= classItem.id %>/students/<%= s.id %>/pin">
+                <label>New PIN</label>
+                <input type="text" name="newPin" maxlength="4" placeholder="4 digits" required />
+
+                <div class="checkbox-row">
+                  <input
+                    type="checkbox"
+                    id="forceReset-<%= s.id %>"
+                    name="forceReset"
+                    value="1"
+                    checked
+                  />
+                  <label for="forceReset-<%= s.id %>" style="margin:0;">
+                    Student must change it on next login
+                  </label>
+                </div>
+
+                <button class="button" type="submit">Update PIN</button>
+              </form>
+            </div>
+          </div>
         </div>
       <% }) %>
     </div>

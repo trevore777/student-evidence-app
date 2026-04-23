@@ -89,6 +89,47 @@ function parseCsv(text = "") {
   });
 }
 
+async function loadClassAndStudents(teacherId, classId) {
+  const classResult = await db.execute({
+    sql: `
+      SELECT id, class_name, year_level, join_code
+      FROM classes
+      WHERE id = ? AND teacher_id = ?
+    `,
+    args: [classId, teacherId]
+  });
+
+  const classItem = normalizeRow(classResult.rows?.[0], [
+    "id",
+    "class_name",
+    "year_level",
+    "join_code"
+  ]);
+
+  const studentsResult = await db.execute({
+    sql: `
+      SELECT id, name, email, student_pin, pin_needs_reset, created_at
+      FROM students
+      WHERE class_id = ?
+      ORDER BY name ASC
+    `,
+    args: [classId]
+  });
+
+  const students = (studentsResult.rows || []).map((row) =>
+    normalizeRow(row, [
+      "id",
+      "name",
+      "email",
+      "student_pin",
+      "pin_needs_reset",
+      "created_at"
+    ])
+  );
+
+  return { classItem, students };
+}
+
 router.get("/", requireTeacher, async (req, res) => {
   try {
     const teacher = req.signedCookies.user;
@@ -167,43 +208,15 @@ router.get("/:id/students", requireTeacher, async (req, res) => {
     const teacher = req.signedCookies.user;
     const classId = Number(req.params.id);
 
-    const classResult = await db.execute({
-      sql: `
-        SELECT id, class_name, year_level, join_code
-        FROM classes
-        WHERE id = ? AND teacher_id = ?
-      `,
-      args: [classId, teacher.id]
-    });
+    const { classItem, students } = await loadClassAndStudents(teacher.id, classId);
 
-    const classRow = normalizeRow(classResult.rows?.[0], [
-      "id",
-      "class_name",
-      "year_level",
-      "join_code"
-    ]);
-
-    if (!classRow.id) {
+    if (!classItem.id) {
       return res.status(404).send("Class not found");
     }
 
-    const studentsResult = await db.execute({
-      sql: `
-        SELECT id, name, email, student_pin, created_at
-        FROM students
-        WHERE class_id = ?
-        ORDER BY name ASC
-      `,
-      args: [classId]
-    });
-
-    const students = (studentsResult.rows || []).map((row) =>
-      normalizeRow(row, ["id", "name", "email", "student_pin", "created_at"])
-    );
-
     res.render("teacher-class-students", {
       teacher,
-      classItem: classRow,
+      classItem,
       students,
       error: null,
       success: null
@@ -220,44 +233,16 @@ router.post("/:id/students/new", requireTeacher, async (req, res) => {
     const classId = Number(req.params.id);
     const { studentName, studentEmail, studentPin } = req.body;
 
-    const classResult = await db.execute({
-      sql: `
-        SELECT id, class_name, year_level, join_code
-        FROM classes
-        WHERE id = ? AND teacher_id = ?
-      `,
-      args: [classId, teacher.id]
-    });
+    const { classItem, students } = await loadClassAndStudents(teacher.id, classId);
 
-    const classRow = normalizeRow(classResult.rows?.[0], [
-      "id",
-      "class_name",
-      "year_level",
-      "join_code"
-    ]);
-
-    if (!classRow.id) {
+    if (!classItem.id) {
       return res.status(404).send("Class not found");
     }
-
-    const studentsResult = await db.execute({
-      sql: `
-        SELECT id, name, email, student_pin, created_at
-        FROM students
-        WHERE class_id = ?
-        ORDER BY name ASC
-      `,
-      args: [classId]
-    });
-
-    const students = (studentsResult.rows || []).map((row) =>
-      normalizeRow(row, ["id", "name", "email", "student_pin", "created_at"])
-    );
 
     if (!studentName || !studentName.trim()) {
       return res.render("teacher-class-students", {
         teacher,
-        classItem: classRow,
+        classItem,
         students,
         error: "Student name is required",
         success: null
@@ -266,15 +251,16 @@ router.post("/:id/students/new", requireTeacher, async (req, res) => {
 
     await db.execute({
       sql: `
-        INSERT INTO students (class_id, class_name, name, email, student_pin, password_hash)
-        VALUES (?, ?, ?, ?, ?, ?)
+        INSERT INTO students (class_id, class_name, name, email, student_pin, pin_needs_reset, password_hash)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
       `,
       args: [
         classId,
-        classRow.class_name,
+        classItem.class_name,
         studentName.trim(),
         studentEmail?.trim() || "",
         studentPin?.trim() || "1234",
+        1,
         "unused"
       ]
     });
@@ -291,44 +277,16 @@ router.post("/:id/students/import", requireTeacher, upload.single("csvFile"), as
     const teacher = req.signedCookies.user;
     const classId = Number(req.params.id);
 
-    const classResult = await db.execute({
-      sql: `
-        SELECT id, class_name, year_level, join_code
-        FROM classes
-        WHERE id = ? AND teacher_id = ?
-      `,
-      args: [classId, teacher.id]
-    });
+    const { classItem, students } = await loadClassAndStudents(teacher.id, classId);
 
-    const classRow = normalizeRow(classResult.rows?.[0], [
-      "id",
-      "class_name",
-      "year_level",
-      "join_code"
-    ]);
-
-    if (!classRow.id) {
+    if (!classItem.id) {
       return res.status(404).send("Class not found");
     }
-
-    const studentsResult = await db.execute({
-      sql: `
-        SELECT id, name, email, student_pin, created_at
-        FROM students
-        WHERE class_id = ?
-        ORDER BY name ASC
-      `,
-      args: [classId]
-    });
-
-    const students = (studentsResult.rows || []).map((row) =>
-      normalizeRow(row, ["id", "name", "email", "student_pin", "created_at"])
-    );
 
     if (!req.file) {
       return res.render("teacher-class-students", {
         teacher,
-        classItem: classRow,
+        classItem,
         students,
         error: "Please upload a CSV file",
         success: null
@@ -341,7 +299,7 @@ router.post("/:id/students/import", requireTeacher, upload.single("csvFile"), as
     if (!rows.length) {
       return res.render("teacher-class-students", {
         teacher,
-        classItem: classRow,
+        classItem,
         students,
         error: "CSV file appears to be empty",
         success: null
@@ -359,15 +317,16 @@ router.post("/:id/students/import", requireTeacher, upload.single("csvFile"), as
 
       await db.execute({
         sql: `
-          INSERT INTO students (class_id, class_name, name, email, student_pin, password_hash)
-          VALUES (?, ?, ?, ?, ?, ?)
+          INSERT INTO students (class_id, class_name, name, email, student_pin, pin_needs_reset, password_hash)
+          VALUES (?, ?, ?, ?, ?, ?, ?)
         `,
         args: [
           classId,
-          classRow.class_name,
+          classItem.class_name,
           name,
           email,
           pin,
+          1,
           "unused"
         ]
       });
@@ -375,30 +334,72 @@ router.post("/:id/students/import", requireTeacher, upload.single("csvFile"), as
       inserted++;
     }
 
-    const refreshedStudentsResult = await db.execute({
-      sql: `
-        SELECT id, name, email, student_pin, created_at
-        FROM students
-        WHERE class_id = ?
-        ORDER BY name ASC
-      `,
-      args: [classId]
-    });
-
-    const refreshedStudents = (refreshedStudentsResult.rows || []).map((row) =>
-      normalizeRow(row, ["id", "name", "email", "student_pin", "created_at"])
-    );
+    const refreshed = await loadClassAndStudents(teacher.id, classId);
 
     res.render("teacher-class-students", {
       teacher,
-      classItem: classRow,
-      students: refreshedStudents,
+      classItem: refreshed.classItem,
+      students: refreshed.students,
       error: null,
       success: `${inserted} students imported successfully`
     });
   } catch (err) {
     console.error("POST /teacher/classes/:id/students/import error:", err);
     res.status(500).send("Failed to import CSV");
+  }
+});
+
+router.post("/:classId/students/:studentId/pin", requireTeacher, async (req, res) => {
+  try {
+    const teacher = req.signedCookies.user;
+    const classId = Number(req.params.classId);
+    const studentId = Number(req.params.studentId);
+    const { newPin, forceReset } = req.body;
+
+    if (!/^\d{4}$/.test(String(newPin || "").trim())) {
+      const refreshed = await loadClassAndStudents(teacher.id, classId);
+      return res.render("teacher-class-students", {
+        teacher,
+        classItem: refreshed.classItem,
+        students: refreshed.students,
+        error: "PIN must be exactly 4 digits",
+        success: null
+      });
+    }
+
+    const classCheck = await db.execute({
+      sql: `
+        SELECT id
+        FROM classes
+        WHERE id = ? AND teacher_id = ?
+      `,
+      args: [classId, teacher.id]
+    });
+
+    const classRow = normalizeRow(classCheck.rows?.[0], ["id"]);
+
+    if (!classRow.id) {
+      return res.status(404).send("Class not found");
+    }
+
+    await db.execute({
+      sql: `
+        UPDATE students
+        SET student_pin = ?, pin_needs_reset = ?
+        WHERE id = ? AND class_id = ?
+      `,
+      args: [
+        String(newPin).trim(),
+        forceReset ? 1 : 0,
+        studentId,
+        classId
+      ]
+    });
+
+    res.redirect(`/teacher/classes/${classId}/students`);
+  } catch (err) {
+    console.error("POST /teacher/classes/:classId/students/:studentId/pin error:", err);
+    res.status(500).send("Failed to update student PIN");
   }
 });
 
