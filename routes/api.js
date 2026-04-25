@@ -5,6 +5,8 @@ import { sanitizeRichText } from "../lib/sanitize.js";
 
 const router = express.Router();
 
+const router = express.Router();
+
 router.get("/classes/by-teacher", async (req, res) => {
   try {
     const { teacherId } = req.query;
@@ -332,6 +334,87 @@ Instructions:
     res.status(500).json({
       ok: false,
       error: "Failed to generate AI feedback email"
+    });
+  }
+});
+
+router.post("/ai/email", async (req, res) => {
+  try {
+    if (!openai) {
+      return res.status(500).json({
+        ok: false,
+        error: "OPENAI_API_KEY is not configured"
+      });
+    }
+
+    const {
+      studentName,
+      assignmentTitle,
+      submissionText,
+      composition,
+      flags,
+      declarations,
+      good,
+      bad,
+      next
+    } = req.body;
+
+    const cleanSubmission = String(submissionText || "")
+      .replace(/<[^>]*>/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+
+    const prompt = `
+You are a teacher writing a professional feedback email to a student.
+
+Student: ${studentName}
+Assignment: ${assignmentTitle}
+
+Student submission:
+${cleanSubmission.slice(0, 3500)}
+
+Estimated composition:
+Own work: ${composition?.own || 0}%
+Pasted content: ${composition?.paste || 0}%
+AI declared: ${composition?.ai || 0}%
+
+Flags:
+${(flags || []).join(", ") || "None"}
+
+Declarations:
+${JSON.stringify(declarations || [], null, 2)}
+
+Teacher notes:
+What went well: ${good || "-"}
+Needs improvement: ${bad || "-"}
+Most important next step: ${next || "-"}
+
+Write a clear, encouraging school feedback email.
+
+Requirements:
+- Address the student by name.
+- Refer to the actual submitted work where possible.
+- If there is pasted or AI-declared content, mention it as something to review, not as an accusation.
+- Give specific next steps.
+- Keep the tone professional, supportive, and teacher-like.
+- Do not use headings unless helpful.
+- End with "Regards, Teacher".
+`;
+
+    const response = await openai.responses.create({
+      model: "gpt-5-mini",
+      input: prompt
+    });
+
+    res.json({
+      ok: true,
+      email: response.output_text || "Unable to generate email."
+    });
+  } catch (err) {
+    console.error("POST /api/ai/email error:", err);
+    res.status(500).json({
+      ok: false,
+      error: "Failed to generate AI email"
     });
   }
 });
