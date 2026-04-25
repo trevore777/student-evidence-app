@@ -80,15 +80,34 @@
     }
 
     .modal {
-      position: fixed;
-      inset: 0;
-      background: rgba(0,0,0,0.5);
-      display: none;
-      align-items: center;
-      justify-content: center;
-      z-index: 9999;
-      padding: 20px;
-    }
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.5);
+  display: none;
+  align-items: flex-start;
+  justify-content: center;
+  z-index: 9999;
+  padding: 20px;
+  overflow-y: auto;
+}
+
+.modal-box {
+  background: white;
+  padding: 20px;
+  border-radius: 12px;
+  width: 100%;
+  max-width: 620px;
+  max-height: calc(100vh - 40px);
+  overflow-y: auto;
+}
+
+.modal-actions {
+  position: sticky;
+  bottom: 0;
+  background: white;
+  padding-top: 12px;
+  border-top: 1px solid #ddd;
+}
 
     .modal-box {
       background: white;
@@ -281,7 +300,10 @@
       <label for="explain">How did you use it?</label>
       <textarea id="explain" placeholder="Explain what you changed or used"></textarea>
 
-      <button class="button" id="save-declaration-btn" type="button">Save</button>
+      <div class="modal-actions">
+  <button class="button" id="save-declaration-btn" type="button">Save Declaration</button>
+  <button class="button secondary" id="cancel-declaration-btn" type="button">Cancel</button>
+</div>
       <button class="button secondary" id="cancel-declaration-btn" type="button">Cancel</button>
     </div>
   </div>
@@ -560,6 +582,60 @@ function updateBibliography(entry) {
         idleSeconds
       });
     }
+
+    async function saveDeclaration() {
+  if (!sessionId) {
+    alert("Session not ready yet. Please wait a moment and try again.");
+    return;
+  }
+
+  try {
+    const citation = buildCitation ? buildCitation() : {
+      inTextCitation: "",
+      bibliographyEntry: ""
+    };
+
+    const ed = editorInstance();
+
+    if (ed && citation.inTextCitation) {
+      ed.insertContent(` <span class="citation-marker">${citation.inTextCitation}</span>`);
+      updateBibliography(citation.bibliographyEntry);
+    }
+
+    const result = await postJson("/api/declaration", {
+      submissionId,
+      sessionId,
+      declarationType: document.getElementById("type")?.value || "other",
+      toolName: document.getElementById("tool-name")?.value || "",
+      promptText: document.getElementById("prompt-text")?.value || "",
+      originalTextExcerpt: document.getElementById("original-text-excerpt")?.value || "",
+      studentExplanation: document.getElementById("explain")?.value || "",
+
+      citationStyle: document.getElementById("citation-style")?.value || "",
+      sourceType: document.getElementById("source-type")?.value || "",
+      sourceAuthor: document.getElementById("source-author")?.value || "",
+      sourceYear: document.getElementById("source-year")?.value || "",
+      sourceTitle: document.getElementById("source-title")?.value || "",
+      sourcePublisher: document.getElementById("source-publisher")?.value || "",
+      sourceUrl: document.getElementById("source-url")?.value || "",
+      accessedDate: document.getElementById("accessed-date")?.value || "",
+      inTextCitation: citation.inTextCitation || "",
+      bibliographyEntry: citation.bibliographyEntry || ""
+    });
+
+    if (result.ok) {
+      closeDeclaration();
+      statusEl.textContent = "Declaration and citation saved";
+      await saveDraft();
+    } else {
+      console.error("Declaration save failed:", result);
+      alert(result.error || "Failed to save declaration.");
+    }
+  } catch (err) {
+    console.error("saveDeclaration error:", err);
+    alert("Declaration save failed. Check the browser console and Render logs.");
+  }
+}
 
     tinymce.init({
       selector: "#editor",
