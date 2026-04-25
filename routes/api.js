@@ -5,8 +5,6 @@ import { sanitizeRichText } from "../lib/sanitize.js";
 
 const router = express.Router();
 
-const router = express.Router();
-
 router.get("/classes/by-teacher", async (req, res) => {
   try {
     const { teacherId } = req.query;
