@@ -319,6 +319,8 @@
     const generateAiEmailBtn = document.getElementById("generate-ai-email-btn");
     const createEmailFromAiBtn = document.getElementById("create-email-from-ai-btn");
     const aiEmailDraft = document.getElementById("ai-email-draft");
+    const rubricText = <%- JSON.stringify(submission.rubric_text || "") %>;
+    const submissionText = <%- JSON.stringify(submission.final_text || "") %>;
 
     createEmailBtn?.addEventListener("click", () => {
       const studentName = <%- JSON.stringify(submission.student_name || "") %>;
@@ -348,30 +350,55 @@ Teacher`;
       window.location.href = mailto;
     });
 
-    generateAiEmailBtn?.addEventListener("click", () => {
-      const studentName = <%- JSON.stringify(submission.student_name || "") %>;
-      const assignmentTitle = <%- JSON.stringify(submission.assignment_title || "") %>;
+    generateAiEmailBtn?.addEventListener("click", () => {generateAiEmailBtn?.addEventListener("click", async () => {
+  const studentName = <%- JSON.stringify(submission.student_name || "") %>;
+  const assignmentTitle = <%- JSON.stringify(submission.assignment_title || "") %>;
+  const submissionText = <%- JSON.stringify(submission.final_text || "") %>;
+  const rubricText = <%- JSON.stringify(submission.rubric_text || "") %>;
 
-      const good = document.getElementById("good-notes").value.trim();
-      const bad = document.getElementById("bad-notes").value.trim();
-      const ugly = document.getElementById("ugly-notes").value.trim();
+  const composition = {
+    own: <%= composition.own_work_percent || 0 %>,
+    paste: <%= composition.paste_percent || 0 %>,
+    ai: <%= composition.ai_declared_percent || 0 %>
+  };
 
-      aiEmailDraft.value = `Hi ${studentName},
+  const flags = <%- JSON.stringify((flags || []).map(f => f.flag_code || f)) %>;
 
-Thank you for your work on "${assignmentTitle}".
+  const declarations = <%- JSON.stringify(declarations || []) %>;
 
-What you did well:
-${good || "You made a clear start and submitted work for review."}
+  const good = document.getElementById("good-notes").value.trim();
+  const bad = document.getElementById("bad-notes").value.trim();
+  const next = document.getElementById("ugly-notes").value.trim();
 
-What needs improvement:
-${bad || "Keep developing your ideas with more detail and revision."}
+  aiEmailDraft.value = "Generating AI feedback...";
 
-Most important next step:
-${ugly || "Revise your draft and strengthen your explanation before final submission."}
+  const res = await fetch("/api/ai/email", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      studentName,
+      assignmentTitle,
+      submissionText,
+      rubricText,
+      composition,
+      flags,
+      declarations,
+      good,
+      bad,
+      next
+    })
+  });
 
-Regards,
-Teacher`;
-    });
+  const data = await res.json();
+
+  if (data.ok) {
+    aiEmailDraft.value = data.email;
+  } else {
+    aiEmailDraft.value = data.error || "Failed to generate AI feedback.";
+  }
+});
 
     createEmailFromAiBtn?.addEventListener("click", () => {
       const studentEmail = <%- JSON.stringify(submission.student_email || "") %>;
