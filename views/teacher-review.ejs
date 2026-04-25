@@ -350,7 +350,7 @@ Teacher`;
       window.location.href = mailto;
     });
 
-    generateAiEmailBtn?.addEventListener("click", () => {generateAiEmailBtn?.addEventListener("click", async () => {
+    generateAiEmailBtn?.addEventListener("click", async () => {
   const studentName = <%- JSON.stringify(submission.student_name || "") %>;
   const assignmentTitle = <%- JSON.stringify(submission.assignment_title || "") %>;
   const submissionText = <%- JSON.stringify(submission.final_text || "") %>;
@@ -363,7 +363,6 @@ Teacher`;
   };
 
   const flags = <%- JSON.stringify((flags || []).map(f => f.flag_code || f)) %>;
-
   const declarations = <%- JSON.stringify(declarations || []) %>;
 
   const good = document.getElementById("good-notes").value.trim();
@@ -372,31 +371,36 @@ Teacher`;
 
   aiEmailDraft.value = "Generating AI feedback...";
 
-  const res = await fetch("/api/ai/email", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({
-      studentName,
-      assignmentTitle,
-      submissionText,
-      rubricText,
-      composition,
-      flags,
-      declarations,
-      good,
-      bad,
-      next
-    })
-  });
+  try {
+    const res = await fetch("/api/ai/email", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        studentName,
+        assignmentTitle,
+        submissionText,
+        rubricText,
+        composition,
+        flags,
+        declarations,
+        good,
+        bad,
+        next
+      })
+    });
 
-  const data = await res.json();
+    const data = await res.json();
 
-  if (data.ok) {
-    aiEmailDraft.value = data.email;
-  } else {
-    aiEmailDraft.value = data.error || "Failed to generate AI feedback.";
+    if (data.ok) {
+      aiEmailDraft.value = data.email;
+    } else {
+      aiEmailDraft.value = data.error || "Failed to generate AI feedback.";
+    }
+  } catch (err) {
+    console.error("AI email fetch error:", err);
+    aiEmailDraft.value = "Failed to generate AI feedback.";
   }
 });
 

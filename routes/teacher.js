@@ -228,6 +228,7 @@ router.get("/submission/:id", requireTeacher, async (req, res) => {
           c.class_name,
           a.title AS assignment_title,
           a.instructions
+          a.rubric_text
         FROM submissions sub
         JOIN students s ON s.id = sub.student_id
         JOIN classes c ON c.id = s.class_id

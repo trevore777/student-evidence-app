@@ -136,7 +136,15 @@ tinymce.init({
         <input type="number" name="wordTarget" value="<%= assignment.word_target || '' %>" />
 
         <label>AI policy note</label>
+        <label>ISMG / Rubric</label>
+<textarea
+  id="rubric-editor"
+  name="rubricText"
+  placeholder="Paste the ISMG, rubric, marking guide, or A–E criteria here..."
+><%= assignment.rubric_text || '' %></textarea>
         <textarea id="policy-editor" name="aiPolicyNote"><%= assignment.ai_policy_note || '' %></textarea>
+        <label>ISMG / Rubric</label>
+        <textarea id="rubric-editor" name="rubricText" placeholder="Paste ISMG, rubric, standards, or marking criteria here..."><%= assignment.rubric_text || '' %></textarea>
 
         <div class="checkbox-row">
           <input
@@ -168,6 +176,7 @@ tinymce.init({
       if (!window.tinymce) return;
 
       tinymce.init({
+        license_key: "gpl",
         selector,
         height,
         menubar: false,
@@ -180,9 +189,9 @@ tinymce.init({
         console.error("Tiny init failed:", err);
       });
     }
-
     initTiny("#instructions-editor", 360);
     initTiny("#policy-editor", 220);
+    initTiny("#rubric-editor", 420);
   </script>
 </body>
 </html>

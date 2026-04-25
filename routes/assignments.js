@@ -124,21 +124,22 @@ router.post("/new", requireTeacher, async (req, res) => {
     }
 
     await db.execute({
-      sql: `
-        INSERT INTO assignments (
-          teacher_id,
-          class_id,
-          title,
-          instructions,
-          class_name,
-          due_date,
-          word_target,
-          ai_policy_note,
-          require_declaration
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `,
-      args: [
-        teacher.id,
+  sql: `
+    INSERT INTO assignments (
+      teacher_id,
+      class_id,
+      title,
+      instructions,
+      class_name,
+      due_date,
+      word_target,
+      ai_policy_note,
+      require_declaration,
+      rubric_text
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `,
+  args: [
+    teacher.id,
     classRow.id,
     title.trim(),
     sanitizeRichText(instructions),
@@ -146,9 +147,10 @@ router.post("/new", requireTeacher, async (req, res) => {
     dueDate || "",
     wordTarget ? Number(wordTarget) : null,
     sanitizeRichText(aiPolicyNote || ""),
-    requireDeclaration ? 1 : 0
-      ]
-    });
+    requireDeclaration ? 1 : 0,
+    sanitizeRichText(rubricText || "")
+  ]
+});
 
     res.redirect("/teacher/dashboard");
   } catch (err) {
@@ -215,14 +217,15 @@ router.post("/:id/edit", requireTeacher, async (req, res) => {
     const assignmentId = Number(req.params.id);
 
     const {
-      classId,
-      title,
-      instructions,
-      dueDate,
-      wordTarget,
-      aiPolicyNote,
-      requireDeclaration
-    } = req.body;
+  classId,
+  title,
+  instructions,
+  dueDate,
+  wordTarget,
+  aiPolicyNote,
+  requireDeclaration,
+  rubricText
+} = req.body;
 
     const classes = await getTeacherClasses(teacher.id);
 
@@ -287,6 +290,7 @@ router.post("/:id/edit", requireTeacher, async (req, res) => {
           word_target = ?,
           ai_policy_note = ?,
           require_declaration = ?
+          rubric_text = ?
         WHERE id = ? AND teacher_id = ?
       `,
       args: [
@@ -298,6 +302,7 @@ router.post("/:id/edit", requireTeacher, async (req, res) => {
     wordTarget ? Number(wordTarget) : null,
     sanitizeRichText(aiPolicyNote || ""),
     requireDeclaration ? 1 : 0,
+    sanitizeRichText(rubricText || ""),
     assignmentId,
     teacher.id
       ]
