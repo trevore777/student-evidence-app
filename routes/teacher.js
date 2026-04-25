@@ -250,6 +250,7 @@ router.get("/submission/:id", requireTeacher, async (req, res) => {
       "class_name",
       "assignment_title",
       "instructions"
+      "rubric_text"
     ]);
 
     if (!submission.id) {
