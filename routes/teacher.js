@@ -120,10 +120,26 @@ router.get("/dashboard", requireTeacher, async (req, res) => {
           }),
           db.execute({
             sql: `
-              SELECT declaration_type, tool_name, prompt_text, original_text_excerpt, student_explanation, created_at
-              FROM source_declarations
-              WHERE submission_id = ?
-              ORDER BY created_at ASC
+              SELECT
+  declaration_type,
+  tool_name,
+  prompt_text,
+  original_text_excerpt,
+  student_explanation,
+  citation_style,
+  source_type,
+  source_author,
+  source_year,
+  source_title,
+  source_publisher,
+  source_url,
+  accessed_date,
+  in_text_citation,
+  bibliography_entry,
+  created_at
+FROM source_declarations
+WHERE submission_id = ?
+ORDER BY created_at ASC
             `,
             args: [row.id]
           }),

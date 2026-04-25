@@ -158,8 +158,25 @@ router.post("/declaration", async (req, res) => {
       toolName,
       promptText,
       originalTextExcerpt,
-      studentExplanation
+      studentExplanation,
+      citationStyle,
+      sourceType,
+      sourceAuthor,
+      sourceYear,
+      sourceTitle,
+      sourcePublisher,
+      sourceUrl,
+      accessedDate,
+      inTextCitation,
+      bibliographyEntry
     } = req.body;
+
+    if (!submissionId || !sessionId || !declarationType) {
+      return res.status(400).json({
+        ok: false,
+        error: "submissionId, sessionId, and declarationType are required"
+      });
+    }
 
     await db.execute({
       sql: `
@@ -170,24 +187,48 @@ router.post("/declaration", async (req, res) => {
           tool_name,
           prompt_text,
           original_text_excerpt,
-          student_explanation
-        ) VALUES (?, ?, ?, ?, ?, ?, ?)
+          student_explanation,
+          citation_style,
+          source_type,
+          source_author,
+          source_year,
+          source_title,
+          source_publisher,
+          source_url,
+          accessed_date,
+          in_text_citation,
+          bibliography_entry
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `,
       args: [
         submissionId,
         sessionId,
-        declarationType || "other",
+        declarationType,
         toolName || "",
         promptText || "",
         originalTextExcerpt || "",
-        studentExplanation || ""
+        studentExplanation || "",
+        citationStyle || "",
+        sourceType || "",
+        sourceAuthor || "",
+        sourceYear || "",
+        sourceTitle || "",
+        sourcePublisher || "",
+        sourceUrl || "",
+        accessedDate || "",
+        inTextCitation || "",
+        bibliographyEntry || ""
       ]
     });
 
     res.json({ ok: true });
   } catch (err) {
     console.error("POST /api/declaration error:", err);
-    res.status(500).json({ ok: false, error: "Failed to save declaration" });
+    res.status(500).json({
+      ok: false,
+      error: "Failed to save declaration"
+    });
   }
 });
 

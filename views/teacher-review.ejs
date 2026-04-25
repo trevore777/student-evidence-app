@@ -223,6 +223,16 @@
                 <p><strong>Excerpt:</strong> <%= d.original_text_excerpt || "—" %></p>
                 <p><strong>Student explanation:</strong> <%= d.student_explanation || "—" %></p>
                 <p class="small">Recorded: <%= d.created_at || "Unknown" %></p>
+                <p><strong>Citation style:</strong> <%= d.citation_style || "—" %></p>
+                <p><strong>Source type:</strong> <%= d.source_type || "—" %></p>
+                <p><strong>Author / organisation:</strong> <%= d.source_author || "—" %></p>
+                <p><strong>Year:</strong> <%= d.source_year || "—" %></p>
+                <p><strong>Title:</strong> <%= d.source_title || "—" %></p>
+                <p><strong>Publisher / website:</strong> <%= d.source_publisher || "—" %></p>
+                <p><strong>URL:</strong> <%= d.source_url || "—" %></p>
+                <p><strong>Accessed:</strong> <%= d.accessed_date || "—" %></p>
+                <p><strong>In-text citation:</strong> <%= d.in_text_citation || "—" %></p>
+                <p><strong>Bibliography entry:</strong> <%= d.bibliography_entry || "—" %></p>
               </div>
             <% }) %>
           <% } %>

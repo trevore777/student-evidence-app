@@ -243,6 +243,41 @@
       <label for="original-text-excerpt">Excerpt</label>
       <textarea id="original-text-excerpt" placeholder="Paste a short excerpt or summary"></textarea>
 
+      <label for="citation-style">Referencing style</label>
+<select id="citation-style">
+  <option value="apa7">APA 7th</option>
+  <option value="harvard">Harvard</option>
+  <option value="mla9">MLA 9</option>
+</select>
+
+<label for="source-type">Source type</label>
+<select id="source-type">
+  <option value="website">Website</option>
+  <option value="book">Book / Textbook</option>
+  <option value="ai">AI Tool</option>
+  <option value="class_notes">Class notes / teacher resource</option>
+  <option value="other">Other</option>
+</select>
+
+<label for="source-author">Author / organisation</label>
+<input id="source-author" type="text" placeholder="e.g. Australian Bureau of Statistics" />
+
+<label for="source-year">Year</label>
+<input id="source-year" type="text" placeholder="e.g. 2026" />
+
+<label for="source-title">Title</label>
+<input id="source-title" type="text" placeholder="Title of page, book, article, or resource" />
+
+<label for="source-publisher">Website / publisher</label>
+<input id="source-publisher" type="text" placeholder="e.g. ABS, Oxford University Press" />
+
+<label for="source-url">URL</label>
+<input id="source-url" type="text" placeholder="https://..." />
+
+<label for="accessed-date">Accessed date</label>
+<input id="accessed-date" type="date" />
+      
+      
       <label for="explain">How did you use it?</label>
       <textarea id="explain" placeholder="Explain what you changed or used"></textarea>
 
@@ -392,30 +427,99 @@
       modalEl.style.display = "none";
     }
 
-    async function saveDeclaration() {
-      if (!sessionId) {
-        alert("Session not ready.");
-        return;
-      }
+    function formatAccessedDate(dateStr) {
+  if (!dateStr) return "";
+  const d = new Date(dateStr);
+  if (isNaN(d)) return dateStr;
 
-      const result = await postJson("/api/declaration", {
-        submissionId,
-        sessionId,
-        declarationType: document.getElementById("type").value,
-        toolName: document.getElementById("tool-name").value,
-        promptText: document.getElementById("prompt-text").value,
-        originalTextExcerpt: document.getElementById("original-text-excerpt").value,
-        studentExplanation: document.getElementById("explain").value
-      });
+  return d.toLocaleDateString("en-AU", {
+    day: "numeric",
+    month: "long",
+    year: "numeric"
+  });
+}
 
-      if (result.ok) {
-        closeDeclaration();
-        statusEl.textContent = "Declaration saved";
-      } else {
-        alert("Failed to save declaration");
-        console.error(result);
-      }
+function buildCitation() {
+  const style = document.getElementById("citation-style").value;
+  const sourceType = document.getElementById("source-type").value;
+  const author = document.getElementById("source-author").value.trim() || "Unknown author";
+  const year = document.getElementById("source-year").value.trim() || "n.d.";
+  const title = document.getElementById("source-title").value.trim() || "Untitled source";
+  const publisher = document.getElementById("source-publisher").value.trim();
+  const url = document.getElementById("source-url").value.trim();
+  const accessedDate = document.getElementById("accessed-date").value;
+  const accessedText = formatAccessedDate(accessedDate);
+
+  let inTextCitation = "";
+  let bibliographyEntry = "";
+
+  if (sourceType === "ai") {
+    const tool = publisher || author || "AI tool";
+
+    if (style === "apa7") {
+      inTextCitation = `(${tool}, ${year})`;
+      bibliographyEntry = `${tool}. (${year}). ${title} [AI-generated response]. ${url || ""}`.trim();
+    } else if (style === "harvard") {
+      inTextCitation = `(${tool} ${year})`;
+      bibliographyEntry = `${tool} (${year}) ${title}. AI-generated response${url ? `. Available at: ${url}` : ""}${accessedText ? ` (Accessed: ${accessedText}).` : "."}`;
+    } else {
+      inTextCitation = `(${tool})`;
+      bibliographyEntry = `${tool}. "${title}." AI-generated response, ${year}${url ? `, ${url}` : ""}${accessedText ? `. Accessed ${accessedText}.` : "."}`;
     }
+
+    return { inTextCitation, bibliographyEntry };
+  }
+
+  if (style === "apa7") {
+    inTextCitation = `(${author}, ${year})`;
+    bibliographyEntry = `${author}. (${year}). ${title}.${publisher ? ` ${publisher}.` : ""}${url ? ` ${url}` : ""}`;
+  }
+
+  if (style === "harvard") {
+    inTextCitation = `(${author} ${year})`;
+    bibliographyEntry = `${author} (${year}) ${title}.${publisher ? ` ${publisher}.` : ""}${url ? ` Available at: ${url}` : ""}${accessedText ? ` (Accessed: ${accessedText}).` : ""}`;
+  }
+
+  if (style === "mla9") {
+    inTextCitation = `(${author})`;
+    bibliographyEntry = `${author}. "${title}."${publisher ? ` ${publisher},` : ""} ${year}.${url ? ` ${url}.` : ""}${accessedText ? ` Accessed ${accessedText}.` : ""}`;
+  }
+
+  return { inTextCitation, bibliographyEntry };
+}
+
+function updateBibliography(entry) {
+  const ed = editorInstance();
+  if (!ed || !entry) return;
+
+  let content = ed.getContent();
+
+  if (!content.includes('id="bibliography-section"')) {
+    content += `
+      <hr>
+      <section id="bibliography-section">
+        <h2>References / Bibliography</h2>
+        <ol id="bibliography-list"></ol>
+      </section>
+    `;
+  }
+
+  ed.setContent(content);
+
+  const doc = ed.getDoc();
+  const list = doc.getElementById("bibliography-list");
+
+  if (list) {
+    const exists = Array.from(list.querySelectorAll("li"))
+      .some((li) => li.textContent.trim() === entry.trim());
+
+    if (!exists) {
+      const li = doc.createElement("li");
+      li.textContent = entry;
+      list.appendChild(li);
+    }
+  }
+}
 
     function debounceSave() {
       clearTimeout(saveTimer);
@@ -466,7 +570,7 @@
       plugins: "lists link image table code paste wordcount",
       toolbar:
         "undo redo | bold italic underline | bullist numlist | alignleft aligncenter alignright | image table | removeformat",
-      extended_valid_elements: "span[class|data-pasted],img[src|alt|width|height|style]",
+      extended_valid_elements: "span[class|data-pasted],img[src|alt|width|height|style],section[id],ol[id],li[class|id],h2,hr",
       content_style: `
         body { font-family: Arial, sans-serif; font-size: 16px; }
         .pasted-content {
@@ -478,6 +582,15 @@
           max-width: 100%;
           height: auto;
           border-radius: 8px;
+        }
+          .citation-marker {
+          color: #1d4ed8;
+          font-weight: 600;
+        }
+        #bibliography-section {
+          margin-top: 24px;
+          border-top: 1px solid #ccc;
+          padding-top: 12px;
         }
       `,
       automatic_uploads: true,
