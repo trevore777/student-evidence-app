@@ -18,14 +18,19 @@ function normalizeRow(row, keys = []) {
 
 function formatDate(dateStr) {
   if (!dateStr) return "—";
+
   const d = new Date(dateStr);
-  if (isNaN(d)) return dateStr;
+  if (Number.isNaN(d.getTime())) return dateStr;
 
   const day = String(d.getDate()).padStart(2, "0");
   const month = String(d.getMonth() + 1).padStart(2, "0");
   const year = d.getFullYear();
 
   return `${day}/${month}/${year}`;
+}
+
+function safeText(value) {
+  return String(value || "");
 }
 
 async function renderPdfFromHtml(html) {
@@ -37,15 +42,17 @@ async function renderPdfFromHtml(html) {
 
   try {
     const page = await browser.newPage();
-    await page.setViewport({ width: 1200, height: 1600 });
 
-    // Load the HTML without waiting for full network idle
+    await page.setViewport({
+      width: 1200,
+      height: 1600
+    });
+
     await page.setContent(html, {
       waitUntil: "domcontentloaded",
       timeout: 60000
     });
 
-    // Give images and layout a short moment to settle
     await new Promise((resolve) => setTimeout(resolve, 1500));
 
     await page.emulateMediaType("screen");
@@ -65,6 +72,15 @@ async function renderPdfFromHtml(html) {
   }
 }
 
+function sendPdf(res, pdf, filename) {
+  const pdfBuffer = Buffer.from(pdf);
+
+  res.setHeader("Content-Type", "application/pdf");
+  res.setHeader("Content-Length", pdfBuffer.length);
+  res.setHeader("Content-Disposition", `inline; filename="${filename}"`);
+  res.end(pdfBuffer);
+}
+
 router.get("/submission/:id/pdf", requireTeacher, async (req, res) => {
   try {
     const teacher = req.signedCookies.user;
@@ -81,7 +97,8 @@ router.get("/submission/:id/pdf", requireTeacher, async (req, res) => {
           s.email AS student_email,
           c.class_name,
           a.title AS assignment_title,
-          a.instructions
+          a.instructions,
+          a.rubric_text
         FROM submissions sub
         JOIN students s ON s.id = sub.student_id
         JOIN classes c ON c.id = s.class_id
@@ -100,7 +117,8 @@ router.get("/submission/:id/pdf", requireTeacher, async (req, res) => {
       "student_email",
       "class_name",
       "assignment_title",
-      "instructions"
+      "instructions",
+      "rubric_text"
     ]);
 
     if (!submission.id) {
@@ -113,67 +131,117 @@ router.get("/submission/:id/pdf", requireTeacher, async (req, res) => {
       <head>
         <meta charset="UTF-8" />
         <style>
-          body { font-family: Arial, sans-serif; color: #222; }
-          h1, h2, h3 { margin-bottom: 6px; }
-          .meta { margin-bottom: 16px; font-size: 14px; color: #555; }
+          * {
+            box-sizing: border-box;
+          }
+
+          body {
+            font-family: Arial, sans-serif;
+            color: #222;
+            line-height: 1.45;
+            font-size: 13px;
+          }
+
+          h1, h2, h3 {
+            margin-bottom: 6px;
+          }
+
+          .meta {
+            margin-bottom: 16px;
+            font-size: 13px;
+            color: #555;
+          }
+
           .box {
             border: 1px solid #ddd;
             border-radius: 10px;
             padding: 14px;
             margin-bottom: 16px;
           }
+
           .final-text {
             border: 1px solid #ddd;
             border-radius: 10px;
             padding: 16px;
+            min-height: 120px;
           }
+
           .pasted-content {
             background: #fff3b0;
             border-bottom: 2px solid #f59e0b;
             padding: 0 2px;
           }
+
+          .citation-marker {
+            color: #1d4ed8;
+            font-weight: 600;
+          }
+
+          #bibliography-section {
+            margin-top: 24px;
+            border-top: 1px solid #ccc;
+            padding-top: 12px;
+          }
+
           img {
             max-width: 100%;
             height: auto;
             border-radius: 8px;
           }
+
+          table {
+            width: 100%;
+            border-collapse: collapse;
+          }
+
+          td, th {
+            border: 1px solid #ddd;
+            padding: 6px;
+          }
         </style>
       </head>
       <body>
-        <h1>${submission.assignment_title}</h1>
+        <h1>${safeText(submission.assignment_title)}</h1>
+
         <div class="meta">
-          <strong>Student:</strong> ${submission.student_name}<br />
-          <strong>Email:</strong> ${submission.student_email || "—"}<br />
-          <strong>Class:</strong> ${submission.class_name}<br />
-          <strong>Status:</strong> ${submission.status}<br />
+          <strong>Student:</strong> ${safeText(submission.student_name)}<br />
+          <strong>Email:</strong> ${safeText(submission.student_email) || "—"}<br />
+          <strong>Class:</strong> ${safeText(submission.class_name)}<br />
+          <strong>Status:</strong> ${safeText(submission.status)}<br />
           <strong>Submitted:</strong> ${formatDate(submission.submitted_at)}
         </div>
 
         <div class="box">
           <h3>Instructions</h3>
-          <div>${String(submission.instructions || "")}</div>
-          <div class="final-text">${String(submission.final_text || "")}</div>
+          <div>${safeText(submission.instructions)}</div>
         </div>
+
+        ${
+          submission.rubric_text
+            ? `
+              <div class="box">
+                <h3>ISMG / Rubric</h3>
+                <div>${safeText(submission.rubric_text)}</div>
+              </div>
+            `
+            : ""
+        }
 
         <div class="box">
           <h3>Submission</h3>
-          <div class="final-text">${submission.final_text || ""}</div>
+          <div class="final-text">${safeText(submission.final_text)}</div>
         </div>
       </body>
       </html>
     `;
 
     const pdf = await renderPdfFromHtml(html);
-
-    res.setHeader("Content-Type", "application/pdf");
-    res.setHeader(
-      "Content-Disposition",
-      `inline; filename="submission-${submissionId}.pdf"`
-    );
-    res.send(pdf);
+    return sendPdf(res, pdf, `submission-${submissionId}.pdf`);
   } catch (err) {
     console.error("GET /teacher/print/submission/:id/pdf error:", err);
-    res.status(500).send("Failed to generate submission PDF");
+    res
+      .status(500)
+      .send(`Failed to generate submission PDF: ${err.message || "Unknown error"}`);
   }
 });
 
@@ -228,17 +296,23 @@ router.get("/class/:classId/pdf", requireTeacher, async (req, res) => {
       ])
     );
 
-    const pages = submissions.map((s) => `
-      <section class="submission-page">
-        <h2>${s.student_name} — ${s.assignment_title}</h2>
-        <div class="meta">
-          <strong>Email:</strong> ${s.student_email || "—"}<br />
-          <strong>Status:</strong> ${s.status}<br />
-          <strong>Submitted:</strong> ${formatDate(s.submitted_at)}
-        </div>
-        <div class="final-text">${String(s.final_text || "")}</div>
-      </section>
-    `).join("");
+    const pages = submissions
+      .map(
+        (s) => `
+          <section class="submission-page">
+            <h2>${safeText(s.student_name)} — ${safeText(s.assignment_title)}</h2>
+
+            <div class="meta">
+              <strong>Email:</strong> ${safeText(s.student_email) || "—"}<br />
+              <strong>Status:</strong> ${safeText(s.status)}<br />
+              <strong>Submitted:</strong> ${formatDate(s.submitted_at)}
+            </div>
+
+            <div class="final-text">${safeText(s.final_text)}</div>
+          </section>
+        `
+      )
+      .join("");
 
     const html = `
       <!DOCTYPE html>
@@ -246,53 +320,93 @@ router.get("/class/:classId/pdf", requireTeacher, async (req, res) => {
       <head>
         <meta charset="UTF-8" />
         <style>
-          body { font-family: Arial, sans-serif; color: #222; }
-          h1, h2 { margin-bottom: 6px; }
-          .meta { margin-bottom: 16px; font-size: 14px; color: #555; }
+          * {
+            box-sizing: border-box;
+          }
+
+          body {
+            font-family: Arial, sans-serif;
+            color: #222;
+            line-height: 1.45;
+            font-size: 13px;
+          }
+
+          h1, h2 {
+            margin-bottom: 6px;
+          }
+
+          .meta {
+            margin-bottom: 16px;
+            font-size: 13px;
+            color: #555;
+          }
+
           .submission-page {
             page-break-after: always;
             break-after: page;
             margin-bottom: 24px;
           }
+
           .submission-page:last-child {
             page-break-after: auto;
             break-after: auto;
           }
+
           .final-text {
             border: 1px solid #ddd;
             border-radius: 10px;
             padding: 16px;
+            min-height: 120px;
           }
+
           .pasted-content {
             background: #fff3b0;
             border-bottom: 2px solid #f59e0b;
             padding: 0 2px;
           }
+
+          .citation-marker {
+            color: #1d4ed8;
+            font-weight: 600;
+          }
+
+          #bibliography-section {
+            margin-top: 24px;
+            border-top: 1px solid #ccc;
+            padding-top: 12px;
+          }
+
           img {
             max-width: 100%;
             height: auto;
             border-radius: 8px;
           }
+
+          table {
+            width: 100%;
+            border-collapse: collapse;
+          }
+
+          td, th {
+            border: 1px solid #ddd;
+            padding: 6px;
+          }
         </style>
       </head>
       <body>
-        <h1>Class Set: ${classRow.class_name}</h1>
+        <h1>Class Set: ${safeText(classRow.class_name)}</h1>
         ${pages || "<p>No submissions found.</p>"}
       </body>
       </html>
     `;
 
     const pdf = await renderPdfFromHtml(html);
-
-    res.setHeader("Content-Type", "application/pdf");
-    res.setHeader(
-      "Content-Disposition",
-      `inline; filename="class-${classRow.class_name}.pdf"`
-    );
-    res.send(pdf);
+    return sendPdf(res, pdf, `class-${safeText(classRow.class_name)}.pdf`);
   } catch (err) {
     console.error("GET /teacher/print/class/:classId/pdf error:", err);
-    res.status(500).send("Failed to generate class PDF");
+    res
+      .status(500)
+      .send(`Failed to generate class PDF: ${err.message || "Unknown error"}`);
   }
 });
 
