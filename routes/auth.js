@@ -99,17 +99,22 @@ router.post("/login", async (req, res) => {
       const { email, password } = req.body;
 
       const result = await db.execute({
-        sql: `SELECT id, name, email, password_hash, class_name FROM teachers WHERE email = ?`,
+        sql: `
+  SELECT id, name, email, password_hash, class_name, plan
+  FROM teachers
+  WHERE email = ?
+`,
         args: [email]
       });
 
       const user = normalizeRow(result.rows?.[0], [
-        "id",
-        "name",
-        "email",
-        "password_hash",
-        "class_name"
-      ]);
+  "id",
+  "name",
+  "email",
+  "password_hash",
+  "class_name",
+  "plan"
+]);
 
       if (!user.id) {
         return res.render("login", {
@@ -128,20 +133,21 @@ router.post("/login", async (req, res) => {
       }
 
       res.cookie(
-        "user",
-        {
-          id: user.id,
-          name: user.name,
-          role: "teacher",
-          class_name: user.class_name || ""
-        },
-        {
-          signed: true,
-          httpOnly: true,
-          sameSite: "strict",
-          secure: true
-        }
-      );
+  "user",
+  {
+    id: user.id,
+    name: user.name,
+    role: "teacher",
+    class_name: user.class_name || "",
+    plan: user.plan || "free"
+  },
+  {
+    signed: true,
+    httpOnly: true,
+    sameSite: "strict",
+    secure: true
+  }
+);
 
       return res.redirect("/teacher/dashboard");
     }

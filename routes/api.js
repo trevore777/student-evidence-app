@@ -349,6 +349,7 @@ router.post("/ai/email", async (req, res) => {
       studentName,
       assignmentTitle,
       submissionText,
+      rubricText,
       composition,
       flags,
       declarations,
@@ -362,24 +363,32 @@ router.post("/ai/email", async (req, res) => {
       .replace(/\s+/g, " ")
       .trim();
 
+    const cleanRubric = String(rubricText || "")
+      .replace(/<[^>]*>/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+
     const prompt = `
-You are a teacher writing a professional feedback email to a student.
+You are an experienced Australian secondary teacher writing feedback to a student.
 
 Student: ${studentName}
 Assignment: ${assignmentTitle}
 
-Student submission:
-${cleanSubmission.slice(0, 3500)}
+Rubric / ISMG / marking criteria:
+${cleanRubric || "No rubric provided."}
 
-Estimated composition:
-Own work: ${composition?.own || 0}%
-Pasted content: ${composition?.paste || 0}%
-AI declared: ${composition?.ai || 0}%
+Student submission:
+${cleanSubmission.slice(0, 4500)}
+
+Evidence profile:
+- Own work estimate: ${composition?.own || 0}%
+- Pasted content estimate: ${composition?.paste || 0}%
+- AI declared estimate: ${composition?.ai || 0}%
 
 Flags:
 ${(flags || []).join(", ") || "None"}
 
-Declarations:
+Source declarations:
 ${JSON.stringify(declarations || [], null, 2)}
 
 Teacher notes:
@@ -387,16 +396,24 @@ What went well: ${good || "-"}
 Needs improvement: ${bad || "-"}
 Most important next step: ${next || "-"}
 
-Write a clear, encouraging school feedback email.
+Write a professional feedback email to the student.
 
 Requirements:
-- Address the student by name.
-- Refer to the actual submitted work where possible.
-- If there is pasted or AI-declared content, mention it as something to review, not as an accusation.
-- Give specific next steps.
-- Keep the tone professional, supportive, and teacher-like.
-- Do not use headings unless helpful.
-- End with "Regards, Teacher".
+1. Address the student by name.
+2. Refer to specific evidence from the submitted work.
+3. Use the rubric/ISMG language to explain strengths and gaps.
+4. Estimate an approximate performance band using A–E language, but say it is indicative only, not a final grade.
+5. Give 2–3 precise next steps that would move the work toward a higher standard.
+6. If pasted or AI-assisted content is present, frame it as a declaration/revision issue, not an accusation.
+7. Keep the tone supportive and school appropriate.
+8. End with "Regards, Teacher".
+
+Format:
+- Short greeting
+- Feedback paragraphs
+- Indicative standard line
+- Clear next steps
+- Sign-off
 `;
 
     const response = await openai.responses.create({

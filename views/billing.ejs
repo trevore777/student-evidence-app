@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Billing</title>
+  <style>
+    body { font-family: Arial, sans-serif; background:#f4f6f8; margin:0; }
+    .container { max-width:800px; margin:40px auto; padding:20px; }
+    .card { background:white; padding:24px; border-radius:14px; box-shadow:0 2px 10px rgba(0,0,0,.08); }
+    .button { display:inline-block; padding:12px 16px; background:#1d4ed8; color:white; border-radius:10px; text-decoration:none; border:none; cursor:pointer; }
+    .secondary { background:#666; }
+  </style>
+</head>
+<body>
+  <main class="container">
+    <div class="card">
+      <h1>Billing</h1>
+      <p><strong>Current plan:</strong> <%= billing.plan || "free" %></p>
+      <p><strong>Status:</strong> <%= billing.subscription_status || "inactive" %></p>
+
+      <h2>Teacher Pro</h2>
+      <p>$14.99 AUD/month</p>
+      <p>Unlock unlimited classes, evidence analytics, AI feedback, and PDF exports.</p>
+
+      <form method="POST" action="/billing/checkout">
+        <button class="button" type="submit">Upgrade to Teacher Pro</button>
+      </form>
+
+      <br />
+
+      <form method="POST" action="/billing/portal">
+        <button class="button secondary" type="submit">Manage Billing</button>
+      </form>
+
+      <p><a href="/teacher/dashboard">Back to dashboard</a></p>
+    </div>
+  </main>
+</body>
+</html>
