@@ -279,6 +279,7 @@ router.post("/:id/edit", requireTeacher, async (req, res) => {
     }
 
     await db.execute({
+  await db.execute({
   sql: `
     UPDATE assignments
     SET
