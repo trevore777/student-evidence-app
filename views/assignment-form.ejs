@@ -86,6 +86,7 @@
 
     .checkbox-row input {
       width: auto;
+      margin: 0;
     }
 
     .small {
@@ -119,6 +120,7 @@
         id="assignment-form"
         method="POST"
         action="<%= mode === 'edit' ? `/teacher/assignments/${assignment.id}/edit` : '/teacher/assignments/new' %>"
+        novalidate
       >
         <label>Class</label>
         <select name="classId" required>
@@ -134,7 +136,7 @@
         <input type="text" name="title" value="<%= assignment.title || '' %>" required />
 
         <label>Instructions</label>
-        <textarea id="instructions-editor" name="instructions" required><%= assignment.instructions || '' %></textarea>
+        <textarea id="instructions-editor" name="instructions"><%= assignment.instructions || '' %></textarea>
 
         <label>Due date</label>
         <input type="date" name="dueDate" value="<%= assignment.due_date || '' %>" />
@@ -188,9 +190,9 @@
         height,
         menubar: false,
         branding: false,
-        plugins: "lists link wordcount table paste",
+        plugins: "lists link wordcount table",
         toolbar:
-          "undo redo | blocks fontfamily fontsize | bold italic underline | bullist numlist | outdent indent | link | removeformat",
+          "undo redo | blocks fontfamily fontsize | bold italic underline | bullist numlist | outdent indent | link | table | removeformat",
         paste_as_text: false
       }).catch((err) => {
         console.error("Tiny init failed:", err);
@@ -217,8 +219,9 @@
         return false;
       }
 
-      document.getElementById("submit-assessment-btn").disabled = true;
-      document.getElementById("submit-assessment-btn").textContent = "Saving...";
+      const submitButton = document.getElementById("submit-assessment-btn");
+      submitButton.disabled = true;
+      submitButton.textContent = "Saving...";
     });
   </script>
 </body>
