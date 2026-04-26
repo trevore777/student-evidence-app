@@ -136,30 +136,33 @@ tinymce.init({
         <input type="number" name="wordTarget" value="<%= assignment.word_target || '' %>" />
 
         <label>AI policy note</label>
-        <label>ISMG / Rubric</label>
+        <label>AI policy note</label>
+<textarea
+  id="policy-editor"
+  name="aiPolicyNote"
+><%= assignment.ai_policy_note || '' %></textarea>
+
+<label>ISMG / Rubric</label>
 <textarea
   id="rubric-editor"
   name="rubricText"
   placeholder="Paste the ISMG, rubric, marking guide, or A–E criteria here..."
 ><%= assignment.rubric_text || '' %></textarea>
-        <textarea id="policy-editor" name="aiPolicyNote"><%= assignment.ai_policy_note || '' %></textarea>
-        <label>ISMG / Rubric</label>
-        <textarea id="rubric-editor" name="rubricText" placeholder="Paste ISMG, rubric, standards, or marking criteria here..."><%= assignment.rubric_text || '' %></textarea>
 
-        <div class="checkbox-row">
-          <input
-            type="checkbox"
-            id="requireDeclaration"
-            name="requireDeclaration"
-            value="1"
-            <%= assignment.require_declaration ? "checked" : "" %>
-          />
-          <label for="requireDeclaration" style="margin:0;">Require declaration</label>
-        </div>
+<div class="checkbox-row">
+  <input
+    type="checkbox"
+    id="requireDeclaration"
+    name="requireDeclaration"
+    value="1"
+    <%= assignment.require_declaration ? "checked" : "" %>
+  />
+  <label for="requireDeclaration" style="margin:0;">Require declaration</label>
+</div>
 
-        <p class="small">
-          Teachers can update the instructions, due date, declaration requirement, and AI guidance after creation.
-        </p>
+<p class="small">
+  Teachers can update the instructions, due date, declaration requirement, and AI guidance after creation.
+</p>
 
         <div class="row" style="margin-top: 16px;">
           <a class="button secondary" href="/teacher/dashboard">Cancel</a>
