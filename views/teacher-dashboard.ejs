@@ -93,17 +93,16 @@
     </div>
 
     <div class="card">
-      <h2>Quick Actions</h2>
-      <a class="button" href="/teacher/classes">Create / Manage Classes</a>
-      <a class="button" href="/teacher/assignments/new">Create Assignment</a>
-      <% if (selectedClass) { %>
-        <a class="button" href="/teacher/classes/<%= selectedClass.id %>/students">Manage Students</a>
-        <span class="small">Join code: <strong><%= selectedClass.join_code || "—" %></strong></span>
-      <% } %>
-      <% if (selectedClass) { %>
-  <a class="button" href="/teacher/print/class/<%= selectedClass.id %>/pdf" target="_blank">Print Class Set PDF</a>
-<% } %>
-    </div>
+  <h2>Quick Actions</h2>
+
+  <a class="button" href="/teacher/classes">Create / Manage Classes</a>
+  <a class="button" href="/teacher/assignments/new">Create Assessment</a>
+
+  <% if (selectedClass) { %>
+    <a class="button" href="/teacher/classes/<%= selectedClass.id %>/students">Manage Students</a>
+    <span class="small">Join code: <strong><%= selectedClass.join_code || "—" %></strong></span>
+  <% } %>
+</div>
 
     <div class="card">
       <form method="GET" action="/teacher/dashboard" class="row">
