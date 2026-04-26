@@ -279,22 +279,22 @@ router.post("/:id/edit", requireTeacher, async (req, res) => {
     }
 
     await db.execute({
-      sql: `
-        UPDATE assignments
-        SET
-          class_id = ?,
-          class_name = ?,
-          title = ?,
-          instructions = ?,
-          due_date = ?,
-          word_target = ?,
-          ai_policy_note = ?,
-          require_declaration = ?
-          rubric_text = ?
-        WHERE id = ? AND teacher_id = ?
-      `,
-      args: [
-        classRow.id,
+  sql: `
+    UPDATE assignments
+    SET
+      class_id = ?,
+      class_name = ?,
+      title = ?,
+      instructions = ?,
+      due_date = ?,
+      word_target = ?,
+      ai_policy_note = ?,
+      require_declaration = ?,
+      rubric_text = ?
+    WHERE id = ? AND teacher_id = ?
+  `,
+  args: [
+    classRow.id,
     classRow.class_name,
     title.trim(),
     sanitizeRichText(instructions),
@@ -305,8 +305,8 @@ router.post("/:id/edit", requireTeacher, async (req, res) => {
     sanitizeRichText(rubricText || ""),
     assignmentId,
     teacher.id
-      ]
-    });
+  ]
+});
 
     res.redirect("/teacher/dashboard");
   } catch (err) {
