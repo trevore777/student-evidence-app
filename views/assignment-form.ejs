@@ -167,8 +167,8 @@ tinymce.init({
         <div class="row" style="margin-top: 16px;">
           <a class="button secondary" href="/teacher/dashboard">Cancel</a>
           <button class="button" type="submit">
-            <%= mode === "edit" ? "Save Changes" : "Create Assignment" %>
-          </button>
+  <%= mode === "edit" ? "Save Changes" : "Create Assignment" %>
+</button>
         </div>
       </form>
     </div>
@@ -196,5 +196,14 @@ tinymce.init({
     initTiny("#policy-editor", 220);
     initTiny("#rubric-editor", 420);
   </script>
+
+<script>
+  document.querySelector("form")?.addEventListener("submit", () => {
+    if (window.tinymce) {
+      tinymce.triggerSave();
+    }
+  });
+</script>
+
 </body>
 </html>
