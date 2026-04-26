@@ -3,7 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title><%= mode === "edit" ? "Edit Assignment" : "Create Assignment" %></title>
+  <title><%= mode === "edit" ? "Edit Assessment" : "Create Assessment" %></title>
+
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -11,24 +12,29 @@
       background: #f4f6f8;
       color: #222;
     }
+
     .container {
-      max-width: 900px;
+      max-width: 950px;
       margin: 30px auto;
       padding: 20px;
     }
+
     .card {
       background: #fff;
       border-radius: 14px;
-      padding: 20px;
+      padding: 24px;
       box-shadow: 0 2px 10px rgba(0,0,0,0.08);
-      margin-bottom: 16px;
     }
+
     label {
       display: block;
-      margin: 12px 0 6px;
-      font-weight: 600;
+      margin: 14px 0 6px;
+      font-weight: 700;
     }
-    input, select, textarea, button {
+
+    input,
+    select,
+    textarea {
       width: 100%;
       padding: 12px;
       border: 1px solid #ccc;
@@ -36,83 +42,84 @@
       box-sizing: border-box;
       font-size: 16px;
     }
+
     textarea {
-      min-height: 140px;
-      resize: vertical;
+      min-height: 160px;
     }
-    .button {
-      background: #1d4ed8;
-      color: #fff;
-      border: none;
-      cursor: pointer;
-      margin-top: 16px;
-    }
-    .button.secondary {
-      display: inline-block;
-      background: #666;
-      color: white;
-      text-decoration: none;
-      text-align: center;
-      padding: 12px 16px;
-      border-radius: 10px;
-      margin-right: 10px;
-      width: auto;
-    }
-    .error {
-      background: #fee2e2;
-      color: #991b1b;
-      padding: 10px 12px;
-      border-radius: 10px;
-      margin-bottom: 14px;
-    }
-    .row {
+
+    .button-row {
       display: flex;
       gap: 12px;
-      flex-wrap: wrap;
+      margin-top: 24px;
       align-items: center;
     }
+
+    .button,
+    button.button {
+      display: inline-block;
+      padding: 14px 18px;
+      background: #1d4ed8;
+      color: #fff;
+      text-decoration: none;
+      border-radius: 10px;
+      border: none;
+      cursor: pointer;
+      font-size: 16px;
+      text-align: center;
+    }
+
+    .button.primary {
+      flex: 1;
+    }
+
+    .button.secondary {
+      background: #666;
+      width: auto;
+    }
+
     .checkbox-row {
       display: flex;
       align-items: center;
       gap: 10px;
-      margin-top: 14px;
+      margin-top: 16px;
     }
+
     .checkbox-row input {
       width: auto;
-      margin: 0;
     }
+
     .small {
       color: #666;
       font-size: 14px;
-      margin-top: 8px;
+      margin-top: 10px;
+    }
+
+    .error {
+      background: #fee2e2;
+      color: #991b1b;
+      padding: 12px;
+      border-radius: 10px;
+      margin-bottom: 16px;
     }
   </style>
 
   <script src="/vendor/tinymce/tinymce.min.js"></script>
-
-<script>
-tinymce.init({
-  selector: "#editor-fallback, #instructions-editor, #policy-editor",
-  license_key: "gpl",
-  height: 500,
-  menubar: false,
-  branding: false,
-  plugins: "lists link wordcount paste table",
-  toolbar: "undo redo | bold italic underline | bullist numlist | link | removeformat",
-  paste_as_text: false
-});
-</script>
 </head>
+
 <body>
   <main class="container">
     <div class="card">
-      <h1><%= mode === "edit" ? "Edit Assignment" : "Create Assignment" %></h1>
+      <h1><%= mode === "edit" ? "Edit Assessment" : "Create Assessment" %></h1>
 
       <% if (error) { %>
         <div class="error"><%= error %></div>
       <% } %>
 
-      <form method="POST" action="<%= mode === 'edit' ? `/teacher/assignments/${assignment.id}/edit` : '/teacher/assignments/new' %>">
+      <form
+        id="assignment-form"
+        method="POST"
+        action="<%= mode === 'edit' ? `/teacher/assignments/${assignment.id}/edit` : '/teacher/assignments/new' %>"
+      >
         <label>Class</label>
         <select name="classId" required>
           <option value="">Select class</option>
@@ -136,39 +143,36 @@ tinymce.init({
         <input type="number" name="wordTarget" value="<%= assignment.word_target || '' %>" />
 
         <label>AI policy note</label>
-        <label>AI policy note</label>
-<textarea
-  id="policy-editor"
-  name="aiPolicyNote"
-><%= assignment.ai_policy_note || '' %></textarea>
+        <textarea id="policy-editor" name="aiPolicyNote"><%= assignment.ai_policy_note || '' %></textarea>
 
-<label>ISMG / Rubric</label>
-<textarea
-  id="rubric-editor"
-  name="rubricText"
-  placeholder="Paste the ISMG, rubric, marking guide, or A–E criteria here..."
-><%= assignment.rubric_text || '' %></textarea>
+        <label>ISMG / Rubric</label>
+        <textarea
+          id="rubric-editor"
+          name="rubricText"
+          placeholder="Paste the ISMG, rubric, marking guide, or A–E criteria here..."
+        ><%= assignment.rubric_text || '' %></textarea>
 
-<div class="checkbox-row">
-  <input
-    type="checkbox"
-    id="requireDeclaration"
-    name="requireDeclaration"
-    value="1"
-    <%= assignment.require_declaration ? "checked" : "" %>
-  />
-  <label for="requireDeclaration" style="margin:0;">Require declaration</label>
-</div>
+        <div class="checkbox-row">
+          <input
+            type="checkbox"
+            id="requireDeclaration"
+            name="requireDeclaration"
+            value="1"
+            <%= assignment.require_declaration ? "checked" : "" %>
+          />
+          <label for="requireDeclaration" style="margin:0;">Require declaration</label>
+        </div>
 
-<p class="small">
-  Teachers can update the instructions, due date, declaration requirement, and AI guidance after creation.
-</p>
+        <p class="small">
+          Teachers can update the instructions, due date, declaration requirement, AI guidance, and ISMG/rubric after creation.
+        </p>
 
-        <div class="row" style="margin-top: 16px;">
+        <div class="button-row">
           <a class="button secondary" href="/teacher/dashboard">Cancel</a>
-          <button class="button" type="submit">
-  <%= mode === "edit" ? "Save Changes" : "Create Assignment" %>
-</button>
+
+          <button class="button primary" type="submit" id="submit-assessment-btn">
+            <%= mode === "edit" ? "Save Changes" : "Create Assignment" %>
+          </button>
         </div>
       </form>
     </div>
@@ -179,8 +183,8 @@ tinymce.init({
       if (!window.tinymce) return;
 
       tinymce.init({
-        license_key: "gpl",
         selector,
+        license_key: "gpl",
         height,
         menubar: false,
         branding: false,
@@ -192,18 +196,30 @@ tinymce.init({
         console.error("Tiny init failed:", err);
       });
     }
+
     initTiny("#instructions-editor", 360);
     initTiny("#policy-editor", 220);
     initTiny("#rubric-editor", 420);
+
+    document.getElementById("assignment-form").addEventListener("submit", function (event) {
+      if (window.tinymce) {
+        tinymce.triggerSave();
+      }
+
+      const form = event.target;
+      const classId = form.querySelector("[name='classId']").value;
+      const title = form.querySelector("[name='title']").value.trim();
+      const instructions = form.querySelector("[name='instructions']").value.trim();
+
+      if (!classId || !title || !instructions) {
+        event.preventDefault();
+        alert("Please select a class and enter a title and instructions.");
+        return false;
+      }
+
+      document.getElementById("submit-assessment-btn").disabled = true;
+      document.getElementById("submit-assessment-btn").textContent = "Saving...";
+    });
   </script>
-
-<script>
-  document.querySelector("form")?.addEventListener("submit", () => {
-    if (window.tinymce) {
-      tinymce.triggerSave();
-    }
-  });
-</script>
-
 </body>
 </html>
