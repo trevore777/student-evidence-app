@@ -50,7 +50,8 @@ router.get("/new", requireTeacher, async (req, res) => {
         due_date: "",
         word_target: "",
         ai_policy_note: "",
-        require_declaration: 1
+        require_declaration: 1,
+        rubric_text: ""
       }
     });
   } catch (err) {
@@ -62,6 +63,7 @@ router.get("/new", requireTeacher, async (req, res) => {
 router.post("/new", requireTeacher, async (req, res) => {
   try {
     const teacher = req.signedCookies.user;
+
     const {
       classId,
       title,
@@ -69,7 +71,8 @@ router.post("/new", requireTeacher, async (req, res) => {
       dueDate,
       wordTarget,
       aiPolicyNote,
-      requireDeclaration
+      requireDeclaration,
+      rubricText
     } = req.body;
 
     const classes = await getTeacherClasses(teacher.id);
@@ -88,7 +91,8 @@ router.post("/new", requireTeacher, async (req, res) => {
           due_date: dueDate || "",
           word_target: wordTarget || "",
           ai_policy_note: aiPolicyNote || "",
-          require_declaration: requireDeclaration ? 1 : 0
+          require_declaration: requireDeclaration ? 1 : 0,
+          rubric_text: rubricText || ""
         }
       });
     }
@@ -118,39 +122,41 @@ router.post("/new", requireTeacher, async (req, res) => {
           due_date: dueDate || "",
           word_target: wordTarget || "",
           ai_policy_note: aiPolicyNote || "",
-          require_declaration: requireDeclaration ? 1 : 0
+          require_declaration: requireDeclaration ? 1 : 0,
+          rubric_text: rubricText || ""
         }
       });
     }
 
     await db.execute({
-  sql: `
-    INSERT INTO assignments (
-      teacher_id,
-      class_id,
-      title,
-      instructions,
-      class_name,
-      due_date,
-      word_target,
-      ai_policy_note,
-      require_declaration,
-      rubric_text
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `,
-  args: [
-    teacher.id,
-    classRow.id,
-    title.trim(),
-    sanitizeRichText(instructions),
-    classRow.class_name,
-    dueDate || "",
-    wordTarget ? Number(wordTarget) : null,
-    sanitizeRichText(aiPolicyNote || ""),
-    requireDeclaration ? 1 : 0,
-    sanitizeRichText(rubricText || "")
-  ]
-});
+      sql: `
+        INSERT INTO assignments (
+          teacher_id,
+          class_id,
+          title,
+          instructions,
+          class_name,
+          due_date,
+          word_target,
+          ai_policy_note,
+          require_declaration,
+          rubric_text
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `,
+      args: [
+        teacher.id,
+        classRow.id,
+        title.trim(),
+        sanitizeRichText(instructions),
+        classRow.class_name,
+        dueDate || "",
+        wordTarget ? Number(wordTarget) : null,
+        sanitizeRichText(aiPolicyNote || ""),
+        requireDeclaration ? 1 : 0,
+        sanitizeRichText(rubricText || "")
+      ]
+    });
 
     res.redirect("/teacher/dashboard");
   } catch (err) {
@@ -163,7 +169,6 @@ router.get("/:id/edit", requireTeacher, async (req, res) => {
   try {
     const teacher = req.signedCookies.user;
     const assignmentId = Number(req.params.id);
-
     const classes = await getTeacherClasses(teacher.id);
 
     const assignmentResult = await db.execute({
@@ -176,7 +181,8 @@ router.get("/:id/edit", requireTeacher, async (req, res) => {
           due_date,
           word_target,
           ai_policy_note,
-          require_declaration
+          require_declaration,
+          rubric_text
         FROM assignments
         WHERE id = ? AND teacher_id = ?
       `,
@@ -191,7 +197,8 @@ router.get("/:id/edit", requireTeacher, async (req, res) => {
       "due_date",
       "word_target",
       "ai_policy_note",
-      "require_declaration"
+      "require_declaration",
+      "rubric_text"
     ]);
 
     if (!assignment.id) {
@@ -217,15 +224,15 @@ router.post("/:id/edit", requireTeacher, async (req, res) => {
     const assignmentId = Number(req.params.id);
 
     const {
-  classId,
-  title,
-  instructions,
-  dueDate,
-  wordTarget,
-  aiPolicyNote,
-  requireDeclaration,
-  rubricText
-} = req.body;
+      classId,
+      title,
+      instructions,
+      dueDate,
+      wordTarget,
+      aiPolicyNote,
+      requireDeclaration,
+      rubricText
+    } = req.body;
 
     const classes = await getTeacherClasses(teacher.id);
 
@@ -243,7 +250,8 @@ router.post("/:id/edit", requireTeacher, async (req, res) => {
           due_date: dueDate || "",
           word_target: wordTarget || "",
           ai_policy_note: aiPolicyNote || "",
-          require_declaration: requireDeclaration ? 1 : 0
+          require_declaration: requireDeclaration ? 1 : 0,
+          rubric_text: rubricText || ""
         }
       });
     }
@@ -273,41 +281,41 @@ router.post("/:id/edit", requireTeacher, async (req, res) => {
           due_date: dueDate || "",
           word_target: wordTarget || "",
           ai_policy_note: aiPolicyNote || "",
-          require_declaration: requireDeclaration ? 1 : 0
+          require_declaration: requireDeclaration ? 1 : 0,
+          rubric_text: rubricText || ""
         }
       });
     }
 
     await db.execute({
-  await db.execute({
-  sql: `
-    UPDATE assignments
-    SET
-      class_id = ?,
-      class_name = ?,
-      title = ?,
-      instructions = ?,
-      due_date = ?,
-      word_target = ?,
-      ai_policy_note = ?,
-      require_declaration = ?,
-      rubric_text = ?
-    WHERE id = ? AND teacher_id = ?
-  `,
-  args: [
-    classRow.id,
-    classRow.class_name,
-    title.trim(),
-    sanitizeRichText(instructions),
-    dueDate || "",
-    wordTarget ? Number(wordTarget) : null,
-    sanitizeRichText(aiPolicyNote || ""),
-    requireDeclaration ? 1 : 0,
-    sanitizeRichText(rubricText || ""),
-    assignmentId,
-    teacher.id
-  ]
-});
+      sql: `
+        UPDATE assignments
+        SET
+          class_id = ?,
+          class_name = ?,
+          title = ?,
+          instructions = ?,
+          due_date = ?,
+          word_target = ?,
+          ai_policy_note = ?,
+          require_declaration = ?,
+          rubric_text = ?
+        WHERE id = ? AND teacher_id = ?
+      `,
+      args: [
+        classRow.id,
+        classRow.class_name,
+        title.trim(),
+        sanitizeRichText(instructions),
+        dueDate || "",
+        wordTarget ? Number(wordTarget) : null,
+        sanitizeRichText(aiPolicyNote || ""),
+        requireDeclaration ? 1 : 0,
+        sanitizeRichText(rubricText || ""),
+        assignmentId,
+        teacher.id
+      ]
+    });
 
     res.redirect("/teacher/dashboard");
   } catch (err) {
