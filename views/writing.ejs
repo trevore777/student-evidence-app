@@ -306,7 +306,11 @@
 </div>
       <button class="button secondary" id="cancel-declaration-btn" type="button">Cancel</button>
     </div>
+    <button class="button secondary" id="grammar-btn" type="button">
+  Check Spelling & Grammar
+</button>
   </div>
+  
 
   <script>
     const submissionId = <%- JSON.stringify(submission.id) %>;
@@ -643,6 +647,8 @@ function updateBibliography(entry) {
       height: 520,
       menubar: false,
       branding: false,
+      browser_spellcheck: true,
+      contextmenu: false,
       plugins: "lists link image table code paste wordcount",
       toolbar:
         "undo redo | bold italic underline | bullist numlist | alignleft aligncenter alignright | image table | removeformat",
@@ -738,10 +744,53 @@ function updateBibliography(entry) {
     document.getElementById("declare-btn").addEventListener("click", () => openDeclaration());
     document.getElementById("save-declaration-btn").addEventListener("click", saveDeclaration);
     document.getElementById("cancel-declaration-btn").addEventListener("click", closeDeclaration);
+    document.getElementById("grammar-btn")?.addEventListener("click", async () => {
+  const ed = editorInstance();
+  if (!ed) return;
 
+  const selectedText = ed.selection.getContent({ format: "text" });
+  const fullText = ed.getContent({ format: "text" });
+  const textToCheck = selectedText || fullText;
+
+  if (!textToCheck.trim()) {
+    alert("There is no text to check.");
+    return;
+  }
+
+  const result = await postJson("/api/ai/grammar-check", {
+    text: textToCheck,
+    yearLevel: <%- JSON.stringify(student.class_name || "") %>
+  });
+
+  if (!result.ok) {
+    alert(result.error || "Grammar check failed.");
+    return;
+  }
+
+  const accept = confirm(
+    `Suggested changes:\n\n${result.changesSummary}\n\nClick OK to apply the corrected version.`
+  );
+
+  if (accept) {
+    if (selectedText) {
+      ed.selection.setContent(result.correctedText);
+    } else {
+      ed.setContent(result.correctedText);
+    }
+
+    await logEvent("grammar_check_applied", {
+      changesSummary: result.changesSummary
+    });
+
+    await saveDraft();
+  }
+});
     window.addEventListener("beforeunload", () => {
       endSession();
     });
   </script>
+
+
+
 </body>
 </html>

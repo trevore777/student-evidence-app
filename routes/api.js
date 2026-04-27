@@ -569,4 +569,81 @@ Return JSON:
 
 });
 
+router.post("/ai/grammar-check", async (req, res) => {
+  try {
+    if (!openai) {
+      return res.status(500).json({
+        ok: false,
+        error: "OPENAI_API_KEY is not configured"
+      });
+    }
+
+    const { text, yearLevel } = req.body || {};
+
+    const cleanText = String(text || "")
+      .replace(/<[^>]*>/g, " ")
+      .replace(/\s+/g, " ")
+      .trim()
+      .slice(0, 2500);
+
+    if (!cleanText) {
+      return res.status(400).json({
+        ok: false,
+        error: "No text provided"
+      });
+    }
+
+    const prompt = `
+You are helping a student improve spelling, grammar, punctuation, and clarity.
+
+Year level: ${yearLevel || "Unknown"}
+
+Student text:
+${cleanText}
+
+Return JSON only:
+{
+  "corrected_text": "corrected version here",
+  "changes_summary": "short explanation of the main spelling/grammar changes"
+}
+
+Rules:
+- Do not add new ideas.
+- Do not improve the argument beyond grammar and clarity.
+- Keep the student's voice.
+- For Year 7-8, keep language simple.
+- For Year 10-12, keep academic tone but do not rewrite content heavily.
+`;
+
+    const response = await openai.responses.create({
+      model: "gpt-5-mini",
+      input: prompt
+    });
+
+    let parsed;
+
+    try {
+      parsed = JSON.parse(response.output_text.replace(/```json|```/g, "").trim());
+    } catch {
+      parsed = {
+        corrected_text: response.output_text || "",
+        changes_summary: "Grammar and spelling suggestions generated."
+      };
+    }
+
+    res.json({
+      ok: true,
+      correctedText: parsed.corrected_text || "",
+      changesSummary: parsed.changes_summary || ""
+    });
+  } catch (err) {
+    console.error("POST /api/ai/grammar-check error:", err);
+    res.status(500).json({
+      ok: false,
+      error: "Failed to check grammar"
+    });
+  }
+});
+
+
 export default router;
