@@ -76,6 +76,43 @@
       border-radius: 10px;
       border: 1px solid #ccc;
     }
+
+    .section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.exam-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.exam-card {
+  border: 1px solid #ddd;
+  border-radius: 12px;
+  padding: 14px;
+  background: #f9fafb;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.exam-card p {
+  margin: 4px 0 0;
+}
+
+.small-button {
+  padding: 8px 12px;
+  margin: 0;
+}
+
+
   </style>
 </head>
 <body>
@@ -99,32 +136,34 @@
   <a class="button" href="/teacher/classes">Create / Manage Classes</a>
   <a class="button" href="/teacher/assignments/new">Create Assessment</a>
   <div class="card">
-  <h2>Exam Evidence Mode</h2>
+  <div class="section-header">
+    <div>
+      <h2>Exam Evidence Mode</h2>
+      <p class="small">Create, manage, and review exam-style responses.</p>
+    </div>
 
-  <a href="/teacher/exams/new" class="button">
-    + Create Exam
-  </a>
-</div>
+    <a class="button" href="/teacher/exams/new">+ Create Exam</a>
+  </div>
 
-  <% if (selectedClass) { %>
-    <a class="button" href="/teacher/classes/<%= selectedClass.id %>/students">Manage Students</a>
-    <span class="small">Join code: <strong><%= selectedClass.join_code || "—" %></strong></span>
+  <h3>Existing Exams</h3>
+
+  <% if (!exams || !exams.length) { %>
+    <p class="small">No exams created for this class yet.</p>
+  <% } else { %>
+    <div class="exam-grid">
+      <% exams.forEach(exam => { %>
+        <div class="exam-card">
+          <div>
+            <strong><%= exam.title %></strong>
+            <p class="small">Created: <%= exam.created_at || "—" %></p>
+          </div>
+
+          <a class="button small-button" href="/teacher/exams/<%= exam.id %>">Open</a>
+        </div>
+      <% }) %>
+    </div>
   <% } %>
 </div>
-
-<h3>Existing Exams</h3>
-
-<% if (!exams || !exams.length) { %>
-  <p class="small">No exams created for this class yet.</p>
-<% } %>
-
-<% (exams || []).forEach(exam => { %>
-  <div style="margin-top: 12px; padding: 12px; border: 1px solid #ddd; border-radius: 10px;">
-    <strong><%= exam.title %></strong><br>
-    <span class="small">Created: <%= exam.created_at || "—" %></span><br>
-    <a class="button" href="/teacher/exams/<%= exam.id %>">Open Exam</a>
-  </div>
-<% }) %>
 
     <div class="card">
       <form method="GET" action="/teacher/dashboard" class="row">
