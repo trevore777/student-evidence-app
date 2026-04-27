@@ -13,21 +13,45 @@ import classRoutes from "./routes/classes.js";
 import apiRoutes from "./routes/api.js";
 import uploadRoutes from "./routes/upload.js";
 import printRoutes from "./routes/print.js";
-import billingRoutes from "./routes/billing.js";
-import stripeWebhookRoutes from "./routes/stripe-webhook.js";
 
 dotenv.config();
 
 const app = express();
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
 const uploadsDir = path.join(__dirname, "uploads");
 
 if (!fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir, { recursive: true });
 }
 
-// views + middleware
+/* VIEW ENGINE — MUST COME BEFORE ROUTES */
+app.set("view engine", "ejs");
+app.set("views", path.join(__dirname, "views"));
+
+/* BODY + COOKIE PARSING — MUST COME BEFORE ROUTES */
+app.use(express.urlencoded({ extended: true }));
+app.use(express.json());
+app.use(cookieParser(process.env.APP_SECRET || "dev-secret"));
+
+/* STATIC FILES */
+app.use(express.static(path.join(__dirname, "public")));
+app.use("/vendor/tinymce", express.static(path.join(__dirname, "node_modules", "tinymce")));
+app.use("/uploads", express.static(uploadsDir));
+
+/* HEALTH CHECK */
+app.get("/health", (req, res) => {
+  res.send("ok");
+});
+
+/* HOME */
+app.get("/", (req, res) => {
+  res.redirect("/login");
+});
+
+/* ROUTES */
 app.use("/", authRoutes);
 app.use("/student", studentRoutes);
 app.use("/teacher", teacherRoutes);
@@ -36,207 +60,20 @@ app.use("/teacher/classes", classRoutes);
 app.use("/teacher/print", printRoutes);
 app.use("/api", apiRoutes);
 app.use("/api/upload", uploadRoutes);
-app.use("/billing", billingRoutes);
 
-// health
-app.get("/health", (req, res) => {
-  res.send("ok");
-});
-
-// dev-only helpers
-if (process.env.NODE_ENV !== "production") {
-  app.get("/db-probe", async (req, res) => {
-    try {
-      const result = await db.execute("SELECT 1 as ok");
-      res.json({
-        ok: true,
-        rows: result.rows
-      });
-    } catch (err) {
-      console.error("DB PROBE ERROR:", err);
-      res.status(500).json({
-        ok: false,
-        message: err.message,
-        code: err.code || null
-      });
-    }
-  });
-
-  app.get("/setup-db", async (req, res) => {
-    try {
-      await db.execute(`
-        CREATE TABLE IF NOT EXISTS teachers (
-          id INTEGER PRIMARY KEY AUTOINCREMENT,
-          name TEXT NOT NULL,
-          email TEXT NOT NULL UNIQUE,
-          password_hash TEXT NOT NULL,
-          class_name TEXT,
-          created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
-        )
-      `);
-
-      await db.execute(`
-        CREATE TABLE IF NOT EXISTS classes (
-          id INTEGER PRIMARY KEY AUTOINCREMENT,
-          teacher_id INTEGER NOT NULL,
-          class_name TEXT NOT NULL,
-          year_level TEXT,
-          join_code TEXT,
-          created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
-        )
-      `);
-
-      await db.execute(`
-        CREATE TABLE IF NOT EXISTS students (
-          id INTEGER PRIMARY KEY AUTOINCREMENT,
-          class_id INTEGER,
-          name TEXT NOT NULL,
-          email TEXT,
-          class_name TEXT NOT NULL,
-          password_hash TEXT,
-          student_pin TEXT,
-          pin_needs_reset INTEGER DEFAULT 0,
-          created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
-        )
-      `);
-
-      await db.execute(`
-        CREATE TABLE IF NOT EXISTS assignments (
-          id INTEGER PRIMARY KEY AUTOINCREMENT,
-          teacher_id INTEGER NOT NULL,
-          class_id INTEGER,
-          title TEXT NOT NULL,
-          instructions TEXT NOT NULL,
-          class_name TEXT NOT NULL,
-          due_date TEXT,
-          word_target INTEGER,
-          ai_policy_note TEXT,
-          require_declaration INTEGER NOT NULL DEFAULT 1,
-          created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
-        )
-      `);
-
-      await db.execute(`
-        CREATE TABLE IF NOT EXISTS submissions (
-          id INTEGER PRIMARY KEY AUTOINCREMENT,
-          assignment_id INTEGER NOT NULL,
-          student_id INTEGER NOT NULL,
-          final_text TEXT DEFAULT '',
-          status TEXT NOT NULL DEFAULT 'draft',
-          submitted_at TEXT,
-          created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
-        )
-      `);
-
-      await db.execute(`
-        CREATE TABLE IF NOT EXISTS writing_sessions (
-          id INTEGER PRIMARY KEY AUTOINCREMENT,
-          submission_id INTEGER NOT NULL,
-          started_at TEXT NOT NULL,
-          ended_at TEXT,
-          active_seconds INTEGER NOT NULL DEFAULT 0,
-          idle_seconds INTEGER NOT NULL DEFAULT 0,
-          device_info TEXT
-        )
-      `);
-
-      await db.execute(`
-        CREATE TABLE IF NOT EXISTS draft_snapshots (
-          id INTEGER PRIMARY KEY AUTOINCREMENT,
-          submission_id INTEGER NOT NULL,
-          session_id INTEGER NOT NULL,
-          content TEXT NOT NULL,
-          word_count INTEGER NOT NULL DEFAULT 0,
-          saved_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
-        )
-      `);
-
-      await db.execute(`
-        CREATE TABLE IF NOT EXISTS editor_events (
-          id INTEGER PRIMARY KEY AUTOINCREMENT,
-          submission_id INTEGER NOT NULL,
-          session_id INTEGER NOT NULL,
-          event_type TEXT NOT NULL,
-          event_meta TEXT,
-          created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
-        )
-      `);
-
-      await db.execute(`
-        CREATE TABLE IF NOT EXISTS source_declarations (
-          id INTEGER PRIMARY KEY AUTOINCREMENT,
-          submission_id INTEGER NOT NULL,
-          session_id INTEGER NOT NULL,
-          declaration_type TEXT NOT NULL,
-          tool_name TEXT,
-          prompt_text TEXT,
-          original_text_excerpt TEXT,
-          student_explanation TEXT,
-          created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
-        )
-      `);
-
-      await db.execute(`
-        CREATE TABLE IF NOT EXISTS submission_flags (
-          id INTEGER PRIMARY KEY AUTOINCREMENT,
-          submission_id INTEGER NOT NULL,
-          flag_code TEXT NOT NULL,
-          flag_message TEXT NOT NULL,
-          severity TEXT NOT NULL DEFAULT 'info',
-          created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
-        )
-      `);
-
-      try { await db.execute(`ALTER TABLE students ADD COLUMN student_pin TEXT`); } catch {}
-      try { await db.execute(`ALTER TABLE students ADD COLUMN class_id INTEGER`); } catch {}
-      try { await db.execute(`ALTER TABLE students ADD COLUMN pin_needs_reset INTEGER DEFAULT 0`); } catch {}
-      try { await db.execute(`ALTER TABLE teachers ADD COLUMN class_name TEXT`); } catch {}
-      try { await db.execute(`ALTER TABLE assignments ADD COLUMN class_id INTEGER`); } catch {}
-      try { await db.execute(`ALTER TABLE assignments ADD COLUMN word_target INTEGER`); } catch {}
-      try { await db.execute(`ALTER TABLE assignments ADD COLUMN ai_policy_note TEXT`); } catch {}
-      try { await db.execute(`ALTER TABLE assignments ADD COLUMN require_declaration INTEGER NOT NULL DEFAULT 1`); } catch {}
-      try { await db.execute(`ALTER TABLE classes ADD COLUMN join_code TEXT`); } catch {}
-
-      res.send("Database tables created");
-    } catch (err) {
-      console.error("SETUP DB ERROR:", err);
-      res.status(500).send(`Setup failed: ${err.message}`);
-    }
-  });
-}
-
-// root
-app.get("/", (req, res) => {
-  res.redirect("/login");
-});
-
-// ✅ MUST be before routes
-app.use(express.urlencoded({ extended: true }));
-app.use(express.json());
-
-
-// route mounts
-app.use("/student", studentRoutes);
-app.use("/teacher", teacherRoutes);
-app.use("/teacher/assignments", assignmentRoutes);
-app.use("/teacher/classes", classRoutes);
-import requirePro from "./middleware/requirePro.js";
-app.use("/teacher/print", requirePro, printRoutes);
-app.use("/api", apiRoutes);
-app.use("/api/upload", uploadRoutes);
-
-// 404
+/* 404 */
 app.use((req, res) => {
   res.status(404).send("Page not found");
 });
 
-// error handler
+/* ERROR HANDLER */
 app.use((err, req, res, next) => {
   console.error("SERVER ERROR:", err);
   res.status(500).send("Server error");
 });
 
 const port = process.env.PORT || 3000;
+
 app.listen(port, "0.0.0.0", () => {
   console.log(`Running on port ${port}`);
 });
