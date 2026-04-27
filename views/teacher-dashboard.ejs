@@ -135,7 +135,7 @@
               <option value="">No classes yet</option>
             <% } %>
             <% (classes || []).forEach(c => { %>
-              <option value="<%= c.id %>" <%= selectedClassId === c.id ? "selected" : "" %>>
+              <option value="<%= c.id %>" <%= selectedClass && Number(selectedClass.id) === Number(c.id) ? "selected" : "" %>>
                 <%= c.class_name %>
               </option>
             <% }) %>
