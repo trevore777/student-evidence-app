@@ -105,7 +105,7 @@ router.get("/:id", requireTeacher, async (req, res) => {
         SELECT id, question_number, question_text, answer_guide, max_marks
         FROM exam_questions
         WHERE exam_id = ?
-        ORDER BY id ASC
+        ORDER BY sort_order ASC, id ASC
       `,
       args: [examId]
     });
@@ -278,6 +278,73 @@ Return only JSON:
   } catch (err) {
     console.error("POST AI mark exam error:", err);
     res.status(500).send("Failed to AI mark exam");
+  }
+});
+
+router.post("/:examId/questions/:questionId/delete", requireTeacher, async (req, res) => {
+  try {
+    const teacher = req.signedCookies.user;
+    const examId = Number(req.params.examId);
+    const questionId = Number(req.params.questionId);
+
+    const examCheck = await db.execute({
+      sql: `SELECT id FROM exams WHERE id = ? AND teacher_id = ?`,
+      args: [examId, teacher.id]
+    });
+
+    if (!examCheck.rows.length) {
+      return res.status(404).send("Exam not found");
+    }
+
+    await db.execute({
+      sql: `DELETE FROM exam_answers WHERE question_id = ?`,
+      args: [questionId]
+    });
+
+    await db.execute({
+      sql: `DELETE FROM exam_questions WHERE id = ? AND exam_id = ?`,
+      args: [questionId, examId]
+    });
+
+    res.redirect(`/teacher/exams/${examId}`);
+  } catch (err) {
+    console.error("Delete exam question error:", err);
+    res.status(500).send("Failed to delete question");
+  }
+});
+
+router.post("/:examId/questions/reorder", requireTeacher, async (req, res) => {
+  try {
+    const teacher = req.signedCookies.user;
+    const examId = Number(req.params.examId);
+    const { order } = req.body;
+
+    const examCheck = await db.execute({
+      sql: `SELECT id FROM exams WHERE id = ? AND teacher_id = ?`,
+      args: [examId, teacher.id]
+    });
+
+    if (!examCheck.rows.length) {
+      return res.status(404).send("Exam not found");
+    }
+
+    const questionOrder = Array.isArray(order) ? order : [order];
+
+    for (let i = 0; i < questionOrder.length; i++) {
+      await db.execute({
+        sql: `
+          UPDATE exam_questions
+          SET sort_order = ?
+          WHERE id = ? AND exam_id = ?
+        `,
+        args: [i + 1, Number(questionOrder[i]), examId]
+      });
+    }
+
+    res.redirect(`/teacher/exams/${examId}`);
+  } catch (err) {
+    console.error("Reorder exam questions error:", err);
+    res.status(500).send("Failed to reorder questions");
   }
 });
 

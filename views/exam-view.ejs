@@ -1,50 +1,241 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Exam View</title>
+  <title>Exam Builder</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f5f7fa;
+      margin: 0;
+      padding: 0;
+      color: #222;
+    }
+
+    .container {
+      max-width: 1050px;
+      margin: 30px auto;
+      padding: 20px;
+    }
+
+    .card {
+      background: white;
+      padding: 24px;
+      border-radius: 14px;
+      box-shadow: 0 4px 14px rgba(0,0,0,0.08);
+      margin-bottom: 20px;
+    }
+
+    h1, h2 {
+      margin-top: 0;
+    }
+
+    label {
+      font-weight: bold;
+      display: block;
+      margin-top: 10px;
+    }
+
+    input, textarea {
+      width: 100%;
+      padding: 12px;
+      border-radius: 10px;
+      border: 1px solid #ccc;
+      margin-top: 6px;
+      font-size: 14px;
+      box-sizing: border-box;
+    }
+
+    textarea {
+      min-height: 120px;
+    }
+
+    .button {
+      margin-top: 12px;
+      padding: 10px 14px;
+      border-radius: 10px;
+      border: none;
+      cursor: pointer;
+      font-weight: bold;
+      text-decoration: none;
+      display: inline-block;
+      font-size: 14px;
+    }
+
+    .primary {
+      background: #2563eb;
+      color: white;
+    }
+
+    .danger {
+      background: #dc2626;
+      color: white;
+    }
+
+    .secondary {
+      background: #6b7280;
+      color: white;
+    }
+
+    .question-card {
+      border: 1px solid #e5e7eb;
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 14px;
+      background: #fafafa;
+    }
+
+    .question-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 10px;
+    }
+
+    .question-title {
+      font-weight: bold;
+      font-size: 17px;
+    }
+
+    .answer-guide {
+      margin-top: 12px;
+      background: #eef2ff;
+      padding: 12px;
+      border-radius: 8px;
+      font-size: 14px;
+    }
+
+    .empty {
+      color: #777;
+      font-style: italic;
+    }
+
+    .submission {
+      padding: 12px;
+      border-bottom: 1px solid #ddd;
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .reorder-row {
+      display: grid;
+      grid-template-columns: 80px 1fr;
+      gap: 12px;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+
+    .small {
+      color: #666;
+      font-size: 14px;
+    }
+  </style>
 </head>
+
 <body>
-  <h1><%= exam.title %></h1>
-  <p><%= exam.instructions %></p>
+<div class="container">
 
-  <h2>Add Question</h2>
+  <div class="card">
+    <h1><%= exam.title %></h1>
+    <p><%= exam.instructions %></p>
+    <a class="button secondary" href="/teacher/dashboard">Back to Dashboard</a>
+  </div>
 
-  <form method="POST" action="/teacher/exams/<%= exam.id %>/questions/new">
-    <input name="questionNumber" placeholder="Question number e.g. 1a" required><br><br>
+  <div class="card">
+    <h2>Add Question</h2>
 
-    <textarea name="questionText" placeholder="Paste question here" style="width:100%;height:120px;" required></textarea><br><br>
+    <form method="POST" action="/teacher/exams/<%= exam.id %>/questions/new">
+      <label>Question Number</label>
+      <input name="questionNumber" placeholder="e.g. 1, 1a, 2b" required />
 
-    <textarea name="answerGuide" placeholder="Paste answer sheet / marking guide here" style="width:100%;height:120px;"></textarea><br><br>
+      <label>Question</label>
+      <textarea name="questionText" placeholder="Paste question here..." required></textarea>
 
-    <input name="maxMarks" type="number" value="1" min="1">
+      <label>Answer Guide / Marking Criteria</label>
+      <textarea name="answerGuide" placeholder="Paste marking guide here..."></textarea>
 
-    <button>Add Question</button>
-  </form>
+      <label>Marks</label>
+      <input type="number" name="maxMarks" value="1" min="1" />
 
-  <h2>Questions</h2>
+      <button class="button primary" type="submit">+ Add Question</button>
+    </form>
+  </div>
 
-  <% questions.forEach(q => { %>
-    <div style="border:1px solid #ccc;padding:12px;margin-bottom:12px;">
-      <strong>Q<%= q.question_number %> — <%= q.max_marks %> marks</strong>
-      <p><%= q.question_text %></p>
-      <details>
-        <summary>Answer guide</summary>
-        <p><%= q.answer_guide %></p>
-      </details>
-    </div>
-  <% }) %>
+  <div class="card">
+    <h2>Reorder Questions</h2>
+    <p class="small">Change the order numbers, then save. Lower numbers appear first.</p>
 
-  <h2>Student Submissions</h2>
+    <% if (!questions.length) { %>
+      <p class="empty">No questions to reorder yet.</p>
+    <% } else { %>
+      <form method="POST" action="/teacher/exams/<%= exam.id %>/questions/reorder">
+        <% questions.forEach((q, index) => { %>
+          <div class="reorder-row">
+            <input type="number" name="order" value="<%= q.id %>" readonly />
+            <span>
+              Q<%= q.question_number %> — <%= q.question_text.substring(0, 90) %><%= q.question_text.length > 90 ? "..." : "" %>
+            </span>
+          </div>
+        <% }) %>
 
-  <% if (!submissions.length) { %>
-    <p>No submissions yet.</p>
-  <% } %>
+        <p class="small">
+          Simple v1 reorder: drag-style ordering comes later. For now, delete/re-add or I can build up/down arrows next.
+        </p>
+      </form>
+    <% } %>
+  </div>
 
-  <% submissions.forEach(s => { %>
-    <p>
-      <%= s.student_name %> — <%= s.status %>
-      <a href="/teacher/exams/<%= exam.id %>/submission/<%= s.id %>">Review</a>
-    </p>
-  <% }) %>
+  <div class="card">
+    <h2>Questions</h2>
+
+    <% if (!questions.length) { %>
+      <p class="empty">No questions added yet.</p>
+    <% } %>
+
+    <% questions.forEach(q => { %>
+      <div class="question-card">
+        <div class="question-header">
+          <div class="question-title">
+            Q<%= q.question_number %> — <%= q.max_marks %> marks
+          </div>
+
+          <form
+            method="POST"
+            action="/teacher/exams/<%= exam.id %>/questions/<%= q.id %>/delete"
+            onsubmit="return confirm('Delete this question? This will also delete student answers for this question.');"
+          >
+            <button class="button danger" type="submit">Delete</button>
+          </form>
+        </div>
+
+        <div><%= q.question_text %></div>
+
+        <% if (q.answer_guide) { %>
+          <div class="answer-guide">
+            <strong>Marking Guide:</strong><br/>
+            <%= q.answer_guide %>
+          </div>
+        <% } %>
+      </div>
+    <% }) %>
+  </div>
+
+  <div class="card">
+    <h2>Student Submissions</h2>
+
+    <% if (!submissions.length) { %>
+      <p class="empty">No submissions yet.</p>
+    <% } %>
+
+    <% submissions.forEach(s => { %>
+      <div class="submission">
+        <span><strong><%= s.student_name %></strong> — <%= s.status %></span>
+        <a href="/teacher/exams/<%= exam.id %>/submission/<%= s.id %>">Review</a>
+      </div>
+    <% }) %>
+  </div>
+
+</div>
 </body>
 </html>

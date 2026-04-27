@@ -516,6 +516,57 @@ End with "Regards, Teacher".
       error: "Failed to generate AI feedback email"
     });
   }
+
+router.post("/ai/mark-question", async (req, res) => {
+  try {
+    if (!openai) {
+      return res.json({ ok: false, error: "AI not configured" });
+    }
+
+    const {
+      question,
+      answerGuide,
+      studentAnswer,
+      maxMarks
+    } = req.body;
+
+    const prompt = `
+You are marking a student exam answer.
+
+Question:
+${question}
+
+Marking guide:
+${answerGuide}
+
+Student answer:
+${studentAnswer}
+
+Max marks: ${maxMarks}
+
+Return JSON:
+{
+  "mark": number,
+  "feedback": "short explanation"
+}
+`;
+
+    const response = await openai.responses.create({
+      model: "gpt-5-mini",
+      input: prompt
+    });
+
+    res.json({
+      ok: true,
+      result: response.output_text
+    });
+
+  } catch (err) {
+    console.error("AI marking error:", err);
+    res.json({ ok: false });
+  }
+});
+
 });
 
 export default router;

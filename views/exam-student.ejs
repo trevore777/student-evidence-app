@@ -2,35 +2,165 @@
 <html>
 <head>
   <title>Student Exam</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f4f6f8;
+      margin: 0;
+      color: #222;
+    }
+
+    .container {
+      max-width: 950px;
+      margin: 30px auto;
+      padding: 20px;
+    }
+
+    .card {
+      background: white;
+      padding: 24px;
+      border-radius: 14px;
+      box-shadow: 0 4px 14px rgba(0,0,0,0.08);
+      margin-bottom: 18px;
+    }
+
+    h1, h2, h3 {
+      margin-top: 0;
+    }
+
+    .question-card {
+      background: #fff;
+      border: 1px solid #e5e7eb;
+      border-radius: 14px;
+      padding: 20px;
+      margin-bottom: 16px;
+    }
+
+    .question-meta {
+      color: #555;
+      font-size: 14px;
+      margin-bottom: 8px;
+      font-weight: bold;
+    }
+
+    textarea {
+      width: 100%;
+      min-height: 150px;
+      padding: 14px;
+      border: 1px solid #ccc;
+      border-radius: 10px;
+      box-sizing: border-box;
+      font-size: 16px;
+      line-height: 1.5;
+      margin-top: 12px;
+    }
+
+    .button-row {
+      display: flex;
+      gap: 12px;
+      margin-top: 18px;
+    }
+
+    .button {
+      padding: 12px 16px;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      font-weight: bold;
+      font-size: 15px;
+    }
+
+    .primary {
+      background: #2563eb;
+      color: white;
+    }
+
+    .secondary {
+      background: #6b7280;
+      color: white;
+    }
+
+    .warning {
+      background: #fff7ed;
+      border: 1px solid #fdba74;
+      color: #9a3412;
+      padding: 12px;
+      border-radius: 10px;
+      margin-top: 12px;
+    }
+
+    .submitted {
+      background: #ecfdf5;
+      border: 1px solid #bbf7d0;
+      color: #166534;
+      padding: 12px;
+      border-radius: 10px;
+      margin-top: 12px;
+    }
+
+    .small {
+      color: #666;
+      font-size: 14px;
+    }
+  </style>
 </head>
+
 <body>
-  <h1><%= exam.title %></h1>
-  <p><%= exam.instructions %></p>
+  <main class="container">
+    <div class="card">
+      <h1><%= exam.title %></h1>
+      <p><%= exam.instructions %></p>
 
-  <% if (submission.status === "submitted") { %>
-    <p><strong>This exam has been submitted.</strong></p>
-  <% } %>
+      <% if (submission.status === "submitted") { %>
+        <div class="submitted">
+          This exam has been submitted. Your answers are locked.
+        </div>
+      <% } else { %>
+        <div class="warning">
+          Answer each question carefully. Save your draft before leaving the page.
+        </div>
+      <% } %>
+    </div>
 
-  <form method="POST" action="/student/exams/<%= exam.id %>/save">
-    <input type="hidden" name="submissionId" value="<%= submission.id %>">
+    <form method="POST" action="/student/exams/<%= exam.id %>/save">
+      <input type="hidden" name="submissionId" value="<%= submission.id %>">
 
-    <% answers.forEach(a => { %>
-      <div style="border:1px solid #ccc;padding:12px;margin-bottom:12px;">
-        <h3>Q<%= a.question_number %> (<%= a.max_marks %> marks)</h3>
-        <p><%= a.question_text %></p>
+      <% answers.forEach(a => { %>
+        <div class="question-card">
+          <div class="question-meta">
+            Question <%= a.question_number %> — <%= a.max_marks %> marks
+          </div>
 
-        <textarea
-          name="answers[<%= a.id %>]"
-          style="width:100%;height:120px;"
-          <%= submission.status === "submitted" ? "readonly" : "" %>
-        ><%= a.student_answer || "" %></textarea>
-      </div>
-    <% }) %>
+          <h3><%= a.question_text %></h3>
 
-    <% if (submission.status !== "submitted") { %>
-      <button formaction="/student/exams/<%= exam.id %>/save">Save Draft</button>
-      <button formaction="/student/exams/<%= exam.id %>/submit">Submit Exam</button>
-    <% } %>
-  </form>
+          <label class="small">Your answer</label>
+          <textarea
+            name="answers[<%= a.id %>]"
+            placeholder="Type your answer here..."
+            <%= submission.status === "submitted" ? "readonly" : "" %>
+          ><%= a.student_answer || "" %></textarea>
+        </div>
+      <% }) %>
+
+      <% if (submission.status !== "submitted") { %>
+        <div class="card">
+          <div class="button-row">
+            <button class="button secondary" formaction="/student/exams/<%= exam.id %>/save" type="submit">
+              Save Draft
+            </button>
+
+            <button
+              class="button primary"
+              formaction="/student/exams/<%= exam.id %>/submit"
+              type="submit"
+              onclick="return confirm('Submit exam? You will not be able to edit after submitting.');"
+            >
+              Submit Exam
+            </button>
+          </div>
+        </div>
+      <% } %>
+    </form>
+  </main>
 </body>
 </html>
