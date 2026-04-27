@@ -5,7 +5,7 @@ import { fileURLToPath } from "url";
 import cookieParser from "cookie-parser";
 import dotenv from "dotenv";
 import authRoutes from "./routes/auth.js";
-app.use("/", authRoutes);
+
 
 
 import { db } from "./lib/db.js";
@@ -32,6 +32,7 @@ if (!fs.existsSync(uploadsDir)) {
 }
 
 // views + middleware
+app.use("/", authRoutes);
 app.set("view engine", "ejs");
 app.set("views", path.join(__dirname, "views"));
 app.use("/stripe/webhook", stripeWebhookRoutes);
@@ -216,7 +217,6 @@ app.get("/", (req, res) => {
 });
 
 // route mounts
-app.use("/", authRoutes);
 app.use("/student", studentRoutes);
 app.use("/teacher", teacherRoutes);
 app.use("/teacher/assignments", assignmentRoutes);
