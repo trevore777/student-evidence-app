@@ -14,9 +14,7 @@ import apiRoutes from "./routes/api.js";
 import uploadRoutes from "./routes/upload.js";
 import printRoutes from "./routes/print.js";
 import examRoutes from "./routes/exams.js";
-import examRoutes from "./routes/exams.js";
 import studentExamRoutes from "./routes/student-exams.js";
-
 
 
 dotenv.config();
