@@ -29,17 +29,27 @@ router.get("/new", requireTeacher, async (req, res) => {
 router.post("/new", requireTeacher, async (req, res) => {
   try {
     const teacher = req.signedCookies.user;
-    const { title, instructions, classId } = req.body;
+    const body = req.body || {};
+    const title = body.title;
+    const instructions = body.instructions || "";
+    const classId = body.classId;
 
     if (!title || !classId) {
       const classesResult = await db.execute({
-        sql: `SELECT id, class_name FROM classes WHERE teacher_id = ? ORDER BY class_name`,
+        sql: `
+          SELECT id, class_name
+          FROM classes
+          WHERE teacher_id = ?
+          ORDER BY class_name ASC
+        `,
         args: [teacher.id]
       });
 
+      const classes = (classesResult.rows || []).map((r) => rowObj(r, ["id", "class_name"]));
+
       return res.render("exam-create", {
-        classes: (classesResult.rows || []).map(r => rowObj(r, ["id", "class_name"])),
-        error: "Title and class are required"
+        classes,
+        error: "Class and exam title are required"
       });
     }
 
@@ -49,14 +59,24 @@ router.post("/new", requireTeacher, async (req, res) => {
         VALUES (?, ?, ?, ?)
         RETURNING id
       `,
-      args: [teacher.id, classId, title, instructions || ""]
+      args: [
+        teacher.id,
+        Number(classId),
+        String(title).trim(),
+        String(instructions || "")
+      ]
     });
 
     const examId = result.rows?.[0]?.id ?? result.rows?.[0]?.[0];
+
+    if (!examId) {
+      throw new Error("Exam was created but no exam ID was returned");
+    }
+
     res.redirect(`/teacher/exams/${examId}`);
   } catch (err) {
     console.error("POST /teacher/exams/new error:", err);
-    res.status(500).send("Failed to create exam");
+    res.status(500).send(`Failed to create exam: ${err.message}`);
   }
 });
 
