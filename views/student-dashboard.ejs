@@ -67,6 +67,11 @@
     .assignment-body h4 {
       margin: 12px 0 8px;
     }
+
+    .small {
+    color: #666;
+    font-size: 14px;
+    }
   </style>
 </head>
 <body>
@@ -99,6 +104,25 @@
         </div>
       <% }) %>
     </div>
+    <div class="card">
+  <h2>Your Exams</h2>
+
+  <% if (!exams || !exams.length) { %>
+    <p class="small">No exams available yet.</p>
+  <% } %>
+
+  <% exams.forEach(exam => { %>
+    <div style="border:1px solid #ddd; padding:12px; border-radius:10px; margin-bottom:10px;">
+      <strong><%= exam.title %></strong>
+
+      <div style="margin-top:8px;">
+        <a class="button" href="/student/exams/<%= exam.id %>">
+          Open Exam
+        </a>
+      </div>
+    </div>
+  <% }) %>
+</div>
   </main>
 </body>
 </html>

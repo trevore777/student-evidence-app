@@ -181,6 +181,23 @@ router.get("/dashboard", requireStudent, async (req, res) => {
     console.error("GET /student/dashboard error:", err);
     res.status(500).send("Failed to load student dashboard");
   }
+
+const examsResult = await db.execute({
+  sql: `
+    SELECT id, title, instructions
+    FROM exams
+    WHERE class_id = ?
+    ORDER BY created_at DESC
+  `,
+  args: [student.class_id]
+});
+
+const exams = (examsResult.rows || []).map(row => ({
+  id: row.id ?? row[0],
+  title: row.title ?? row[1],
+  instructions: row.instructions ?? row[2]
+}));
+
 });
 
 router.get("/assignment/:id", requireStudent, async (req, res) => {
@@ -313,6 +330,13 @@ router.get("/assignment/:id", requireStudent, async (req, res) => {
     console.error("GET /student/assignment/:id error:", err);
     res.status(500).send("Failed to load assignment");
   }
+
+  res.render("student-dashboard", {
+    student,
+    assignments,
+    exams // 👈 ADD THIS
+  });
+
 });
 
 export default router;
