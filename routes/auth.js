@@ -3,6 +3,8 @@ import { db } from "../lib/db.js";
 import { comparePassword, hashPassword } from "../lib/auth.js";
 
 const router = express.Router();
+router.use(express.urlencoded({ extended: true }));
+router.use(express.json());
 
 function normalizeRow(row, keys = []) {
   if (!row) return {};
@@ -237,7 +239,8 @@ router.get("/signup", (req, res) => {
 // CREATE teacher account
 router.post("/signup", async (req, res) => {
   try {
-    const { name, email, password } = req.body;
+    const body = req.body || {};
+const { name, email, password, className } = body;
 
     if (!name || !email || !password) {
       return res.render("signup", { error: "All fields required" });
