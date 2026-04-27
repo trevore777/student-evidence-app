@@ -1,14 +1,13 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Exam Builder</title>
-
+  <title>Exam Review</title>
   <style>
     body {
       font-family: Arial, sans-serif;
-      background: #f5f7fa;
+      background: #f4f6f8;
       margin: 0;
-      padding: 0;
+      color: #222;
     }
 
     .container {
@@ -22,178 +21,114 @@
       padding: 24px;
       border-radius: 14px;
       box-shadow: 0 4px 14px rgba(0,0,0,0.08);
-      margin-bottom: 20px;
+      margin-bottom: 18px;
     }
 
-    h1, h2 {
-      margin-top: 0;
-    }
-
-    label {
-      font-weight: bold;
-      display: block;
-      margin-top: 10px;
-    }
-
-    input, textarea {
-      width: 100%;
-      padding: 12px;
-      border-radius: 10px;
-      border: 1px solid #ccc;
-      margin-top: 6px;
-      font-size: 14px;
-      box-sizing: border-box;
-    }
-
-    textarea {
-      min-height: 120px;
-    }
-
-    .row {
-      display: flex;
-      gap: 10px;
-      margin-top: 10px;
-    }
-
-    .row input {
-      flex: 1;
+    .question-card {
+      border: 1px solid #ddd;
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 14px;
+      background: #fafafa;
     }
 
     .button {
-      margin-top: 15px;
+      display: inline-block;
       padding: 12px 16px;
-      border-radius: 10px;
+      background: #2563eb;
+      color: white;
+      text-decoration: none;
       border: none;
+      border-radius: 10px;
       cursor: pointer;
       font-weight: bold;
     }
 
-    .primary {
-      background: #2563eb;
-      color: white;
+    .secondary {
+      background: #6b7280;
     }
 
-    .primary:hover {
-      background: #1e4fd1;
+    .ai-box {
+      background: #eef2ff;
+      border-radius: 10px;
+      padding: 12px;
+      margin-top: 12px;
     }
 
-    .question-card {
+    .answer-box {
+      background: white;
       border: 1px solid #e5e7eb;
       border-radius: 10px;
-      padding: 14px;
-      margin-bottom: 12px;
-      background: #fafafa;
+      padding: 12px;
+      margin-top: 8px;
+      white-space: pre-wrap;
     }
 
-    .question-header {
-      font-weight: bold;
-      margin-bottom: 6px;
-    }
-
-    .answer-guide {
-      margin-top: 10px;
-      background: #eef2ff;
-      padding: 10px;
-      border-radius: 8px;
-      font-size: 13px;
-    }
-
-    .submission {
-      padding: 10px;
-      border-bottom: 1px solid #ddd;
-    }
-
-    .empty {
-      color: #777;
-      font-style: italic;
+    .small {
+      color: #666;
+      font-size: 14px;
     }
   </style>
 </head>
 
 <body>
+  <main class="container">
 
-<div class="container">
+    <div class="card">
+      <h1>Exam Review</h1>
 
-  <!-- EXAM HEADER -->
-  <div class="card">
-    <h1><%= exam.title %></h1>
-    <p><%= exam.instructions %></p>
-  </div>
+      <p><strong>Student:</strong> <%= submission.student_name %></p>
+      <p><strong>Exam:</strong> <%= submission.exam_title %></p>
+      <p class="small">
+        Status: <%= submission.status %> |
+        Submitted: <%= submission.submitted_at || "Not submitted" %>
+      </p>
 
-  <!-- ADD QUESTION -->
-  <div class="card">
-    <h2>Add Question</h2>
+      <a class="button secondary" href="/teacher/exams/<%= submission.exam_id %>">Back to Exam</a>
+    </div>
 
-    <form method="POST" action="/teacher/exams/<%= exam.id %>/questions/new">
+    <div class="card">
+      <h2>AI Marking</h2>
 
-      <label>Question Number</label>
-      <input name="questionNumber" placeholder="e.g. 1, 1a, 2b" required />
+      <form method="POST" action="/teacher/exams/<%= submission.exam_id %>/submission/<%= submission.id %>/mark-ai">
+        <button class="button" type="submit">AI Mark All Answers</button>
+      </form>
 
-      <label>Question</label>
-      <textarea name="questionText" placeholder="Paste question here..." required></textarea>
+      <p class="small">
+        AI marks are suggestions only. The teacher should review and confirm final marks.
+      </p>
+    </div>
 
-      <label>Answer Guide / Marking Criteria</label>
-      <textarea name="answerGuide" placeholder="Paste marking guide here..."></textarea>
+    <div class="card">
+      <h2>Answers</h2>
 
-      <div class="row">
-        <div>
-          <label>Marks</label>
-          <input type="number" name="maxMarks" value="1" min="1" />
-        </div>
-      </div>
+      <% if (!answers || !answers.length) { %>
+        <p>No answers found.</p>
+      <% } %>
 
-      <button class="button primary">+ Add Question</button>
-    </form>
-  </div>
+      <% (answers || []).forEach(a => { %>
+        <div class="question-card">
+          <h3>Q<%= a.question_number %> — <%= a.max_marks %> marks</h3>
 
-  <!-- QUESTIONS LIST -->
-  <div class="card">
-    <h2>Questions</h2>
+          <p><strong>Question:</strong></p>
+          <div class="answer-box"><%= a.question_text %></div>
 
-    <% if (!questions.length) { %>
-      <p class="empty">No questions added yet.</p>
-    <% } %>
+          <p><strong>Student answer:</strong></p>
+          <div class="answer-box"><%= a.student_answer || "No answer" %></div>
 
-    <% questions.forEach(q => { %>
-      <div class="question-card">
+          <details style="margin-top:12px;">
+            <summary><strong>Answer guide</strong></summary>
+            <div class="answer-box"><%= a.answer_guide || "No answer guide provided" %></div>
+          </details>
 
-        <div class="question-header">
-          Q<%= q.question_number %> — <%= q.max_marks %> marks
-        </div>
-
-        <div><%= q.question_text %></div>
-
-        <% if (q.answer_guide) { %>
-          <div class="answer-guide">
-            <strong>Marking Guide:</strong><br/>
-            <%= q.answer_guide %>
+          <div class="ai-box">
+            <p><strong>AI mark:</strong> <%= a.ai_mark ?? "Not marked" %> / <%= a.max_marks %></p>
+            <p><strong>AI feedback:</strong> <%= a.ai_feedback || "—" %></p>
           </div>
-        <% } %>
+        </div>
+      <% }) %>
+    </div>
 
-      </div>
-    <% }) %>
-  </div>
-
-  <!-- STUDENT SUBMISSIONS -->
-  <div class="card">
-    <h2>Student Submissions</h2>
-
-    <% if (!submissions.length) { %>
-      <p class="empty">No submissions yet.</p>
-    <% } %>
-
-    <% submissions.forEach(s => { %>
-      <div class="submission">
-        <strong><%= s.student_name %></strong> — <%= s.status %>
-
-        <a href="/teacher/exams/<%= exam.id %>/submission/<%= s.id %>">
-          Review
-        </a>
-      </div>
-    <% }) %>
-  </div>
-
-</div>
-
+  </main>
 </body>
 </html>
