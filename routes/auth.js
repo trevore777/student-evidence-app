@@ -37,6 +37,10 @@ router.get("/login", async (req, res) => {
   }
 });
 
+router.get("/signup", (req, res) => {
+  res.render("signup", { error: null });
+});
+
 router.get("/join-class", (req, res) => {
   res.render("join-class", { error: null });
 });
@@ -221,6 +225,51 @@ router.post("/login", async (req, res) => {
 router.get("/logout", (req, res) => {
   res.clearCookie("user");
   res.redirect("/login");
+});
+
+import bcrypt from "bcrypt";
+
+// SHOW signup page
+router.get("/signup", (req, res) => {
+  res.render("signup", { error: null });
+});
+
+// CREATE teacher account
+router.post("/signup", async (req, res) => {
+  try {
+    const { name, email, password } = req.body;
+
+    if (!name || !email || !password) {
+      return res.render("signup", { error: "All fields required" });
+    }
+
+    // check if email already exists
+    const existing = await db.execute({
+      sql: `SELECT id FROM teachers WHERE email = ?`,
+      args: [email]
+    });
+
+    if (existing.rows.length > 0) {
+      return res.render("signup", { error: "Email already exists" });
+    }
+
+    // hash password
+    const passwordHash = await bcrypt.hash(password, 10);
+
+    // insert teacher
+    await db.execute({
+      sql: `
+        INSERT INTO teachers (name, email, password_hash, plan)
+        VALUES (?, ?, ?, 'free')
+      `,
+      args: [name, email, passwordHash]
+    });
+
+    res.redirect("/login");
+  } catch (err) {
+    console.error("Signup error:", err);
+    res.status(500).send("Failed to create account");
+  }
 });
 
 export default router;

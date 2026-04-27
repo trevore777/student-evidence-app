@@ -4,11 +4,12 @@ import fs from "fs";
 import { fileURLToPath } from "url";
 import cookieParser from "cookie-parser";
 import dotenv from "dotenv";
+import authRoutes from "./routes/auth.js";
+app.use("/", authRoutes);
 
 
 import { db } from "./lib/db.js";
 
-import authRoutes from "./routes/auth.js";
 import studentRoutes from "./routes/student.js";
 import teacherRoutes from "./routes/teacher.js";
 import assignmentRoutes from "./routes/assignments.js";
