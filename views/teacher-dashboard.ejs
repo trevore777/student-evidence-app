@@ -63,6 +63,7 @@
       border-radius: 12px;
       padding: 14px;
     }
+    
     .row {
       display: flex;
       gap: 12px;
@@ -97,6 +98,13 @@
 
   <a class="button" href="/teacher/classes">Create / Manage Classes</a>
   <a class="button" href="/teacher/assignments/new">Create Assessment</a>
+  <div class="card">
+  <h2>Exam Evidence Mode</h2>
+
+  <a href="/teacher/exams/new" class="button">
+    + Create Exam
+  </a>
+</div>
 
   <% if (selectedClass) { %>
     <a class="button" href="/teacher/classes/<%= selectedClass.id %>/students">Manage Students</a>
