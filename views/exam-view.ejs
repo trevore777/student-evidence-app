@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Exam View</title>
+  <style>
+    body {
+      font-family: Arial;
+      background: #f4f6f8;
+      padding: 20px;
+    }
+
+    .card {
+      background: white;
+      padding: 24px;
+      border-radius: 12px;
+      margin-bottom: 20px;
+    }
+
+    h1 {
+      margin-top: 0;
+    }
+
+    ul {
+      padding-left: 20px;
+    }
+
+    li {
+      margin-bottom: 16px;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="card">
+    <h1><%= exam.title %></h1>
+    <p><%= exam.instructions %></p>
+  </div>
+
+  <div class="card">
+    <h2>Questions</h2>
+
+    <ul>
+      <% questions.forEach(q => { %>
+        <li>
+          <strong>Q<%= q.question_number %></strong><br/>
+          <%= q.question_text %>
+        </li>
+      <% }) %>
+    </ul>
+  </div>
+
+</body>
+</html>
