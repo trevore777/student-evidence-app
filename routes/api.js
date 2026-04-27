@@ -327,13 +327,7 @@ Instructions:
     const draft = response.output_text || "Unable to generate draft at this time.";
 
     res.json({ ok: true, draft });
-  } catch (err) {
-    console.error("POST /api/ai/generate-feedback-email error:", err);
-    res.status(500).json({
-      ok: false,
-      error: "Failed to generate AI feedback email"
-    });
-  }
+  } 
 });
 
 router.post("/ai/email", async (req, res) => {
