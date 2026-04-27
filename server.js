@@ -32,7 +32,7 @@ app.set("view engine", "ejs");
 app.set("views", path.join(__dirname, "views"));
 
 /* BODY + COOKIE PARSING — MUST COME BEFORE ROUTES */
-aapp.use(express.urlencoded({ extended: true, limit: "10mb" }));
+app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 app.use(express.json({ limit: "10mb" }));
 app.use(express.json());
 app.use(cookieParser(process.env.APP_SECRET || "dev-secret"));
