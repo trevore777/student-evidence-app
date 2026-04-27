@@ -12,31 +12,14 @@ function normalizeRow(row, keys = []) {
   keys.forEach((key, i) => {
     obj[key] = row[i];
   });
+
   return obj;
 }
 
+/* CHANGE PIN PAGE */
 router.get("/change-pin", requireStudent, async (req, res) => {
   try {
     const student = req.signedCookies.user;
-
-    const result = await db.execute({
-      sql: `
-        SELECT id, name, pin_needs_reset
-        FROM students
-        WHERE id = ?
-      `,
-      args: [student.id]
-    });
-
-    const studentRow = normalizeRow(result.rows?.[0], [
-      "id",
-      "name",
-      "pin_needs_reset"
-    ]);
-
-    if (!studentRow.id) {
-      return res.status(404).send("Student not found");
-    }
 
     res.render("change-pin", {
       student,
@@ -49,10 +32,11 @@ router.get("/change-pin", requireStudent, async (req, res) => {
   }
 });
 
+/* SAVE NEW PIN */
 router.post("/change-pin", requireStudent, async (req, res) => {
   try {
     const student = req.signedCookies.user;
-    const { currentPin, newPin, confirmPin } = req.body;
+    const { currentPin, newPin, confirmPin } = req.body || {};
 
     const result = await db.execute({
       sql: `
@@ -63,10 +47,7 @@ router.post("/change-pin", requireStudent, async (req, res) => {
       args: [student.id]
     });
 
-    const studentRow = normalizeRow(result.rows?.[0], [
-      "id",
-      "student_pin"
-    ]);
+    const studentRow = normalizeRow(result.rows?.[0], ["id", "student_pin"]);
 
     if (!studentRow.id) {
       return res.status(404).send("Student not found");
@@ -84,14 +65,6 @@ router.post("/change-pin", requireStudent, async (req, res) => {
       return res.render("change-pin", {
         student,
         error: "New PIN must be exactly 4 digits",
-        success: null
-      });
-    }
-
-    if (["1234", "0000", "1111"].includes(String(newPin).trim())) {
-      return res.render("change-pin", {
-        student,
-        error: "Please choose a stronger PIN",
         success: null
       });
     }
@@ -120,9 +93,10 @@ router.post("/change-pin", requireStudent, async (req, res) => {
   }
 });
 
+/* STUDENT DASHBOARD */
 router.get("/dashboard", requireStudent, async (req, res) => {
   try {
-    const student = req.signedCookies.user;
+    const loggedInStudent = req.signedCookies.user;
 
     const studentResult = await db.execute({
       sql: `
@@ -130,7 +104,7 @@ router.get("/dashboard", requireStudent, async (req, res) => {
         FROM students
         WHERE id = ?
       `,
-      args: [student.id]
+      args: [loggedInStudent.id]
     });
 
     const studentRecord = normalizeRow(studentResult.rows?.[0], [
@@ -140,13 +114,21 @@ router.get("/dashboard", requireStudent, async (req, res) => {
       "class_name"
     ]);
 
-    if (!studentRecord.id || !studentRecord.class_id) {
-      return res.status(404).send("Student class not found");
+    if (!studentRecord.id) {
+      return res.status(404).send("Student not found");
     }
 
-    const assignmentResult = await db.execute({
+    const assignmentsResult = await db.execute({
       sql: `
-        SELECT id, teacher_id, class_id, title, instructions, class_name, due_date, word_target, ai_policy_note, require_declaration, created_at
+        SELECT
+          id,
+          title,
+          instructions,
+          due_date,
+          word_target,
+          ai_policy_note,
+          require_declaration,
+          created_at
         FROM assignments
         WHERE class_id = ?
         ORDER BY created_at DESC
@@ -154,14 +136,11 @@ router.get("/dashboard", requireStudent, async (req, res) => {
       args: [studentRecord.class_id]
     });
 
-    const assignments = (assignmentResult.rows || []).map((row) =>
+    const assignments = (assignmentsResult.rows || []).map((row) =>
       normalizeRow(row, [
         "id",
-        "teacher_id",
-        "class_id",
         "title",
         "instructions",
-        "class_name",
         "due_date",
         "word_target",
         "ai_policy_note",
@@ -170,36 +149,47 @@ router.get("/dashboard", requireStudent, async (req, res) => {
       ])
     );
 
+    const examsResult = await db.execute({
+      sql: `
+        SELECT
+          id,
+          title,
+          instructions,
+          created_at
+        FROM exams
+        WHERE class_id = ?
+        ORDER BY created_at DESC
+      `,
+      args: [studentRecord.class_id]
+    });
+
+    const exams = (examsResult.rows || []).map((row) =>
+      normalizeRow(row, [
+        "id",
+        "title",
+        "instructions",
+        "created_at"
+      ])
+    );
+
     res.render("student-dashboard", {
       student: {
-        ...student,
+        ...loggedInStudent,
+        id: studentRecord.id,
+        name: studentRecord.name,
+        class_id: studentRecord.class_id,
         class_name: studentRecord.class_name
       },
-      assignments
+      assignments,
+      exams
     });
   } catch (err) {
     console.error("GET /student/dashboard error:", err);
-    res.status(500).send("Failed to load student dashboard");
+    res.status(500).send(`Failed to load student dashboard: ${err.message}`);
   }
-
-const examsResult = await db.execute({
-  sql: `
-    SELECT id, title, instructions
-    FROM exams
-    WHERE class_id = ?
-    ORDER BY created_at DESC
-  `,
-  args: [student.class_id]
 });
 
-const exams = (examsResult.rows || []).map(row => ({
-  id: row.id ?? row[0],
-  title: row.title ?? row[1],
-  instructions: row.instructions ?? row[2]
-}));
-
-});
-
+/* STUDENT WRITING ASSIGNMENT */
 router.get("/assignment/:id", requireStudent, async (req, res) => {
   try {
     const student = req.signedCookies.user;
@@ -220,13 +210,24 @@ router.get("/assignment/:id", requireStudent, async (req, res) => {
       "class_name"
     ]);
 
-    if (!studentRecord.id || !studentRecord.class_id) {
-      return res.status(404).send("Student class not found");
+    if (!studentRecord.id) {
+      return res.status(404).send("Student not found");
     }
 
     const assignmentResult = await db.execute({
       sql: `
-        SELECT id, teacher_id, class_id, title, instructions, class_name, due_date, word_target, ai_policy_note, require_declaration, created_at
+        SELECT
+          id,
+          teacher_id,
+          class_id,
+          title,
+          instructions,
+          class_name,
+          due_date,
+          word_target,
+          ai_policy_note,
+          require_declaration,
+          created_at
         FROM assignments
         WHERE id = ? AND class_id = ?
       `,
@@ -328,15 +329,8 @@ router.get("/assignment/:id", requireStudent, async (req, res) => {
     });
   } catch (err) {
     console.error("GET /student/assignment/:id error:", err);
-    res.status(500).send("Failed to load assignment");
+    res.status(500).send(`Failed to load assignment: ${err.message}`);
   }
-
-  res.render("student-dashboard", {
-    student,
-    assignments,
-    exams // 👈 ADD THIS
-  });
-
 });
 
 export default router;
