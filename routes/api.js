@@ -61,7 +61,14 @@ router.get("/students/by-class", async (req, res) => {
 
 router.post("/session/start", async (req, res) => {
   try {
-    const { submissionId, deviceInfo } = req.body;
+    const { submissionId, deviceInfo } = req.body || {};
+
+    if (!submissionId) {
+      return res.status(400).json({
+        ok: false,
+        error: "submissionId is required"
+      });
+    }
 
     const result = await db.execute({
       sql: `
@@ -72,7 +79,9 @@ router.post("/session/start", async (req, res) => {
       args: [submissionId, deviceInfo || ""]
     });
 
-    res.json({ ok: true, sessionId: result.rows[0]?.id ?? result.rows[0]?.[0] });
+    const sessionId = result.rows?.[0]?.id ?? result.rows?.[0]?.[0];
+
+    res.json({ ok: true, sessionId });
   } catch (err) {
     console.error("POST /api/session/start error:", err);
     res.status(500).json({ ok: false, error: "Failed to start session" });
@@ -81,7 +90,14 @@ router.post("/session/start", async (req, res) => {
 
 router.post("/session/end", async (req, res) => {
   try {
-    const { sessionId, activeSeconds = 0, idleSeconds = 0 } = req.body;
+    const { sessionId, activeSeconds = 0, idleSeconds = 0 } = req.body || {};
+
+    if (!sessionId) {
+      return res.status(400).json({
+        ok: false,
+        error: "sessionId is required"
+      });
+    }
 
     await db.execute({
       sql: `
@@ -91,7 +107,11 @@ router.post("/session/end", async (req, res) => {
             idle_seconds = ?
         WHERE id = ?
       `,
-      args: [activeSeconds, idleSeconds, sessionId]
+      args: [
+        Number(activeSeconds || 0),
+        Number(idleSeconds || 0),
+        sessionId
+      ]
     });
 
     res.json({ ok: true });
@@ -103,19 +123,37 @@ router.post("/session/end", async (req, res) => {
 
 router.post("/draft/autosave", async (req, res) => {
   try {
-    const { submissionId, sessionId, content, wordCount } = req.body;
+    const { submissionId, sessionId, content, wordCount } = req.body || {};
+
+    if (!submissionId || !sessionId) {
+      return res.status(400).json({
+        ok: false,
+        error: "submissionId and sessionId are required"
+      });
+    }
+
+    const cleanedContent = sanitizeRichText(content || "");
 
     await db.execute({
       sql: `
         INSERT INTO draft_snapshots (submission_id, session_id, content, word_count)
         VALUES (?, ?, ?, ?)
       `,
-      args: [submissionId, sessionId, sanitizeRichText(content || ""), wordCount || 0]
+      args: [
+        submissionId,
+        sessionId,
+        cleanedContent,
+        Number(wordCount || 0)
+      ]
     });
 
     await db.execute({
-      sql: `UPDATE submissions SET final_text = ? WHERE id = ?`,
-      args: [sanitizeRichText(content || ""), submissionId]
+      sql: `
+        UPDATE submissions
+        SET final_text = ?
+        WHERE id = ?
+      `,
+      args: [cleanedContent, submissionId]
     });
 
     res.json({ ok: true, savedAt: new Date().toISOString() });
@@ -127,7 +165,14 @@ router.post("/draft/autosave", async (req, res) => {
 
 router.post("/event", async (req, res) => {
   try {
-    const { submissionId, sessionId, eventType, eventMeta } = req.body;
+    const { submissionId, sessionId, eventType, eventMeta } = req.body || {};
+
+    if (!submissionId || !sessionId) {
+      return res.status(400).json({
+        ok: false,
+        error: "submissionId and sessionId are required"
+      });
+    }
 
     await db.execute({
       sql: `
@@ -169,7 +214,7 @@ router.post("/declaration", async (req, res) => {
       accessedDate,
       inTextCitation,
       bibliographyEntry
-    } = req.body;
+    } = req.body || {};
 
     if (!submissionId || !sessionId || !declarationType) {
       return res.status(400).json({
@@ -234,12 +279,21 @@ router.post("/declaration", async (req, res) => {
 
 router.post("/submit", async (req, res) => {
   try {
-    const { submissionId, finalText } = req.body;
+    const { submissionId, finalText } = req.body || {};
+
+    if (!submissionId) {
+      return res.status(400).json({
+        ok: false,
+        error: "submissionId is required"
+      });
+    }
 
     await db.execute({
       sql: `
         UPDATE submissions
-        SET final_text = ?, status = 'submitted', submitted_at = CURRENT_TIMESTAMP
+        SET final_text = ?,
+            status = 'submitted',
+            submitted_at = CURRENT_TIMESTAMP
         WHERE id = ?
       `,
       args: [sanitizeRichText(finalText || ""), submissionId]
@@ -252,6 +306,138 @@ router.post("/submit", async (req, res) => {
   }
 });
 
+/**
+ * Current AI feedback route used by teacher-review.ejs
+ */
+router.post("/ai/email", async (req, res) => {
+  try {
+    if (!openai) {
+      return res.status(500).json({
+        ok: false,
+        error: "OPENAI_API_KEY is not configured"
+      });
+    }
+
+    const body = req.body || {};
+
+    const studentName = body.studentName || "Student";
+    const assignmentTitle = body.assignmentTitle || "the assignment";
+    const submissionText = body.submissionText || "";
+    const rubricText = body.rubricText || "";
+    const yearLevel = body.yearLevel || "Unknown";
+
+    const composition = body.composition || {};
+    const flags = Array.isArray(body.flags) ? body.flags : [];
+    const declarations = Array.isArray(body.declarations) ? body.declarations : [];
+
+    const good = body.good || "";
+    const bad = body.bad || "";
+    const next = body.next || "";
+
+    const cleanSubmission = String(submissionText)
+      .replace(/<[^>]*>/g, " ")
+      .replace(/\s+/g, " ")
+      .trim()
+      .slice(0, 3500);
+
+    const cleanRubric = String(rubricText)
+      .replace(/<[^>]*>/g, " ")
+      .replace(/\s+/g, " ")
+      .trim()
+      .slice(0, 2500);
+
+    const yearLevelText = String(yearLevel || "").toLowerCase();
+
+    const isJunior = /year\s*7|year\s*8|\b7\b|\b8\b/.test(yearLevelText);
+    const isMiddle = /year\s*9|year\s*10|\b9\b|\b10\b/.test(yearLevelText);
+    const isSenior = /year\s*11|year\s*12|\b11\b|\b12\b/.test(yearLevelText);
+
+    const rubricType = cleanRubric.toLowerCase().includes("ismg")
+      ? "ISMG"
+      : cleanRubric
+        ? "general rubric"
+        : "no rubric";
+
+    let lengthInstruction = "maximum 170 words";
+    let levelInstruction = "Use clear, practical feedback.";
+
+    if (isJunior) {
+      lengthInstruction = "maximum 120 words";
+      levelInstruction = "Use very simple language, no jargon, and no more than two improvement actions.";
+    } else if (isMiddle) {
+      lengthInstruction = "maximum 170 words";
+      levelInstruction = "Use clear practical feedback with simple task-specific advice.";
+    } else if (isSenior) {
+      lengthInstruction = "maximum 230 words";
+      levelInstruction = "Use more specific rubric or ISMG language, but keep it readable and concise.";
+    }
+
+    const prompt = `
+You are an Australian secondary teacher writing a short, student-friendly feedback email.
+
+Student: ${studentName}
+Year level / class: ${yearLevel}
+Assignment: ${assignmentTitle}
+Rubric type: ${rubricType}
+
+Rubric / ISMG:
+${cleanRubric || "No rubric provided."}
+
+Student submission:
+${cleanSubmission || "No submitted text provided."}
+
+Evidence profile:
+- Own work estimate: ${composition.own || 0}%
+- Pasted content estimate: ${composition.paste || 0}%
+- AI declared estimate: ${composition.ai || 0}%
+
+Flags:
+${flags.join(", ") || "None"}
+
+Source declarations:
+${JSON.stringify(declarations || [], null, 2)}
+
+Teacher notes:
+What went well: ${good || "-"}
+Needs improvement: ${bad || "-"}
+Most important next step: ${next || "-"}
+
+Write ONE email to the student.
+
+Rules:
+- ${levelInstruction}
+- Keep the whole email to ${lengthInstruction}.
+- If this is an ISMG, explicitly mention 1 or 2 relevant criteria/standards.
+- If this is a general rubric, keep it simple and do not over-explain.
+- If no rubric is provided, give short general feedback only.
+- Do not overwhelm the student.
+- Give no more than 2 improvement actions.
+- If AI or pasted content appears, say they need to declare, revise, or integrate it clearly. Do not accuse them.
+- Be encouraging, specific, concise, and age-appropriate.
+- End with "Regards, Teacher".
+`;
+
+    const response = await openai.responses.create({
+      model: "gpt-5-mini",
+      input: prompt
+    });
+
+    res.json({
+      ok: true,
+      email: response.output_text || "Unable to generate email."
+    });
+  } catch (err) {
+    console.error("POST /api/ai/email error:", err);
+    res.status(500).json({
+      ok: false,
+      error: "Failed to generate AI email"
+    });
+  }
+});
+
+/**
+ * Legacy route kept so older front-end code does not break.
+ */
 router.post("/ai/generate-feedback-email", async (req, res) => {
   try {
     if (!openai) {
@@ -272,16 +458,20 @@ router.post("/ai/generate-feedback-email", async (req, res) => {
       goodNotes,
       badNotes,
       uglyNotes
-    } = req.body;
+    } = req.body || {};
+
+    const cleanFinalText = String(finalText || "")
+      .replace(/<[^>]*>/g, " ")
+      .replace(/\s+/g, " ")
+      .trim()
+      .slice(0, 3500);
 
     const prompt = `
 You are helping a teacher write a constructive email to a student.
 
-Write a professional, encouraging school-style feedback email.
-
-Student name: ${studentName}
-Student email: ${studentEmail}
-Assignment title: ${assignmentTitle}
+Student name: ${studentName || "Student"}
+Student email: ${studentEmail || ""}
+Assignment title: ${assignmentTitle || "Assignment"}
 
 Estimated submission composition:
 ${JSON.stringify(composition || {}, null, 2)}
@@ -303,118 +493,12 @@ Source declarations:
 ${JSON.stringify(declarations || [], null, 2)}
 
 Student final submission:
-${finalText || ""}
+${cleanFinalText || "No submitted text provided."}
 
-Instructions:
-- Write directly to the student.
-- Use a supportive but honest tone.
-- Include:
-  1. greeting
-  2. what was done well
-  3. what needs improvement
-  4. most important next step
-  5. short encouragement at the end
-- Keep it suitable for school use.
-- Do not accuse the student of misconduct.
-- Keep it concise and clear.
-`;
-
-    const response = await openai.responses.create({
-      model: "gpt-5.4",
-      input: prompt
-    });
-
-    const draft = response.output_text || "Unable to generate draft at this time.";
-
-    res.json({ ok: true, draft });
-  } 
-});
-
-router.post("/ai/email", async (req, res) => {
-  try {
-    if (!openai) {
-      const body = req.body || {};
-
-const studentName = body.studentName || "";
-const assignmentTitle = body.assignmentTitle || "";
-const submissionText = body.submissionText || "";
-const rubricText = body.rubricText || "";
-const yearLevel = body.yearLevel || "";
-
-const composition = body.composition || {};
-const flags = body.flags || [];
-const declarations = body.declarations || [];
-
-const good = body.good || "";
-const bad = body.bad || "";
-const next = body.next || "";
-
-// 🔑 THESE WERE MISSING
-const cleanSubmission = String(submissionText).slice(0, 3500);
-const cleanRubric = String(rubricText).slice(0, 2000);
-      return res.status(500).json({
-        ok: false,
-        error: "OPENAI_API_KEY is not configured"
-      });
-    }
-
-    const yearLevelText = String(req.body.yearLevel || "").toLowerCase();
-const isJunior = /year\s*7|year\s*8/.test(yearLevelText);
-const isMiddle = /year\s*9|year\s*10/.test(yearLevelText);
-const isSenior = /year\s*11|year\s*12/.test(yearLevelText);
-
-const rubricType = cleanRubric.toLowerCase().includes("ismg")
-  ? "ISMG"
-  : cleanRubric
-    ? "general rubric"
-    : "no rubric";
-
-const prompt = `
-You are an Australian secondary teacher writing a short, student-friendly feedback email.
-
-Student: ${studentName}
-Year level: ${req.body.yearLevel || "Unknown"}
-Assignment: ${assignmentTitle}
-Rubric type: ${rubricType}
-
-Rubric / ISMG:
-${cleanRubric || "No rubric provided."}
-
-Student submission:
-${cleanSubmission.slice(0, 3500)}
-
-Evidence profile:
-- Own work estimate: ${composition?.own || 0}%
-- Pasted content estimate: ${composition?.paste || 0}%
-- AI declared estimate: ${composition?.ai || 0}%
-
-Flags:
-${(flags || []).join(", ") || "None"}
-
-Teacher notes:
-What went well: ${good || "-"}
-Needs improvement: ${bad || "-"}
-Most important next step: ${next || "-"}
-
-Write ONE email to the student.
-
-Adapt the feedback:
-- If Year 7 or Year 8: use very simple language, no jargon, maximum 120 words.
-- If Year 9 or Year 10: use clear practical feedback, maximum 170 words.
-- If Year 11 or Year 12: use more specific rubric/ISMG language, maximum 230 words.
-- If this is an ISMG, explicitly mention 1 or 2 relevant criteria/standards.
-- If this is a general rubric, keep it simple and do not over-explain.
-- If no rubric is provided, give short general feedback only.
-- Do not overwhelm the student.
-- Give no more than 2 improvement actions.
-- If AI or pasted content appears, say they need to declare/revise it clearly, not accuse them.
-- End with "Regards, Teacher".
-
-Tone:
-- encouraging
-- specific
-- concise
-- age-appropriate
+Write a short, supportive, school-appropriate feedback email.
+Refer to the student's actual submitted work where possible.
+Do not accuse the student of misconduct.
+End with "Regards, Teacher".
 `;
 
     const response = await openai.responses.create({
@@ -422,15 +506,14 @@ Tone:
       input: prompt
     });
 
-    res.json({
-      ok: true,
-      email: response.output_text || "Unable to generate email."
-    });
+    const draft = response.output_text || "Unable to generate draft at this time.";
+
+    res.json({ ok: true, draft });
   } catch (err) {
-    console.error("POST /api/ai/email error:", err);
+    console.error("POST /api/ai/generate-feedback-email error:", err);
     res.status(500).json({
       ok: false,
-      error: "Failed to generate AI email"
+      error: "Failed to generate AI feedback email"
     });
   }
 });
