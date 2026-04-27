@@ -240,7 +240,7 @@ router.get("/signup", (req, res) => {
 router.post("/signup", async (req, res) => {
   try {
     const body = req.body || {};
-const { name, email, password, className } = body;
+    const { name, email, password, className } = body;
 
     if (!name || !email || !password) {
       return res.render("signup", { error: "All fields required" });

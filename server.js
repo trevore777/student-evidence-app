@@ -4,12 +4,8 @@ import fs from "fs";
 import { fileURLToPath } from "url";
 import cookieParser from "cookie-parser";
 import dotenv from "dotenv";
+
 import authRoutes from "./routes/auth.js";
-
-
-
-import { db } from "./lib/db.js";
-
 import studentRoutes from "./routes/student.js";
 import teacherRoutes from "./routes/teacher.js";
 import assignmentRoutes from "./routes/assignments.js";
@@ -17,8 +13,8 @@ import classRoutes from "./routes/classes.js";
 import apiRoutes from "./routes/api.js";
 import uploadRoutes from "./routes/upload.js";
 import printRoutes from "./routes/print.js";
-import stripeWebhookRoutes from "./routes/stripe-webhook.js";
 import billingRoutes from "./routes/billing.js";
+import stripeWebhookRoutes from "./routes/stripe-webhook.js";
 
 dotenv.config();
 
@@ -33,15 +29,13 @@ if (!fs.existsSync(uploadsDir)) {
 
 // views + middleware
 app.use("/", authRoutes);
-app.set("view engine", "ejs");
-app.set("views", path.join(__dirname, "views"));
-app.use("/stripe/webhook", stripeWebhookRoutes);
-app.use(express.urlencoded({ extended: true }));
-app.use(express.json());
-app.use(cookieParser(process.env.APP_SECRET || "dev-secret"));
-app.use(express.static(path.join(__dirname, "public")));
-app.use("/vendor/tinymce", express.static(path.join(__dirname, "node_modules", "tinymce")));
-app.use("/uploads", express.static(uploadsDir));
+app.use("/student", studentRoutes);
+app.use("/teacher", teacherRoutes);
+app.use("/teacher/assignments", assignmentRoutes);
+app.use("/teacher/classes", classRoutes);
+app.use("/teacher/print", printRoutes);
+app.use("/api", apiRoutes);
+app.use("/api/upload", uploadRoutes);
 app.use("/billing", billingRoutes);
 
 // health
