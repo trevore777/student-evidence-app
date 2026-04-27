@@ -216,6 +216,11 @@ app.get("/", (req, res) => {
   res.redirect("/login");
 });
 
+// ✅ MUST be before routes
+app.use(express.urlencoded({ extended: true }));
+app.use(express.json());
+
+
 // route mounts
 app.use("/student", studentRoutes);
 app.use("/teacher", teacherRoutes);
