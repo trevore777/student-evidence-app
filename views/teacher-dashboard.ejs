@@ -144,9 +144,9 @@
 
         <div>
           <label class="small" for="flagged">Show</label><br />
-          <select name="flagged" id="flagged">
-            <option value="0" <%= flaggedOnly ? "" : "selected" %>>All submissions</option>
-            <option value="1" <%= flaggedOnly ? "selected" : "" %>>Flagged only</option>
+          <select name="show" id="show">
+            <option value="all" <%= show === "all" ? "selected" : "" %>>All submissions</option>
+            <option value="flagged" <%= show === "flagged" ? "selected" : "" %>>Flagged only</option>
           </select>
         </div>
 
