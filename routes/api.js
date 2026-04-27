@@ -339,6 +339,25 @@ Instructions:
 router.post("/ai/email", async (req, res) => {
   try {
     if (!openai) {
+      const body = req.body || {};
+
+const studentName = body.studentName || "";
+const assignmentTitle = body.assignmentTitle || "";
+const submissionText = body.submissionText || "";
+const rubricText = body.rubricText || "";
+const yearLevel = body.yearLevel || "";
+
+const composition = body.composition || {};
+const flags = body.flags || [];
+const declarations = body.declarations || [];
+
+const good = body.good || "";
+const bad = body.bad || "";
+const next = body.next || "";
+
+// 🔑 THESE WERE MISSING
+const cleanSubmission = String(submissionText).slice(0, 3500);
+const cleanRubric = String(rubricText).slice(0, 2000);
       return res.status(500).json({
         ok: false,
         error: "OPENAI_API_KEY is not configured"
