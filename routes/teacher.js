@@ -354,4 +354,28 @@ router.get("/submission/:id", requireTeacher, async (req, res) => {
   }
 });
 
+const examsResult = await db.execute({
+  sql: `
+    SELECT id, title, created_at
+    FROM exams
+    WHERE teacher_id = ? AND class_id = ?
+    ORDER BY created_at DESC
+  `,
+  args: [teacher.id, selectedClass.id]
+});
+
+const exams = (examsResult.rows || []).map((row) =>
+  normalizeRow(row, ["id", "title", "created_at"])
+);
+
+res.render("teacher-dashboard", {
+  teacher,
+  classes,
+  selectedClass,
+  assignments,
+  submissions,
+  exams,
+  welcome: req.query.welcome === "1"
+});
+
 export default router;

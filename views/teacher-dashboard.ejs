@@ -112,6 +112,20 @@
   <% } %>
 </div>
 
+<h3>Existing Exams</h3>
+
+<% if (!exams || !exams.length) { %>
+  <p class="small">No exams created for this class yet.</p>
+<% } %>
+
+<% (exams || []).forEach(exam => { %>
+  <div style="margin-top: 12px; padding: 12px; border: 1px solid #ddd; border-radius: 10px;">
+    <strong><%= exam.title %></strong><br>
+    <span class="small">Created: <%= exam.created_at || "—" %></span><br>
+    <a class="button" href="/teacher/exams/<%= exam.id %>">Open Exam</a>
+  </div>
+<% }) %>
+
     <div class="card">
       <form method="GET" action="/teacher/dashboard" class="row">
         <div>
