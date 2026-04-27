@@ -345,40 +345,30 @@ router.post("/ai/email", async (req, res) => {
       });
     }
 
-    const {
-      studentName,
-      assignmentTitle,
-      submissionText,
-      rubricText,
-      composition,
-      flags,
-      declarations,
-      good,
-      bad,
-      next
-    } = req.body;
+    const yearLevelText = String(req.body.yearLevel || "").toLowerCase();
+const isJunior = /year\s*7|year\s*8/.test(yearLevelText);
+const isMiddle = /year\s*9|year\s*10/.test(yearLevelText);
+const isSenior = /year\s*11|year\s*12/.test(yearLevelText);
 
-    const cleanSubmission = String(submissionText || "")
-      .replace(/<[^>]*>/g, " ")
-      .replace(/\s+/g, " ")
-      .trim();
+const rubricType = cleanRubric.toLowerCase().includes("ismg")
+  ? "ISMG"
+  : cleanRubric
+    ? "general rubric"
+    : "no rubric";
 
-    const cleanRubric = String(rubricText || "")
-      .replace(/<[^>]*>/g, " ")
-      .replace(/\s+/g, " ")
-      .trim();
-
-    const prompt = `
-You are an experienced Australian secondary teacher writing feedback to a student.
+const prompt = `
+You are an Australian secondary teacher writing a short, student-friendly feedback email.
 
 Student: ${studentName}
+Year level: ${req.body.yearLevel || "Unknown"}
 Assignment: ${assignmentTitle}
+Rubric type: ${rubricType}
 
-Rubric / ISMG / marking criteria:
+Rubric / ISMG:
 ${cleanRubric || "No rubric provided."}
 
 Student submission:
-${cleanSubmission.slice(0, 4500)}
+${cleanSubmission.slice(0, 3500)}
 
 Evidence profile:
 - Own work estimate: ${composition?.own || 0}%
@@ -388,32 +378,30 @@ Evidence profile:
 Flags:
 ${(flags || []).join(", ") || "None"}
 
-Source declarations:
-${JSON.stringify(declarations || [], null, 2)}
-
 Teacher notes:
 What went well: ${good || "-"}
 Needs improvement: ${bad || "-"}
 Most important next step: ${next || "-"}
 
-Write a professional feedback email to the student.
+Write ONE email to the student.
 
-Requirements:
-1. Address the student by name.
-2. Refer to specific evidence from the submitted work.
-3. Use the rubric/ISMG language to explain strengths and gaps.
-4. Estimate an approximate performance band using A–E language, but say it is indicative only, not a final grade.
-5. Give 2–3 precise next steps that would move the work toward a higher standard.
-6. If pasted or AI-assisted content is present, frame it as a declaration/revision issue, not an accusation.
-7. Keep the tone supportive and school appropriate.
-8. End with "Regards, Teacher".
+Adapt the feedback:
+- If Year 7 or Year 8: use very simple language, no jargon, maximum 120 words.
+- If Year 9 or Year 10: use clear practical feedback, maximum 170 words.
+- If Year 11 or Year 12: use more specific rubric/ISMG language, maximum 230 words.
+- If this is an ISMG, explicitly mention 1 or 2 relevant criteria/standards.
+- If this is a general rubric, keep it simple and do not over-explain.
+- If no rubric is provided, give short general feedback only.
+- Do not overwhelm the student.
+- Give no more than 2 improvement actions.
+- If AI or pasted content appears, say they need to declare/revise it clearly, not accuse them.
+- End with "Regards, Teacher".
 
-Format:
-- Short greeting
-- Feedback paragraphs
-- Indicative standard line
-- Clear next steps
-- Sign-off
+Tone:
+- encouraging
+- specific
+- concise
+- age-appropriate
 `;
 
     const response = await openai.responses.create({

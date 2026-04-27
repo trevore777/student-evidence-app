@@ -350,11 +350,12 @@ Teacher`;
       window.location.href = mailto;
     });
 
-    generateAiEmailBtn?.addEventListener("click", async () => {
+  generateAiEmailBtn?.addEventListener("click", async () => {
   const studentName = <%- JSON.stringify(submission.student_name || "") %>;
   const assignmentTitle = <%- JSON.stringify(submission.assignment_title || "") %>;
   const submissionText = <%- JSON.stringify(submission.final_text || "") %>;
   const rubricText = <%- JSON.stringify(submission.rubric_text || "") %>;
+  const yearLevel = <%- JSON.stringify(submission.class_name || "") %>;
 
   const composition = {
     own: <%= composition.own_work_percent || 0 %>,
@@ -382,6 +383,7 @@ Teacher`;
         assignmentTitle,
         submissionText,
         rubricText,
+        yearLevel,
         composition,
         flags,
         declarations,
