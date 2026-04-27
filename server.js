@@ -13,6 +13,11 @@ import classRoutes from "./routes/classes.js";
 import apiRoutes from "./routes/api.js";
 import uploadRoutes from "./routes/upload.js";
 import printRoutes from "./routes/print.js";
+import examRoutes from "./routes/exams.js";
+import examRoutes from "./routes/exams.js";
+import studentExamRoutes from "./routes/student-exams.js";
+
+
 
 dotenv.config();
 
@@ -56,6 +61,8 @@ app.use("/teacher/classes", classRoutes);
 app.use("/teacher/print", printRoutes);
 app.use("/api", apiRoutes);
 app.use("/api/upload", uploadRoutes);
+app.use("/teacher/exams", examRoutes);
+app.use("/student/exams", studentExamRoutes);
 
 /* HEALTH */
 app.get("/health", (req, res) => {

@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Exam Review</title>
+</head>
+<body>
+  <h1>Exam Review</h1>
+
+  <p><strong>Student:</strong> <%= submission.student_name %></p>
+  <p><strong>Exam:</strong> <%= submission.exam_title %></p>
+
+  <form method="POST" action="/teacher/exams/<%= submission.exam_id %>/submission/<%= submission.id %>/mark-ai">
+    <button>AI Mark All Answers</button>
+  </form>
+
+  <% answers.forEach(a => { %>
+    <div style="border:1px solid #ccc;padding:12px;margin-bottom:12px;">
+      <h3>Q<%= a.question_number %> / <%= a.max_marks %> marks</h3>
+      <p><strong>Question:</strong> <%= a.question_text %></p>
+      <p><strong>Student answer:</strong></p>
+      <p><%= a.student_answer || "No answer" %></p>
+
+      <details>
+        <summary>Answer guide</summary>
+        <p><%= a.answer_guide || "No guide provided" %></p>
+      </details>
+
+      <p><strong>AI mark:</strong> <%= a.ai_mark ?? "Not marked" %></p>
+      <p><strong>AI feedback:</strong> <%= a.ai_feedback || "—" %></p>
+    </div>
+  <% }) %>
+</body>
+</html>

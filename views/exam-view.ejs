@@ -2,52 +2,49 @@
 <html>
 <head>
   <title>Exam View</title>
-  <style>
-    body {
-      font-family: Arial;
-      background: #f4f6f8;
-      padding: 20px;
-    }
-
-    .card {
-      background: white;
-      padding: 24px;
-      border-radius: 12px;
-      margin-bottom: 20px;
-    }
-
-    h1 {
-      margin-top: 0;
-    }
-
-    ul {
-      padding-left: 20px;
-    }
-
-    li {
-      margin-bottom: 16px;
-    }
-  </style>
 </head>
 <body>
+  <h1><%= exam.title %></h1>
+  <p><%= exam.instructions %></p>
 
-  <div class="card">
-    <h1><%= exam.title %></h1>
-    <p><%= exam.instructions %></p>
-  </div>
+  <h2>Add Question</h2>
 
-  <div class="card">
-    <h2>Questions</h2>
+  <form method="POST" action="/teacher/exams/<%= exam.id %>/questions/new">
+    <input name="questionNumber" placeholder="Question number e.g. 1a" required><br><br>
 
-    <ul>
-      <% questions.forEach(q => { %>
-        <li>
-          <strong>Q<%= q.question_number %></strong><br/>
-          <%= q.question_text %>
-        </li>
-      <% }) %>
-    </ul>
-  </div>
+    <textarea name="questionText" placeholder="Paste question here" style="width:100%;height:120px;" required></textarea><br><br>
 
+    <textarea name="answerGuide" placeholder="Paste answer sheet / marking guide here" style="width:100%;height:120px;"></textarea><br><br>
+
+    <input name="maxMarks" type="number" value="1" min="1">
+
+    <button>Add Question</button>
+  </form>
+
+  <h2>Questions</h2>
+
+  <% questions.forEach(q => { %>
+    <div style="border:1px solid #ccc;padding:12px;margin-bottom:12px;">
+      <strong>Q<%= q.question_number %> — <%= q.max_marks %> marks</strong>
+      <p><%= q.question_text %></p>
+      <details>
+        <summary>Answer guide</summary>
+        <p><%= q.answer_guide %></p>
+      </details>
+    </div>
+  <% }) %>
+
+  <h2>Student Submissions</h2>
+
+  <% if (!submissions.length) { %>
+    <p>No submissions yet.</p>
+  <% } %>
+
+  <% submissions.forEach(s => { %>
+    <p>
+      <%= s.student_name %> — <%= s.status %>
+      <a href="/teacher/exams/<%= exam.id %>/submission/<%= s.id %>">Review</a>
+    </p>
+  <% }) %>
 </body>
 </html>

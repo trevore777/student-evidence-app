@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Student Exam</title>
+</head>
+<body>
+  <h1><%= exam.title %></h1>
+  <p><%= exam.instructions %></p>
+
+  <% if (submission.status === "submitted") { %>
+    <p><strong>This exam has been submitted.</strong></p>
+  <% } %>
+
+  <form method="POST" action="/student/exams/<%= exam.id %>/save">
+    <input type="hidden" name="submissionId" value="<%= submission.id %>">
+
+    <% answers.forEach(a => { %>
+      <div style="border:1px solid #ccc;padding:12px;margin-bottom:12px;">
+        <h3>Q<%= a.question_number %> (<%= a.max_marks %> marks)</h3>
+        <p><%= a.question_text %></p>
+
+        <textarea
+          name="answers[<%= a.id %>]"
+          style="width:100%;height:120px;"
+          <%= submission.status === "submitted" ? "readonly" : "" %>
+        ><%= a.student_answer || "" %></textarea>
+      </div>
+    <% }) %>
+
+    <% if (submission.status !== "submitted") { %>
+      <button formaction="/student/exams/<%= exam.id %>/save">Save Draft</button>
+      <button formaction="/student/exams/<%= exam.id %>/submit">Submit Exam</button>
+    <% } %>
+  </form>
+</body>
+</html>
