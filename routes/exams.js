@@ -2,6 +2,7 @@ import express from "express";
 import { db } from "../lib/db.js";
 import { openai } from "../lib/openai.js";
 import requireTeacher from "../middleware/requireTeacher.js";
+import { sanitizeRichText } from "../lib/sanitize.js";
 
 const router = express.Router();
 
@@ -63,7 +64,7 @@ router.post("/new", requireTeacher, async (req, res) => {
         teacher.id,
         Number(classId),
         String(title).trim(),
-        String(instructions || "")
+        sanitizeRichText(instructions || "")
       ]
     });
 

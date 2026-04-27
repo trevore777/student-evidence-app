@@ -35,7 +35,25 @@
         <input name="title" required />
 
         <label>Instructions</label>
-        <textarea name="instructions"></textarea>
+        <textarea id="instructions-editor" name="instructions"></textarea>
+
+<script src="/vendor/tinymce/tinymce.min.js"></script>
+<script>
+  tinymce.init({
+    selector: "#instructions-editor",
+    license_key: "gpl",
+    height: 420,
+    menubar: false,
+    branding: false,
+    plugins: "lists link table wordcount",
+    toolbar:
+      "undo redo | blocks | bold italic underline | bullist numlist | table | link | removeformat"
+  });
+
+  document.querySelector("form").addEventListener("submit", () => {
+    tinymce.triggerSave();
+  });
+</script>
 
         <button class="button" type="submit">Create Exam</button>
       </form>
