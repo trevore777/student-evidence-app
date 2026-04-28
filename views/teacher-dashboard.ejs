@@ -135,8 +135,8 @@
 
   <a class="button" href="/teacher/classes">Create / Manage Classes</a>
   <a class="button" href="/teacher/assignments/new">Create Assessment</a>
-  <a href="/teacher/class/<%= classes?.[0]?.id %>/insights" class="button">
-  Class Insights
+  <a href="/teacher/class/<%= selectedClass.id %>/insights" class="button">
+    Class Insights
 </a>
   <div class="card">
   <div class="section-header">
@@ -173,11 +173,14 @@
         <div>
           <label class="small" for="classId">Class</label><br />
           <select name="classId" id="classId">
-            <% if (selectedClass && selectedClass.id) { %>
-  <a href="/teacher/class/<%= selectedClass.id %>/insights" class="button">
-    Class Insights
-  </a>
-<% } %>
+            <% if (!classes || !classes.length) { %>
+              <option value="">No classes yet</option>
+            <% } %>
+            <% (classes || []).forEach(c => { %>
+              <option value="<%= c.id %>" <%= selectedClass && Number(selectedClass.id) === Number(c.id) ? "selected" : "" %>>
+                <%= c.class_name %>
+              </option>
+            <% }) %>
           </select>
         </div>
 
