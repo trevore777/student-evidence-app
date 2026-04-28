@@ -407,13 +407,13 @@ router.get("/class/:classId/insights", requireTeacher, async (req, res) => {
       });
     }
 
-    res.render("teacher-insights", {
-  teacher,
-  classRow,
-  insights,
-  summary
+
+
+insights.sort((a, b) => {
+  return (priority[a.status] || 9) - (priority[b.status] || 9);
 });
-    const priority = {
+
+const priority = {
   needs_help: 1,
   at_risk: 2,
   no_work: 3,
@@ -426,11 +426,11 @@ insights.sort((a, b) => {
 });
 
 const summary = {
-  needs_help: insights.filter(i => i.status === "needs_help").length,
-  at_risk: insights.filter(i => i.status === "at_risk").length,
-  no_work: insights.filter(i => i.status === "no_work").length,
-  on_track: insights.filter(i => i.status === "on_track").length,
-  excelling: insights.filter(i => i.status === "excelling").length,
+  needs_help: insights.filter((i) => i.status === "needs_help").length,
+  at_risk: insights.filter((i) => i.status === "at_risk").length,
+  no_work: insights.filter((i) => i.status === "no_work").length,
+  on_track: insights.filter((i) => i.status === "on_track").length,
+  excelling: insights.filter((i) => i.status === "excelling").length,
   total: insights.length
 };
 
@@ -440,6 +440,7 @@ res.render("teacher-insights", {
   insights,
   summary
 });
+
   } catch (err) {
     console.error("Insights error:", err);
     res.status(500).send(`Failed to load class insights: ${err.message}`);
