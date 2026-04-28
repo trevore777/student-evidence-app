@@ -182,9 +182,25 @@ body.dark-mode select {
     .details-body {
       margin-top: 14px;
     }
+
+    body.dark-mode {
+  background: #111827;
+  color: #f9fafb;
+}
+
+body.dark-mode .card,
+body.dark-mode .panel {
+  background: #1f2937;
+  color: #f9fafb;
+}
+
+body.dark-mode .button.secondary {
+  background: #374151;
+}
+
+
   </style>
 
-  <script src="/vendor/tinymce/tinymce.min.js"></script>
 </head>
 <body>
   <main class="container">
@@ -333,326 +349,154 @@ body.dark-mode select {
   </div>
   
 
-  <script>
-    const submissionId = <%- JSON.stringify(submission.id) %>;
-    let sessionId = null;
-    let saveTimer = null;
-    let activeSeconds = 0;
-    let idleSeconds = 0;
-    let lastActivityAt = Date.now();
+  <script src="/vendor/tinymce/tinymce.min.js"></script>
 
-    const statusEl = document.getElementById("status");
-    const wordCountEl = document.getElementById("word-count");
-    const modalEl = document.getElementById("modal");
+<script>
+  const submissionId = <%= submission.id %>;
+  let sessionId = null;
+  let saveTimer = null;
 
-    function escapeHtml(text = "") {
-      return String(text)
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;");
-    }
+  const statusEl = document.getElementById("status");
+  const wordCountEl = document.getElementById("wordCount");
 
-    function stripHtml(html = "") {
-      const div = document.createElement("div");
-      div.innerHTML = html;
-      return (div.textContent || div.innerText || "").trim();
-    }
-
-    function countWords(text = "") {
-      const clean = stripHtml(text);
-      return clean ? clean.split(/\s+/).filter(Boolean).length : 0;
-    }
-
-    function editorInstance() {
-      return window.tinymce ? tinymce.get("editor") : null;
-    }
-
-    function getEditorContent() {
-      const ed = editorInstance();
-      return ed ? ed.getContent() : "";
-    }
-
-    function updateWordCount() {
-      wordCountEl.textContent = countWords(getEditorContent());
-    }
-
-    async function postJson(url, payload) {
-      const res = await fetch(url, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload)
-      });
-
-      const text = await res.text();
-      try {
-        return JSON.parse(text);
-      } catch {
-        return { ok: res.ok, raw: text };
-      }
-    }
-
-    async function startSession() {
-      const result = await postJson("/api/session/start", {
-        submissionId,
-        deviceInfo: navigator.userAgent
-      });
-
-      if (result.ok && result.sessionId) {
-        sessionId = result.sessionId;
-        statusEl.textContent = "Ready";
-      } else {
-        statusEl.textContent = "Session failed";
-        console.error(result);
-      }
-    }
-
-    async function saveDraft() {
-      if (!sessionId) return;
-
-      const content = getEditorContent();
-
-      statusEl.textContent = "Saving…";
-
-      const result = await postJson("/api/draft/autosave", {
-        submissionId,
-        sessionId,
-        content,
-        wordCount: countWords(content)
-      });
-
-      const darkModeBtn = document.getElementById("dark-mode-btn");
-
-function applyDarkMode(enabled) {
-  document.body.classList.toggle("dark-mode", enabled);
-
-  const ed = editorInstance();
-  if (ed) {
-    ed.getBody().classList.toggle("dark-editor", enabled);
+  function editorInstance() {
+    return tinymce.get("editor");
   }
 
-  localStorage.setItem("studentEvidenceDarkMode", enabled ? "1" : "0");
-}
-
-darkModeBtn?.addEventListener("click", () => {
-  const enabled = !document.body.classList.contains("dark-mode");
-  applyDarkMode(enabled);
-});
-
-if (localStorage.getItem("studentEvidenceDarkMode") === "1") {
-  applyDarkMode(true);
-}
-
-      if (result.ok) {
-        statusEl.textContent = "Saved";
-      } else {
-        statusEl.textContent = "Save failed";
-        console.error(result);
-      }
-    }
-
-    async function submitWork() {
-      if (!sessionId) {
-        alert("Session not ready.");
-        return;
-      }
-
-      const content = getEditorContent();
-
-      const result = await postJson("/api/submit", {
-        submissionId,
-        finalText: content
-      });
-
-      if (result.ok) {
-        alert("Submitted");
-        window.location = "/student/dashboard";
-      } else {
-        alert("Submit failed");
-        console.error(result);
-      }
-    }
-
-    async function logEvent(eventType, eventMeta = {}) {
-      if (!sessionId) return;
-
-      await postJson("/api/event", {
-        submissionId,
-        sessionId,
-        eventType,
-        eventMeta
-      });
-    }
-
-    function openDeclaration(prefill = {}) {
-      document.getElementById("type").value = prefill.type || "pasted_research";
-      document.getElementById("tool-name").value = prefill.toolName || "";
-      document.getElementById("prompt-text").value = prefill.promptText || "";
-      document.getElementById("original-text-excerpt").value = prefill.originalTextExcerpt || "";
-      document.getElementById("explain").value = prefill.explain || "";
-      modalEl.style.display = "flex";
-    }
-
-    function closeDeclaration() {
-      modalEl.style.display = "none";
-    }
-
-    function formatAccessedDate(dateStr) {
-  if (!dateStr) return "";
-  const d = new Date(dateStr);
-  if (isNaN(d)) return dateStr;
-
-  return d.toLocaleDateString("en-AU", {
-    day: "numeric",
-    month: "long",
-    year: "numeric"
-  });
-}
-
-function buildCitation() {
-  const style = document.getElementById("citation-style").value;
-  const sourceType = document.getElementById("source-type").value;
-  const author = document.getElementById("source-author").value.trim() || "Unknown author";
-  const year = document.getElementById("source-year").value.trim() || "n.d.";
-  const title = document.getElementById("source-title").value.trim() || "Untitled source";
-  const publisher = document.getElementById("source-publisher").value.trim();
-  const url = document.getElementById("source-url").value.trim();
-  const accessedDate = document.getElementById("accessed-date").value;
-  const accessedText = formatAccessedDate(accessedDate);
-
-  let inTextCitation = "";
-  let bibliographyEntry = "";
-
-  if (sourceType === "ai") {
-    const tool = publisher || author || "AI tool";
-
-    if (style === "apa7") {
-      inTextCitation = `(${tool}, ${year})`;
-      bibliographyEntry = `${tool}. (${year}). ${title} [AI-generated response]. ${url || ""}`.trim();
-    } else if (style === "harvard") {
-      inTextCitation = `(${tool} ${year})`;
-      bibliographyEntry = `${tool} (${year}) ${title}. AI-generated response${url ? `. Available at: ${url}` : ""}${accessedText ? ` (Accessed: ${accessedText}).` : "."}`;
-    } else {
-      inTextCitation = `(${tool})`;
-      bibliographyEntry = `${tool}. "${title}." AI-generated response, ${year}${url ? `, ${url}` : ""}${accessedText ? `. Accessed ${accessedText}.` : "."}`;
-    }
-
-    return { inTextCitation, bibliographyEntry };
+  function escapeHtml(str) {
+    return String(str || "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;");
   }
 
-  if (style === "apa7") {
-    inTextCitation = `(${author}, ${year})`;
-    bibliographyEntry = `${author}. (${year}). ${title}.${publisher ? ` ${publisher}.` : ""}${url ? ` ${url}` : ""}`;
+  async function postJson(url, data) {
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data)
+    });
+
+    return res.json();
   }
 
-  if (style === "harvard") {
-    inTextCitation = `(${author} ${year})`;
-    bibliographyEntry = `${author} (${year}) ${title}.${publisher ? ` ${publisher}.` : ""}${url ? ` Available at: ${url}` : ""}${accessedText ? ` (Accessed: ${accessedText}).` : ""}`;
-  }
-
-  if (style === "mla9") {
-    inTextCitation = `(${author})`;
-    bibliographyEntry = `${author}. "${title}."${publisher ? ` ${publisher},` : ""} ${year}.${url ? ` ${url}.` : ""}${accessedText ? ` Accessed ${accessedText}.` : ""}`;
-  }
-
-  return { inTextCitation, bibliographyEntry };
-}
-
-function updateBibliography(entry) {
-  const ed = editorInstance();
-  if (!ed || !entry) return;
-
-  let content = ed.getContent();
-
-  if (!content.includes('id="bibliography-section"')) {
-    content += `
-      <hr>
-      <section id="bibliography-section">
-        <h2>References / Bibliography</h2>
-        <ol id="bibliography-list"></ol>
-      </section>
-    `;
-  }
-
-  ed.setContent(content);
-
-  const doc = ed.getDoc();
-  const list = doc.getElementById("bibliography-list");
-
-  if (list) {
-    const exists = Array.from(list.querySelectorAll("li"))
-      .some((li) => li.textContent.trim() === entry.trim());
-
-    if (!exists) {
-      const li = doc.createElement("li");
-      li.textContent = entry;
-      list.appendChild(li);
-    }
-  }
-}
-
-    function debounceSave() {
-      clearTimeout(saveTimer);
-      saveTimer = setTimeout(saveDraft, 1500);
-    }
-
-    function setupActivityTracking() {
-      const markActivity = () => {
-        const now = Date.now();
-        const diff = Math.floor((now - lastActivityAt) / 1000);
-
-        if (diff <= 20) activeSeconds += diff;
-        else idleSeconds += diff;
-
-        lastActivityAt = now;
-      };
-
-      ["mousemove", "keydown", "click"].forEach((eventName) => {
-        window.addEventListener(eventName, markActivity);
-      });
-
-      setInterval(() => {
-        const now = Date.now();
-        const diff = Math.floor((now - lastActivityAt) / 1000);
-        if (diff > 20) {
-          idleSeconds += 5;
-          lastActivityAt = now;
-        }
-      }, 5000);
-    }
-
-    async function endSession() {
-      if (!sessionId) return;
-
-      await postJson("/api/session/end", {
-        sessionId,
-        activeSeconds,
-        idleSeconds
-      });
-    }
-
-    async function saveDeclaration() {
-  if (!sessionId) {
-    alert("Session not ready yet. Please wait a moment and try again.");
-    return;
-  }
-
-  try {
-    const citation = buildCitation ? buildCitation() : {
-      inTextCitation: "",
-      bibliographyEntry: ""
-    };
-
+  function updateWordCount() {
     const ed = editorInstance();
+    if (!ed) return;
 
-    if (ed && citation.inTextCitation) {
-      ed.insertContent(` <span class="citation-marker">${citation.inTextCitation}</span>`);
-      updateBibliography(citation.bibliographyEntry);
+    const text = ed.getContent({ format: "text" }).trim();
+    const words = text ? text.split(/\s+/).length : 0;
+
+    if (wordCountEl) {
+      wordCountEl.textContent = words;
+    }
+  }
+
+  async function startSession() {
+    const result = await postJson("/api/session/start", {
+      submissionId,
+      deviceInfo: navigator.userAgent
+    });
+
+    if (result.ok) {
+      sessionId = result.sessionId;
+      statusEl.textContent = "Ready";
+    } else {
+      statusEl.textContent = "Session error";
+    }
+  }
+
+  async function endSession() {
+    if (!sessionId) return;
+
+    await postJson("/api/session/end", {
+      sessionId,
+      activeSeconds: 0,
+      idleSeconds: 0
+    });
+  }
+
+  async function logEvent(eventType, eventMeta = {}) {
+    if (!sessionId) return;
+
+    await postJson("/api/event", {
+      submissionId,
+      sessionId,
+      eventType,
+      eventMeta
+    });
+  }
+
+  async function saveDraft() {
+    const ed = editorInstance();
+    if (!ed || !sessionId) return;
+
+    statusEl.textContent = "Saving...";
+
+    const content = ed.getContent();
+    const text = ed.getContent({ format: "text" }).trim();
+    const wordCount = text ? text.split(/\s+/).length : 0;
+
+    const result = await postJson("/api/draft/autosave", {
+      submissionId,
+      sessionId,
+      content,
+      wordCount
+    });
+
+    statusEl.textContent = result.ok ? "Saved" : "Save failed";
+  }
+
+  function debounceSave() {
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(saveDraft, 1500);
+  }
+
+  async function submitWork() {
+    const ed = editorInstance();
+    if (!ed) return;
+
+    await saveDraft();
+
+    const result = await postJson("/api/submit", {
+      submissionId,
+      finalText: ed.getContent()
+    });
+
+    if (result.ok) {
+      alert("Work submitted");
+      window.location.href = "/student/dashboard";
+    } else {
+      alert("Submit failed");
+    }
+  }
+
+  function openDeclaration(data = {}) {
+    document.getElementById("declaration-modal").style.display = "flex";
+
+    if (data.type) {
+      document.getElementById("type").value = data.type;
+    }
+
+    if (data.originalTextExcerpt) {
+      document.getElementById("original-text-excerpt").value = data.originalTextExcerpt;
+    }
+  }
+
+  function closeDeclaration() {
+    document.getElementById("declaration-modal").style.display = "none";
+  }
+
+  async function saveDeclaration() {
+    if (!sessionId) {
+      alert("Session not ready yet.");
+      return;
     }
 
     const result = await postJson("/api/declaration", {
       submissionId,
       sessionId,
-      declarationType: document.getElementById("type")?.value || "other",
+      declarationType: document.getElementById("type")?.value || "pasted_research",
       toolName: document.getElementById("tool-name")?.value || "",
       promptText: document.getElementById("prompt-text")?.value || "",
       originalTextExcerpt: document.getElementById("original-text-excerpt")?.value || "",
@@ -666,112 +510,154 @@ function updateBibliography(entry) {
       sourcePublisher: document.getElementById("source-publisher")?.value || "",
       sourceUrl: document.getElementById("source-url")?.value || "",
       accessedDate: document.getElementById("accessed-date")?.value || "",
-      inTextCitation: citation.inTextCitation || "",
-      bibliographyEntry: citation.bibliographyEntry || ""
+      inTextCitation: "",
+      bibliographyEntry: ""
     });
 
     if (result.ok) {
       closeDeclaration();
-      statusEl.textContent = "Declaration and citation saved";
-      await saveDraft();
+      statusEl.textContent = "Declaration saved";
     } else {
-      console.error("Declaration save failed:", result);
-      alert(result.error || "Failed to save declaration.");
+      alert("Failed to save declaration");
     }
-  } catch (err) {
-    console.error("saveDeclaration error:", err);
-    alert("Declaration save failed. Check the browser console and Render logs.");
   }
-}
+
+  function applyDarkMode(enabled) {
+    document.body.classList.toggle("dark-mode", enabled);
+    localStorage.setItem("studentEvidenceDarkMode", enabled ? "1" : "0");
+
+    const ed = editorInstance();
+    if (ed) {
+      ed.getBody().style.background = enabled ? "#111827" : "#ffffff";
+      ed.getBody().style.color = enabled ? "#f9fafb" : "#111827";
+    }
+  }
 
   tinymce.init({
-  selector: "#editor",
-  height: 520,
-  menubar: false,
+    selector: "#editor",
+    license_key: "gpl",
+    height: 560,
+    menubar: false,
+    branding: false,
+    browser_spellcheck: true,
+    contextmenu: false,
 
-  plugins: "lists link image table code wordcount",
-  toolbar:
-    "undo redo | bold italic underline | alignleft aligncenter alignright | bullist numlist | code",
+    plugins: "lists link image table code wordcount",
 
-  setup: (editor) => {
+    toolbar:
+      "undo redo | blocks fontfamily fontsize | bold italic underline | alignleft aligncenter alignright | bullist numlist | outdent indent | image table | code",
 
-    editor.on("init", () => {
-      console.log("Editor loaded");
-    });
+    font_size_formats:
+      "10pt 11pt 12pt 14pt 16pt 18pt 20pt 24pt 28pt 32pt",
 
-    editor.on("paste", async (e) => {
-      e.preventDefault();
-
-      const text =
-        (e.clipboardData && e.clipboardData.getData("text/plain")) || "";
-
-      editor.insertContent(`<span style="background:yellow">${text}</span>`);
-
-      await logEvent("paste", {
-        length: text.length
-      });
-    });
-
-    editor.on("drop", async () => {
-      await logEvent("move_or_drop", {
-        note: "Content moved or dropped"
-      });
-    });
-
-  }
-});
-
-    document.getElementById("save-btn").addEventListener("click", saveDraft);
-    document.getElementById("submit-btn").addEventListener("click", submitWork);
-    document.getElementById("declare-btn").addEventListener("click", () => openDeclaration());
-    document.getElementById("save-declaration-btn").addEventListener("click", saveDeclaration);
-    document.getElementById("cancel-declaration-btn").addEventListener("click", closeDeclaration);
-
-    document.getElementById("grammar-btn")?.addEventListener("click", async () => {
-      const ed = editorInstance();
-      if (!ed) return;
-
-      const selectedText = ed.selection.getContent({ format: "text" });
-      const fullText = ed.getContent({ format: "text" });
-      const textToCheck = selectedText || fullText;
-
-      if (!textToCheck.trim()) {
-        alert("There is no text to check.");
-        return;
+    content_style: `
+      body {
+        font-family: Arial, sans-serif;
+        font-size: 16px;
       }
 
-      const result = await postJson("/api/ai/grammar-check", {
-        text: textToCheck,
-        yearLevel: <%- JSON.stringify(student.class_name || "") %>
-      });
-
-      if (!result.ok) {
-        alert(result.error || "Grammar check failed.");
-        return;
+      .pasted-content {
+        background: #fff3b0;
+        border-bottom: 2px solid #f59e0b;
+        padding: 0 2px;
       }
 
-      const accept = confirm(
-        `Suggested changes:\n\n${result.changesSummary}\n\nClick OK to apply the corrected version.`
-      );
+      img {
+        max-width: 100%;
+        height: auto;
+      }
+    `,
 
-      if (accept) {
-        if (selectedText) {
-          ed.selection.setContent(result.correctedText);
-        } else {
-          ed.setContent(result.correctedText);
+    setup: (editor) => {
+      editor.on("init", async () => {
+        updateWordCount();
+        await startSession();
+
+        if (localStorage.getItem("studentEvidenceDarkMode") === "1") {
+          applyDarkMode(true);
         }
+      });
 
-        await logEvent("grammar_check_applied", {
-          changesSummary: result.changesSummary
+      editor.on("keyup change input SetContent", () => {
+        updateWordCount();
+        debounceSave();
+      });
+
+      editor.on("cut", async () => {
+        const selected = editor.selection.getContent({ format: "text" });
+
+        await logEvent("cut", {
+          selectedLength: selected.length,
+          selectedPreview: selected.slice(0, 120)
+        });
+      });
+
+      editor.on("copy", async () => {
+        const selected = editor.selection.getContent({ format: "text" });
+
+        await logEvent("copy", {
+          selectedLength: selected.length,
+          selectedPreview: selected.slice(0, 120)
+        });
+      });
+
+      editor.on("paste", async (e) => {
+        e.preventDefault();
+
+        const pastedText =
+          (e.clipboardData && e.clipboardData.getData("text/plain")) || "";
+
+        const currentText = editor.getContent({ format: "text" });
+
+        const likelyInternalMove =
+          pastedText.length > 20 && currentText.includes(pastedText);
+
+        const html =
+          `<span class="pasted-content" data-pasted="true">${escapeHtml(pastedText).replace(/\n/g, "<br>")}</span>`;
+
+        editor.insertContent(html);
+
+        await logEvent(likelyInternalMove ? "internal_move_paste" : "paste", {
+          pastedLength: pastedText.length,
+          pastedPreview: pastedText.slice(0, 120),
+          likelyInternalMove
         });
 
-        await saveDraft();
-      }
-    });
+        if (!likelyInternalMove) {
+          openDeclaration({
+            type: "pasted_research",
+            originalTextExcerpt: pastedText.slice(0, 500)
+          });
+        } else {
+          statusEl.textContent = "Moved text recorded";
+        }
 
-    window.addEventListener("beforeunload", () => {
-      endSession();
-    });
+        updateWordCount();
+        debounceSave();
+      });
+
+      editor.on("drop", async () => {
+        await logEvent("move_or_drop", {
+          note: "Text, image, or content may have been moved/dropped in the document."
+        });
+      });
+    }
+  });
+
+  document.getElementById("save-btn")?.addEventListener("click", saveDraft);
+  document.getElementById("submit-btn")?.addEventListener("click", submitWork);
+  document.getElementById("declare-btn")?.addEventListener("click", () => openDeclaration());
+  document.getElementById("save-declaration-btn")?.addEventListener("click", saveDeclaration);
+  document.getElementById("cancel-declaration-btn")?.addEventListener("click", closeDeclaration);
+
+  document.getElementById("dark-mode-btn")?.addEventListener("click", () => {
+    const enabled = !document.body.classList.contains("dark-mode");
+    applyDarkMode(enabled);
+  });
+
+  window.addEventListener("beforeunload", () => {
+    endSession();
+  });
 </script>
 
 </body>
