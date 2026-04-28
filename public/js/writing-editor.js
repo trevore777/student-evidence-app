@@ -165,6 +165,8 @@ async function initEditor() {
     selector: "#editor",
     menubar: false,
     branding: false,
+    browser_spellcheck: true,
+    contextmenu: false,
     height: 520,
     plugins: "lists link paste help wordcount autoresize",
     toolbar: "undo redo | blocks | fontfamily fontsize | bold italic underline | bullist numlist | indent outdent | removeformat | help",

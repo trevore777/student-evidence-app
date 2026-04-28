@@ -794,23 +794,45 @@ function updateBibliography(entry) {
 });
 
 
-editor.on("drop", async () => {
-  await logEvent("move_or_drop", {
-    note: "Text or content may have been moved within the document."
-  });
-});
+        editor.on("paste", async (e) => {
+          e.preventDefault();
 
-          openDeclaration({
-            type: "pasted_research",
-            originalTextExcerpt: pastedText.slice(0, 500)
+          const pastedText =
+            (e.clipboardData && e.clipboardData.getData("text/plain")) || "";
+
+          const currentText = editor.getContent({ format: "text" });
+
+          const likelyInternalMove =
+            pastedText.length > 20 && currentText.includes(pastedText);
+
+          const html =
+            `<span class="pasted-content" data-pasted="true">${escapeHtml(pastedText).replace(/\n/g, "<br>")}</span>`;
+
+          editor.insertContent(html);
+
+          await logEvent(likelyInternalMove ? "internal_move_paste" : "paste", {
+            pastedLength: pastedText.length,
+            pastedPreview: pastedText.slice(0, 120),
+            likelyInternalMove
           });
+
+          if (!likelyInternalMove) {
+            openDeclaration({
+              type: "pasted_research",
+              originalTextExcerpt: pastedText.slice(0, 500)
+            });
+          } else {
+            statusEl.textContent = "Moved text recorded";
+          }
 
           updateWordCount();
           debounceSave();
         });
 
         editor.on("drop", async () => {
-          await logEvent("image_drop", {});
+          await logEvent("move_or_drop", {
+            note: "Text, image, or content may have been moved/dropped in the document."
+          });
         });
       }
     });
@@ -820,53 +842,53 @@ editor.on("drop", async () => {
     document.getElementById("declare-btn").addEventListener("click", () => openDeclaration());
     document.getElementById("save-declaration-btn").addEventListener("click", saveDeclaration);
     document.getElementById("cancel-declaration-btn").addEventListener("click", closeDeclaration);
+
     document.getElementById("grammar-btn")?.addEventListener("click", async () => {
-  const ed = editorInstance();
-  if (!ed) return;
+      const ed = editorInstance();
+      if (!ed) return;
 
-  const selectedText = ed.selection.getContent({ format: "text" });
-  const fullText = ed.getContent({ format: "text" });
-  const textToCheck = selectedText || fullText;
+      const selectedText = ed.selection.getContent({ format: "text" });
+      const fullText = ed.getContent({ format: "text" });
+      const textToCheck = selectedText || fullText;
 
-  if (!textToCheck.trim()) {
-    alert("There is no text to check.");
-    return;
-  }
+      if (!textToCheck.trim()) {
+        alert("There is no text to check.");
+        return;
+      }
 
-  const result = await postJson("/api/ai/grammar-check", {
-    text: textToCheck,
-    yearLevel: <%- JSON.stringify(student.class_name || "") %>
-  });
+      const result = await postJson("/api/ai/grammar-check", {
+        text: textToCheck,
+        yearLevel: <%- JSON.stringify(student.class_name || "") %>
+      });
 
-  if (!result.ok) {
-    alert(result.error || "Grammar check failed.");
-    return;
-  }
+      if (!result.ok) {
+        alert(result.error || "Grammar check failed.");
+        return;
+      }
 
-  const accept = confirm(
-    `Suggested changes:\n\n${result.changesSummary}\n\nClick OK to apply the corrected version.`
-  );
+      const accept = confirm(
+        `Suggested changes:\n\n${result.changesSummary}\n\nClick OK to apply the corrected version.`
+      );
 
-  if (accept) {
-    if (selectedText) {
-      ed.selection.setContent(result.correctedText);
-    } else {
-      ed.setContent(result.correctedText);
-    }
+      if (accept) {
+        if (selectedText) {
+          ed.selection.setContent(result.correctedText);
+        } else {
+          ed.setContent(result.correctedText);
+        }
 
-    await logEvent("grammar_check_applied", {
-      changesSummary: result.changesSummary
+        await logEvent("grammar_check_applied", {
+          changesSummary: result.changesSummary
+        });
+
+        await saveDraft();
+      }
     });
 
-    await saveDraft();
-  }
-});
     window.addEventListener("beforeunload", () => {
       endSession();
     });
-  </script>
-
-
+</script>
 
 </body>
 </html>
