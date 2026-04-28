@@ -723,5 +723,36 @@ editor.on("cut", async () => {
   });
 </script>
 
+<!-- DECLARATION MODAL -->
+<div id="declaration-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:9999; align-items:center; justify-content:center;">
+  
+  <div style="background:#fff; padding:20px; width:500px; border-radius:10px;">
+
+    <h2>Declaration Required</h2>
+
+    <label>Type</label>
+    <select id="type" style="width:100%; margin-bottom:10px;">
+      <option value="pasted_research">Pasted from research</option>
+      <option value="ai_assistance">AI assistance</option>
+      <option value="manual_declaration">Manual declaration</option>
+    </select>
+
+    <label>Tool / Source (if AI or website)</label>
+    <input id="tool-name" style="width:100%; margin-bottom:10px;" />
+
+    <label>Explain how you used it</label>
+    <textarea id="explain" style="width:100%; height:80px; margin-bottom:10px;"></textarea>
+
+    <label>Original text (auto-filled for paste)</label>
+    <textarea id="original-text-excerpt" style="width:100%; height:80px;"></textarea>
+
+    <div style="margin-top:15px; display:flex; gap:10px;">
+      <button id="save-declaration-btn" class="button primary">Save</button>
+      <button id="cancel-declaration-btn" class="button secondary">Cancel</button>
+    </div>
+
+  </div>
+</div>
+
 </body>
 </html>
