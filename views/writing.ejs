@@ -198,6 +198,12 @@ body.dark-mode .button.secondary {
   background: #374151;
 }
 
+.internal-move-content {
+  background: #dbeafe;
+  border-bottom: 2px solid #2563eb;
+  padding: 0 2px;
+}
+
 
   </style>
 
@@ -572,37 +578,62 @@ body.dark-mode .button.secondary {
       editor.on("paste", async (e) => {
   e.preventDefault();
 
+  let lastCopiedText = "";
+
+editor.on("copy", async () => {
+  const selected = editor.selection.getContent({ format: "text" });
+  lastCopiedText = selected;
+
+  await logEvent("copy", {
+    selectedLength: selected.length,
+    selectedPreview: selected.slice(0, 120)
+  });
+});
+
+editor.on("cut", async () => {
+  const selected = editor.selection.getContent({ format: "text" });
+  lastCopiedText = selected;
+
+  await logEvent("cut", {
+    selectedLength: selected.length,
+    selectedPreview: selected.slice(0, 120)
+  });
+});
+
   const pastedText =
     (e.clipboardData && e.clipboardData.getData("text/plain")) || "";
 
   const currentText = editor.getContent({ format: "text" });
 
   const likelyInternalMove =
-    pastedText.length > 20 && currentText.includes(pastedText);
+  pastedText.length > 20 &&
+  (currentText.includes(pastedText) || pastedText === lastCopiedText);
+
+  const spanClass = likelyInternalMove
+    ? "internal-move-content"
+    : "pasted-content";
 
   const html =
-    `<span class="pasted-content">${escapeHtml(pastedText).replace(/\n/g, "<br>")}</span>`;
+    `<span class="${spanClass}" data-pasted="true">${escapeHtml(pastedText).replace(/\n/g, "<br>")}</span>`;
 
   editor.insertContent(html);
 
   if (likelyInternalMove) {
-    // ✅ INTERNAL PASTE FLOW
     const reason = prompt(
-      "You pasted text from your own document.\n\nWhat was your reason?\n(e.g. headings, restructuring, editing)"
+      "You pasted text that appears to already exist in your document.\n\nWhy did you move/copy it?\nExamples: headings, restructuring, improving order, editing clarity."
     );
 
     await logEvent("internal_paste", {
       pastedLength: pastedText.length,
-      reason: reason || "no reason given"
+      pastedPreview: pastedText.slice(0, 120),
+      reason: reason || "No reason given"
     });
 
-    statusEl.textContent = "Internal edit recorded";
-
+    statusEl.textContent = "Internal move recorded";
   } else {
-    // 🚨 EXTERNAL PASTE FLOW
     await logEvent("external_paste", {
       pastedLength: pastedText.length,
-      preview: pastedText.slice(0, 120)
+      pastedPreview: pastedText.slice(0, 120)
     });
 
     openDeclaration({
