@@ -1,28 +1,45 @@
 <div class="container">
-  <h1>Class Insights</h1>
 
-  <a href="/teacher" class="button">← Back</a>
+  <div class="header">
+    <h1>Class Insights</h1>
+    <a href="/teacher" class="btn secondary">← Back</a>
+  </div>
 
   <div class="grid">
     <% insights.forEach(i => { %>
-      <div class="card <%= i.status %>">
 
-        <h3><%= i.student.name %></h3>
+      <div class="card insight-card <%= i.status %>">
 
-        <p>Words: <%= i.wordCount %></p>
-        <p>Pastes: <%= i.pasteEvents %></p>
+        <div class="card-header">
+          <h3><%= i.student.name %></h3>
+          <span class="badge <%= i.status %>">
+            <%= i.statusLabel || i.status %>
+          </span>
+        </div>
 
-        <p class="status <%= i.status %>">
-          <%= i.status.replace("_", " ") %>
-        </p>
+        <div class="metrics">
+          <div class="metric">
+            <span class="label">Words</span>
+            <span class="value"><%= i.wordCount %></span>
+          </div>
+
+          <div class="metric">
+            <span class="label">Pastes</span>
+            <span class="value"><%= i.pasteEvents %></span>
+          </div>
+        </div>
 
         <% if (i.submissionId) { %>
-          <a href="/teacher/submission/<%= i.submissionId %>" class="btn">
+          <a href="/teacher/submission/<%= i.submissionId %>" class="btn primary full">
             View Work
           </a>
+        <% } else { %>
+          <div class="no-work">No submission yet</div>
         <% } %>
 
       </div>
+
     <% }) %>
   </div>
+
 </div>
