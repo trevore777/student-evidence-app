@@ -273,11 +273,16 @@
           <% } else { %>
             <% events.forEach((event, index) => { %>
               <div class="timeline-box">
-                <p><strong>Event <%= index + 1 %></strong></p>
-                <p><strong>Type:</strong> <%= event.event_type || "—" %></p>
-                <p class="small">Time: <%= event.created_at || "Unknown" %></p>
-                <div class="mono"><%= event.event_meta || "—" %></div>
-              </div>
+  <p><strong>Event <%= index + 1 %></strong></p>
+  <p><strong>Type:</strong> <%= event.event_type || "—" %></p>
+
+  <p class="small">
+    Time: 
+    <span class="event-date" data-date="<%= event.created_at %>"></span>
+  </p>
+
+  <div class="mono"><%= event.event_meta || "—" %></div>
+</div>
             <% }) %>
           <% } %>
         </div>
@@ -415,5 +420,31 @@ Teacher`;
       window.location.href = mailto;
     });
   </script>
+
+  <script>
+function formatDate(dt) {
+  if (!dt) return "";
+
+  const date = new Date(dt + "Z");
+
+  const day = String(date.getDate()).padStart(2, "0");
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const year = date.getFullYear();
+
+  let hours = date.getHours();
+  const minutes = String(date.getMinutes()).padStart(2, "0");
+
+  const ampm = hours >= 12 ? "PM" : "AM";
+  hours = hours % 12 || 12;
+
+  return `${day}/${month}/${year} ${hours}:${minutes} ${ampm}`;
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  document.querySelectorAll(".event-date").forEach(el => {
+    el.textContent = formatDate(el.dataset.date);
+  });
+});
+</script>
 </body>
 </html>
