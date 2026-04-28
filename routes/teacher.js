@@ -433,6 +433,13 @@ const summary = {
   excelling: insights.filter(i => i.status === "excelling").length,
   total: insights.length
 };
+
+res.render("teacher-insights", {
+  teacher,
+  classRow,
+  insights,
+  summary
+});
   } catch (err) {
     console.error("Insights error:", err);
     res.status(500).send(`Failed to load class insights: ${err.message}`);
