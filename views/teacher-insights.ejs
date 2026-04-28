@@ -138,6 +138,45 @@
       color: #666;
       font-size: 14px;
     }
+
+    .summary-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.summary-card {
+  background: #f9fafb;
+  border-radius: 12px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  border-left: 6px solid #ddd;
+}
+
+.summary-card strong {
+  font-size: 28px;
+}
+
+.summary-card span {
+  color: #555;
+  font-size: 14px;
+}
+
+.summary-card.red { border-left-color: #dc2626; }
+.summary-card.amber { border-left-color: #f59e0b; }
+.summary-card.grey { border-left-color: #9ca3af; }
+.summary-card.green { border-left-color: #16a34a; }
+.summary-card.blue { border-left-color: #2563eb; }
+
+.action-box {
+  background: #f9fafb;
+  border-radius: 10px;
+  padding: 10px;
+  margin-bottom: 12px;
+}
   </style>
 </head>
 
@@ -156,6 +195,14 @@
         <a class="button secondary" href="/teacher/dashboard">← Back to Dashboard</a>
       </div>
     </section>
+
+    <div class="summary-grid">
+  <div class="summary-card red"><strong><%= summary?.needs_help || 0 %></strong><span>Need help</span></div>
+  <div class="summary-card amber"><strong><%= summary?.at_risk || 0 %></strong><span>At risk</span></div>
+  <div class="summary-card grey"><strong><%= summary?.no_work || 0 %></strong><span>No work</span></div>
+  <div class="summary-card green"><strong><%= summary?.on_track || 0 %></strong><span>On track</span></div>
+  <div class="summary-card blue"><strong><%= summary?.excelling || 0 %></strong><span>Doing well</span></div>
+</div>
 
     <section class="grid">
       <% if (!insights || !insights.length) { %>
@@ -194,6 +241,10 @@
             Declarations: <%= i.declarationsCount || 0 %>
           </p>
 
+          <div class="action-box">
+  <strong>Suggested action:</strong><br>
+  <span><%= i.teacherAction || "Monitor progress." %></span>
+</div>
           <% if (i.submissionId) { %>
             <a class="button full" href="/teacher/submission/<%= i.submissionId %>">
               View Work

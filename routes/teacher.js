@@ -382,6 +382,16 @@ router.get("/class/:classId/insights", requireTeacher, async (req, res) => {
       }
 
       insights.push({
+        teacherAction:
+  status === "needs_help"
+    ? "Check in during class."
+    : status === "at_risk"
+      ? "Review paste/declaration evidence."
+      : status === "no_work"
+        ? "Prompt student to begin."
+        : status === "excelling"
+          ? "Extension task recommended."
+          : "Monitor progress.",
         student,
         submissionId: submission.id || null,
         assignmentTitle: submission.assignment_title || "—",
@@ -393,14 +403,36 @@ router.get("/class/:classId/insights", requireTeacher, async (req, res) => {
         lastActivity: events[0]?.created_at || submission.submitted_at || "",
         status,
         statusLabel
+        
       });
     }
 
     res.render("teacher-insights", {
-      teacher,
-      classRow,
-      insights
-    });
+  teacher,
+  classRow,
+  insights,
+  summary
+});
+    const priority = {
+  needs_help: 1,
+  at_risk: 2,
+  no_work: 3,
+  on_track: 4,
+  excelling: 5
+};
+
+insights.sort((a, b) => {
+  return (priority[a.status] || 9) - (priority[b.status] || 9);
+});
+
+const summary = {
+  needs_help: insights.filter(i => i.status === "needs_help").length,
+  at_risk: insights.filter(i => i.status === "at_risk").length,
+  no_work: insights.filter(i => i.status === "no_work").length,
+  on_track: insights.filter(i => i.status === "on_track").length,
+  excelling: insights.filter(i => i.status === "excelling").length,
+  total: insights.length
+};
   } catch (err) {
     console.error("Insights error:", err);
     res.status(500).send(`Failed to load class insights: ${err.message}`);
