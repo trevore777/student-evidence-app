@@ -703,7 +703,7 @@ async function saveDeclaration() {
     `,
 
     setup: (editor) => {
-      editor.on("paste", async (e) => {
+     editor.on("paste", async (e) => {
   e.preventDefault();
 
   const pastedText =
@@ -772,40 +772,7 @@ async function saveDeclaration() {
         });
       });
 
-      editor.on("paste", async (e) => {
-        e.preventDefault();
-
-        const pastedText =
-          (e.clipboardData && e.clipboardData.getData("text/plain")) || "";
-
-        const currentText = editor.getContent({ format: "text" });
-
-        const likelyInternalMove =
-          pastedText.length > 20 && currentText.includes(pastedText);
-
-        const html =
-          `<span class="pasted-content" data-pasted="true">${escapeHtml(pastedText).replace(/\n/g, "<br>")}</span>`;
-
-        editor.insertContent(html);
-
-        await logEvent(likelyInternalMove ? "internal_move_paste" : "paste", {
-          pastedLength: pastedText.length,
-          pastedPreview: pastedText.slice(0, 120),
-          likelyInternalMove
-        });
-
-        if (!likelyInternalMove) {
-          openDeclaration({
-            type: "pasted_research",
-            originalTextExcerpt: pastedText.slice(0, 500)
-          });
-        } else {
-          statusEl.textContent = "Moved text recorded";
-        }
-
-        updateWordCount();
-        debounceSave();
-      });
+      
 
       editor.on("drop", async () => {
         await logEvent("move_or_drop", {
@@ -863,44 +830,29 @@ document.getElementById("cancel-declaration-btn")?.addEventListener("click", clo
 </div>
 
 <!-- DECLARATION MODAL -->
-<div id="declaration-modal" class="declaration-modal">
-  <div class="declaration-box">
-    <h2 id="declaration-title">Declaration</h2>
-    <p id="declaration-help" class="small">
-      Explain how this content was used.
-    </p>
+<div id="declaration-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:9999; align-items:center; justify-content:center;">
+  <div style="background:#fff; padding:20px; width:500px; border-radius:10px;">
+    <h2>Declaration Required</h2>
 
-    <label>Declaration type</label>
-    <select id="type">
-      <option value="pasted_research">External paste / research</option>
+    <label>Type</label>
+    <select id="type" style="width:100%; margin-bottom:10px;">
+      <option value="pasted_research">Pasted from research</option>
       <option value="internal_move">Moved within my own document</option>
       <option value="ai_assistance">AI assistance</option>
       <option value="manual_declaration">Manual declaration</option>
     </select>
 
-    <div id="internal-reason-group" style="display:none;">
-      <label>Reason for moving/copying within your document</label>
-      <select id="internal-reason">
-        <option value="">Select reason</option>
-        <option value="headings">Moved headings</option>
-        <option value="restructure">Restructured paragraphs</option>
-        <option value="editing_clarity">Edited for clarity</option>
-        <option value="grouping_ideas">Grouped similar ideas</option>
-        <option value="other">Other</option>
-      </select>
-    </div>
-
     <label>Tool / Source</label>
-    <input id="tool-name" placeholder="Website, textbook, ChatGPT, class notes, or own document" />
+    <input id="tool-name" style="width:100%; margin-bottom:10px;" />
 
-    <label>How did you use it?</label>
-    <textarea id="explain" placeholder="Explain what you used, moved, changed, or checked."></textarea>
+    <label>Explain how you used it</label>
+    <textarea id="explain" style="width:100%; height:80px; margin-bottom:10px;"></textarea>
 
     <label>Original text / excerpt</label>
-    <textarea id="original-text-excerpt" placeholder="This is auto-filled when pasting."></textarea>
+    <textarea id="original-text-excerpt" style="width:100%; height:80px;"></textarea>
 
-    <div class="declaration-actions">
-      <button id="save-declaration-btn" class="button primary" type="button">Save Declaration</button>
+    <div style="margin-top:15px; display:flex; gap:10px;">
+      <button id="save-declaration-btn" class="button primary" type="button">Save</button>
       <button id="cancel-declaration-btn" class="button secondary" type="button">Cancel</button>
     </div>
   </div>
