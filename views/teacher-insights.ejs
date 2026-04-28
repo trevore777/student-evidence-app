@@ -1,45 +1,210 @@
-<div class="container">
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Class Insights</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #f4f6f8;
+      color: #222;
+    }
 
-  <div class="header">
-    <h1>Class Insights</h1>
-    <a href="/teacher" class="btn secondary">← Back</a>
-  </div>
+    .container {
+      max-width: 1100px;
+      margin: 30px auto;
+      padding: 20px;
+    }
 
-  <div class="grid">
-    <% insights.forEach(i => { %>
+    .top-card {
+      background: white;
+      padding: 24px;
+      border-radius: 16px;
+      box-shadow: 0 4px 14px rgba(0,0,0,0.08);
+      margin-bottom: 20px;
+    }
 
-      <div class="card insight-card <%= i.status %>">
+    .header-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
 
-        <div class="card-header">
-          <h3><%= i.student.name %></h3>
-          <span class="badge <%= i.status %>">
-            <%= i.statusLabel || i.status %>
-          </span>
+    h1 {
+      margin: 0;
+      font-size: 34px;
+    }
+
+    .subtitle {
+      color: #666;
+      margin-top: 8px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 18px;
+    }
+
+    .insight-card {
+      background: white;
+      border-radius: 14px;
+      padding: 18px;
+      box-shadow: 0 4px 14px rgba(0,0,0,0.08);
+      border-left: 7px solid #ddd;
+    }
+
+    .insight-card.no_work { border-left-color: #9ca3af; }
+    .insight-card.needs_help { border-left-color: #dc2626; }
+    .insight-card.at_risk { border-left-color: #f59e0b; }
+    .insight-card.on_track { border-left-color: #16a34a; }
+    .insight-card.excelling { border-left-color: #2563eb; }
+
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 10px;
+    }
+
+    .card-header h3 {
+      margin: 0;
+      font-size: 22px;
+    }
+
+    .badge {
+      padding: 5px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: bold;
+      white-space: nowrap;
+      background: #e5e7eb;
+    }
+
+    .badge.needs_help { background: #fee2e2; color: #991b1b; }
+    .badge.at_risk { background: #fef3c7; color: #92400e; }
+    .badge.on_track { background: #dcfce7; color: #166534; }
+    .badge.excelling { background: #dbeafe; color: #1e40af; }
+
+    .metrics {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin: 16px 0;
+    }
+
+    .metric {
+      background: #f9fafb;
+      padding: 12px;
+      border-radius: 10px;
+      text-align: center;
+    }
+
+    .metric span {
+      display: block;
+      color: #666;
+      font-size: 13px;
+    }
+
+    .metric strong {
+      font-size: 24px;
+    }
+
+    .button {
+      display: inline-block;
+      padding: 11px 14px;
+      border-radius: 10px;
+      background: #2563eb;
+      color: white;
+      text-decoration: none;
+      font-weight: bold;
+      text-align: center;
+      border: none;
+    }
+
+    .button.secondary {
+      background: #6b7280;
+    }
+
+    .button.full {
+      display: block;
+      width: 100%;
+      box-sizing: border-box;
+    }
+
+    .small {
+      color: #666;
+      font-size: 14px;
+    }
+  </style>
+</head>
+
+<body>
+  <main class="container">
+
+    <section class="top-card">
+      <div class="header-row">
+        <div>
+          <h1>Class Insights</h1>
+          <p class="subtitle">
+            <strong>Class:</strong> <%= classRow?.class_name || "Selected class" %>
+          </p>
         </div>
 
-        <div class="metrics">
-          <div class="metric">
-            <span class="label">Words</span>
-            <span class="value"><%= i.wordCount %></span>
-          </div>
-
-          <div class="metric">
-            <span class="label">Pastes</span>
-            <span class="value"><%= i.pasteEvents %></span>
-          </div>
-        </div>
-
-        <% if (i.submissionId) { %>
-          <a href="/teacher/submission/<%= i.submissionId %>" class="btn primary full">
-            View Work
-          </a>
-        <% } else { %>
-          <div class="no-work">No submission yet</div>
-        <% } %>
-
+        <a class="button secondary" href="/teacher/dashboard">← Back to Dashboard</a>
       </div>
+    </section>
 
-    <% }) %>
-  </div>
+    <section class="grid">
+      <% if (!insights || !insights.length) { %>
+        <div class="insight-card">
+          <h3>No students found</h3>
+          <p class="small">There are no students in this class yet.</p>
+        </div>
+      <% } %>
 
-</div>
+      <% (insights || []).forEach(i => { %>
+        <div class="insight-card <%= i.status %>">
+          <div class="card-header">
+            <h3><%= i.student.name %></h3>
+            <span class="badge <%= i.status %>">
+              <%= i.statusLabel || i.status %>
+            </span>
+          </div>
+
+          <p class="small">
+            <strong>Assignment:</strong> <%= i.assignmentTitle || "—" %>
+          </p>
+
+          <div class="metrics">
+            <div class="metric">
+              <span>Words</span>
+              <strong><%= i.wordCount || 0 %></strong>
+            </div>
+
+            <div class="metric">
+              <span>Pastes</span>
+              <strong><%= i.pasteEvents || 0 %></strong>
+            </div>
+          </div>
+
+          <p class="small">
+            Declarations: <%= i.declarationsCount || 0 %>
+          </p>
+
+          <% if (i.submissionId) { %>
+            <a class="button full" href="/teacher/submission/<%= i.submissionId %>">
+              View Work
+            </a>
+          <% } else { %>
+            <p class="small">No work started yet.</p>
+          <% } %>
+        </div>
+      <% }) %>
+    </section>
+
+  </main>
+</body>
+</html>
