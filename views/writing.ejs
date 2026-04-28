@@ -601,28 +601,22 @@ function updateDeclarationUI() {
 }
 
 async function saveDeclaration() {
+  console.log("Save declaration clicked");
+
   if (!sessionId) {
-    alert("Session not ready yet.");
+    console.warn("No sessionId yet");
+    alert("Session is still loading. Please wait a moment and try again.");
     return;
   }
 
-  const type = document.getElementById("type")?.value || "manual_declaration";
-  const internalReason = document.getElementById("internal-reason")?.value || "";
-
-  const explanation = document.getElementById("explain")?.value || "";
-  const finalExplanation =
-    type === "internal_move" && internalReason
-      ? `Internal move reason: ${internalReason}. ${explanation}`
-      : explanation;
-
-  const result = await postJson("/api/declaration", {
+  const payload = {
     submissionId,
     sessionId,
-    declarationType: type,
+    declarationType: document.getElementById("type")?.value || "manual_declaration",
     toolName: document.getElementById("tool-name")?.value || "",
     promptText: "",
     originalTextExcerpt: document.getElementById("original-text-excerpt")?.value || "",
-    studentExplanation: finalExplanation,
+    studentExplanation: document.getElementById("explain")?.value || "",
 
     citationStyle: "",
     sourceType: "",
@@ -634,14 +628,25 @@ async function saveDeclaration() {
     accessedDate: "",
     inTextCitation: "",
     bibliographyEntry: ""
-  });
+  };
 
-  if (result.ok) {
-    closeDeclaration();
-    statusEl.textContent = "Declaration saved";
-    await saveDraft();
-  } else {
-    alert(result.error || "Failed to save declaration");
+  console.log("Declaration payload:", payload);
+
+  try {
+    const result = await postJson("/api/declaration", payload);
+
+    console.log("Declaration result:", result);
+
+    if (result.ok) {
+      closeDeclaration();
+      statusEl.textContent = "Declaration saved";
+      await saveDraft();
+    } else {
+      alert(result.error || "Failed to save declaration");
+    }
+  } catch (err) {
+    console.error("Declaration save error:", err);
+    alert("Declaration save failed. Check console and Render logs.");
   }
 }
 
@@ -814,7 +819,7 @@ async function saveDeclaration() {
   document.getElementById("submit-btn")?.addEventListener("click", submitWork);
   document.getElementById("declare-btn")?.addEventListener("click", () => openDeclaration());
   document.getElementById("save-declaration-btn")?.addEventListener("click", saveDeclaration);
-  document.getElementById("cancel-declaration-btn")?.addEventListener("click", closeDeclaration);
+document.getElementById("cancel-declaration-btn")?.addEventListener("click", closeDeclaration);
   document.getElementById("type")?.addEventListener("change", updateDeclarationUI);
   document.getElementById("dark-mode-btn")?.addEventListener("click", () => {
     const enabled = !document.body.classList.contains("dark-mode");
@@ -850,8 +855,8 @@ async function saveDeclaration() {
     <textarea id="original-text-excerpt" style="width:100%; height:80px;"></textarea>
 
     <div style="margin-top:15px; display:flex; gap:10px;">
-      <button id="save-declaration-btn" class="button primary">Save</button>
-      <button id="cancel-declaration-btn" class="button secondary">Cancel</button>
+      <button id="save-declaration-btn" class="button primary" type="button">Save</button>
+      <button id="cancel-declaration-btn" class="button secondary" type="button">Cancel</button>
     </div>
 
   </div>
