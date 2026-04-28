@@ -569,19 +569,51 @@ body.dark-mode .button.secondary {
     `,
 
     setup: (editor) => {
-      editor.on("init", async () => {
-        updateWordCount();
-        await startSession();
+      editor.on("paste", async (e) => {
+  e.preventDefault();
 
-        if (localStorage.getItem("studentEvidenceDarkMode") === "1") {
-          applyDarkMode(true);
-        }
-      });
+  const pastedText =
+    (e.clipboardData && e.clipboardData.getData("text/plain")) || "";
 
-      editor.on("keyup change input SetContent", () => {
-        updateWordCount();
-        debounceSave();
-      });
+  const currentText = editor.getContent({ format: "text" });
+
+  const likelyInternalMove =
+    pastedText.length > 20 && currentText.includes(pastedText);
+
+  const html =
+    `<span class="pasted-content">${escapeHtml(pastedText).replace(/\n/g, "<br>")}</span>`;
+
+  editor.insertContent(html);
+
+  if (likelyInternalMove) {
+    // ✅ INTERNAL PASTE FLOW
+    const reason = prompt(
+      "You pasted text from your own document.\n\nWhat was your reason?\n(e.g. headings, restructuring, editing)"
+    );
+
+    await logEvent("internal_paste", {
+      pastedLength: pastedText.length,
+      reason: reason || "no reason given"
+    });
+
+    statusEl.textContent = "Internal edit recorded";
+
+  } else {
+    // 🚨 EXTERNAL PASTE FLOW
+    await logEvent("external_paste", {
+      pastedLength: pastedText.length,
+      preview: pastedText.slice(0, 120)
+    });
+
+    openDeclaration({
+      type: "pasted_research",
+      originalTextExcerpt: pastedText.slice(0, 500)
+    });
+  }
+
+  updateWordCount();
+  debounceSave();
+});
 
       editor.on("cut", async () => {
         const selected = editor.selection.getContent({ format: "text" });
