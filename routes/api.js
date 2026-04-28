@@ -70,21 +70,37 @@ router.post("/session/start", async (req, res) => {
       });
     }
 
-    const result = await db.execute({
+    // INSERT
+    await db.execute({
       sql: `
         INSERT INTO writing_sessions (submission_id, started_at, device_info)
         VALUES (?, CURRENT_TIMESTAMP, ?)
-        RETURNING id
       `,
       args: [submissionId, deviceInfo || ""]
     });
 
-    const sessionId = result.rows?.[0]?.id ?? result.rows?.[0]?.[0];
+    // GET LAST INSERT ID (SQLite-safe)
+    const result = await db.execute({
+      sql: `SELECT last_insert_rowid() as id`
+    });
+
+    const sessionId = result.rows?.[0]?.id;
+
+    if (!sessionId) {
+      return res.status(500).json({
+        ok: false,
+        error: "Session created but ID not returned"
+      });
+    }
 
     res.json({ ok: true, sessionId });
+
   } catch (err) {
     console.error("POST /api/session/start error:", err);
-    res.status(500).json({ ok: false, error: "Failed to start session" });
+    res.status(500).json({
+      ok: false,
+      error: "Failed to start session"
+    });
   }
 });
 

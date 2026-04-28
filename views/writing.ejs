@@ -431,7 +431,28 @@ body.dark-mode .button.secondary {
 
 <script>
   const submissionId = <%= submission.id %>;
-  let sessionId = null;
+let sessionId = null;
+
+window.addEventListener("load", async () => {
+  try {
+    const res = await postJson("/api/session/start", {
+      submissionId
+    });
+
+    console.log("SESSION RESPONSE:", res);
+
+    if (res.ok && res.sessionId) {
+      sessionId = res.sessionId;
+      console.log("Session started:", sessionId);
+    } else {
+      console.error("Session failed:", res);
+    }
+  } catch (err) {
+    console.error("Session error:", err);
+  }
+});
+  
+
   let saveTimer = null;
 
   const statusEl = document.getElementById("status");
