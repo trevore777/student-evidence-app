@@ -405,13 +405,7 @@ router.get("/class/:classId/insights", requireTeacher, async (req, res) => {
         statusLabel
         
       });
-    }
-
-
-
-insights.sort((a, b) => {
-  return (priority[a.status] || 9) - (priority[b.status] || 9);
-});
+    };
 
 // ---- SORT FIRST ----
 const priority = {
