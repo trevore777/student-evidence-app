@@ -263,81 +263,147 @@ router.get("/dashboard", requireTeacher, async (req, res) => {
 });
 
 
-router.get("/class/:classId/insights", async (req, res) => {
+router.get("/class/:classId/insights", requireTeacher, async (req, res) => {
   try {
-    const { classId } = req.params;
+    const teacher = req.signedCookies.user;
+    const classId = Number(req.params.classId);
 
-    // ✅ Students
+    const classCheck = await db.execute({
+      sql: `
+        SELECT id, class_name
+        FROM classes
+        WHERE id = ? AND teacher_id = ?
+      `,
+      args: [classId, teacher.id]
+    });
+
+    const classRow = normalizeRow(classCheck.rows?.[0], ["id", "class_name"]);
+
+    if (!classRow.id) {
+      return res.status(404).send("Class not found");
+    }
+
     const studentsRes = await db.execute({
-      sql: `SELECT id, name FROM students WHERE class_id = ?`,
+      sql: `
+        SELECT id, name
+        FROM students
+        WHERE class_id = ?
+        ORDER BY name ASC
+      `,
       args: [classId]
     });
 
-    const students = studentsRes.rows || [];
+    const students = (studentsRes.rows || []).map((row) =>
+      normalizeRow(row, ["id", "name"])
+    );
 
     const insights = [];
 
     for (const student of students) {
-
-      // ✅ Latest submission
       const submissionRes = await db.execute({
         sql: `
-          SELECT id, content
-          FROM submissions
-          WHERE student_id = ?
-          ORDER BY id DESC
+          SELECT
+            sub.id,
+            sub.final_text,
+            sub.status,
+            sub.submitted_at,
+            a.title AS assignment_title
+          FROM submissions sub
+          JOIN assignments a ON a.id = sub.assignment_id
+          WHERE sub.student_id = ?
+          ORDER BY sub.id DESC
           LIMIT 1
         `,
         args: [student.id]
       });
 
-      const submission = submissionRes.rows?.[0];
+      const submission = normalizeRow(submissionRes.rows?.[0], [
+        "id",
+        "final_text",
+        "status",
+        "submitted_at",
+        "assignment_title"
+      ]);
 
-      // ✅ Events
       const eventsRes = await db.execute({
         sql: `
-          SELECT event_type, event_meta
-          FROM writing_events
+          SELECT event_type, event_meta, created_at
+          FROM editor_events
           WHERE submission_id = ?
+          ORDER BY created_at DESC
         `,
-        args: [submission?.id || 0]
+        args: [submission.id || 0]
       });
 
-      const events = eventsRes.rows || [];
+      const events = (eventsRes.rows || []).map((row) =>
+        normalizeRow(row, ["event_type", "event_meta", "created_at"])
+      );
 
-      // ✅ Metrics
-      const wordCount = (submission?.content || "")
-        .replace(/<[^>]*>/g, " ")
-        .split(/\s+/)
-        .filter(Boolean).length;
+      const declarationsRes = await db.execute({
+        sql: `
+          SELECT id
+          FROM source_declarations
+          WHERE submission_id = ?
+        `,
+        args: [submission.id || 0]
+      });
 
-      const pasteEvents = events.filter(e => e.event_type === "paste").length;
+      const cleanText = stripHtml(submission.final_text || "");
+      const wordCount = cleanText ? cleanText.split(/\s+/).filter(Boolean).length : 0;
 
-      // ✅ Status logic
+      const pasteEvents = events.filter((e) =>
+        ["paste", "external_paste", "internal_paste", "internal_move_paste"].includes(e.event_type)
+      ).length;
+
+      const externalPasteEvents = events.filter((e) =>
+        ["paste", "external_paste"].includes(e.event_type)
+      ).length;
+
+      const declarationsCount = declarationsRes.rows?.length || 0;
+
       let status = "on_track";
+      let statusLabel = "On track";
 
-      if (!submission) status = "no_work";
-      else if (wordCount < 100) status = "needs_help";
-      else if (pasteEvents > 3) status = "at_risk";
-      else if (wordCount > 800) status = "excelling";
+      if (!submission.id) {
+        status = "no_work";
+        statusLabel = "No work started";
+      } else if (wordCount < 50 && submission.status !== "submitted") {
+        status = "needs_help";
+        statusLabel = "Needs help";
+      } else if (externalPasteEvents > 0 && declarationsCount === 0) {
+        status = "at_risk";
+        statusLabel = "Check declaration";
+      } else if (pasteEvents >= 3) {
+        status = "at_risk";
+        statusLabel = "Check progress";
+      } else if (submission.status === "submitted" && wordCount > 300) {
+        status = "excelling";
+        statusLabel = "Doing well";
+      }
 
       insights.push({
         student,
-        submissionId: submission?.id,
+        submissionId: submission.id || null,
+        assignmentTitle: submission.assignment_title || "—",
+        submissionStatus: submission.status || "not_started",
         wordCount,
         pasteEvents,
-        status
+        externalPasteEvents,
+        declarationsCount,
+        lastActivity: events[0]?.created_at || submission.submitted_at || "",
+        status,
+        statusLabel
       });
     }
 
     res.render("teacher-insights", {
-      insights,
-      classId
+      teacher,
+      classRow,
+      insights
     });
-
   } catch (err) {
     console.error("Insights error:", err);
-    res.send("Server error");
+    res.status(500).send(`Failed to load class insights: ${err.message}`);
   }
 });
 
