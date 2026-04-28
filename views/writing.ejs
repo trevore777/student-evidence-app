@@ -13,6 +13,78 @@
       color: #222;
     }
 
+    .declaration-modal {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.65);
+  z-index: 9999;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 30px 16px;
+  overflow-y: auto;
+}
+
+.declaration-box {
+  background: #fff;
+  color: #222;
+  width: 100%;
+  max-width: 620px;
+  border-radius: 14px;
+  padding: 22px;
+  box-shadow: 0 10px 35px rgba(0,0,0,0.25);
+}
+
+.declaration-box label {
+  display: block;
+  font-weight: 700;
+  margin-top: 12px;
+  margin-bottom: 6px;
+}
+
+.declaration-box input,
+.declaration-box select,
+.declaration-box textarea {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 11px;
+  border: 1px solid #ccc;
+  border-radius: 10px;
+  font-size: 15px;
+}
+
+.declaration-box textarea {
+  min-height: 90px;
+}
+
+.declaration-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 16px;
+  position: sticky;
+  bottom: 0;
+  background: #fff;
+  padding-top: 12px;
+  border-top: 1px solid #e5e7eb;
+}
+
+body.dark-mode .declaration-box {
+  background: #1f2937;
+  color: #f9fafb;
+}
+
+body.dark-mode .declaration-box input,
+body.dark-mode .declaration-box select,
+body.dark-mode .declaration-box textarea {
+  background: #111827;
+  color: #f9fafb;
+  border-color: #374151;
+}
+
+body.dark-mode .declaration-actions {
+  background: #1f2937;
+}
+
     .container {
       max-width: 1100px;
       margin: 30px auto;
@@ -478,55 +550,100 @@ body.dark-mode .button.secondary {
   }
 
   function openDeclaration(data = {}) {
-    document.getElementById("declaration-modal").style.display = "flex";
-
-    if (data.type) {
-      document.getElementById("type").value = data.type;
-    }
-
-    if (data.originalTextExcerpt) {
-      document.getElementById("original-text-excerpt").value = data.originalTextExcerpt;
-    }
+  const modal = document.getElementById("declaration-modal");
+  if (!modal) {
+    alert("Declaration form is missing from the page.");
+    return;
   }
 
-  function closeDeclaration() {
-    document.getElementById("declaration-modal").style.display = "none";
+  const type = data.type || "manual_declaration";
+  const typeEl = document.getElementById("type");
+
+  typeEl.value = type;
+
+  document.getElementById("tool-name").value = data.toolName || "";
+  document.getElementById("explain").value = data.explain || "";
+  document.getElementById("original-text-excerpt").value = data.originalTextExcerpt || "";
+
+  updateDeclarationUI();
+
+  modal.style.display = "flex";
+}
+
+function closeDeclaration() {
+  const modal = document.getElementById("declaration-modal");
+  if (modal) modal.style.display = "none";
+}
+
+function updateDeclarationUI() {
+  const type = document.getElementById("type")?.value;
+  const internalGroup = document.getElementById("internal-reason-group");
+  const title = document.getElementById("declaration-title");
+  const help = document.getElementById("declaration-help");
+
+  if (internalGroup) {
+    internalGroup.style.display = type === "internal_move" ? "block" : "none";
   }
 
-  async function saveDeclaration() {
-    if (!sessionId) {
-      alert("Session not ready yet.");
-      return;
-    }
-
-    const result = await postJson("/api/declaration", {
-      submissionId,
-      sessionId,
-      declarationType: document.getElementById("type")?.value || "pasted_research",
-      toolName: document.getElementById("tool-name")?.value || "",
-      promptText: document.getElementById("prompt-text")?.value || "",
-      originalTextExcerpt: document.getElementById("original-text-excerpt")?.value || "",
-      studentExplanation: document.getElementById("explain")?.value || "",
-
-      citationStyle: document.getElementById("citation-style")?.value || "",
-      sourceType: document.getElementById("source-type")?.value || "",
-      sourceAuthor: document.getElementById("source-author")?.value || "",
-      sourceYear: document.getElementById("source-year")?.value || "",
-      sourceTitle: document.getElementById("source-title")?.value || "",
-      sourcePublisher: document.getElementById("source-publisher")?.value || "",
-      sourceUrl: document.getElementById("source-url")?.value || "",
-      accessedDate: document.getElementById("accessed-date")?.value || "",
-      inTextCitation: "",
-      bibliographyEntry: ""
-    });
-
-    if (result.ok) {
-      closeDeclaration();
-      statusEl.textContent = "Declaration saved";
-    } else {
-      alert("Failed to save declaration");
-    }
+  if (type === "internal_move") {
+    title.textContent = "Internal Move Declaration";
+    help.textContent = "This looks like text moved or copied within your own document. Choose why you moved it.";
+  } else if (type === "pasted_research") {
+    title.textContent = "External Paste Declaration";
+    help.textContent = "Explain where this pasted content came from and how you used it.";
+  } else if (type === "ai_assistance") {
+    title.textContent = "AI Assistance Declaration";
+    help.textContent = "Explain what AI tool you used and what it helped with.";
+  } else {
+    title.textContent = "Manual Declaration";
+    help.textContent = "Record anything important about how you created this work.";
   }
+}
+
+async function saveDeclaration() {
+  if (!sessionId) {
+    alert("Session not ready yet.");
+    return;
+  }
+
+  const type = document.getElementById("type")?.value || "manual_declaration";
+  const internalReason = document.getElementById("internal-reason")?.value || "";
+
+  const explanation = document.getElementById("explain")?.value || "";
+  const finalExplanation =
+    type === "internal_move" && internalReason
+      ? `Internal move reason: ${internalReason}. ${explanation}`
+      : explanation;
+
+  const result = await postJson("/api/declaration", {
+    submissionId,
+    sessionId,
+    declarationType: type,
+    toolName: document.getElementById("tool-name")?.value || "",
+    promptText: "",
+    originalTextExcerpt: document.getElementById("original-text-excerpt")?.value || "",
+    studentExplanation: finalExplanation,
+
+    citationStyle: "",
+    sourceType: "",
+    sourceAuthor: "",
+    sourceYear: "",
+    sourceTitle: "",
+    sourcePublisher: "",
+    sourceUrl: "",
+    accessedDate: "",
+    inTextCitation: "",
+    bibliographyEntry: ""
+  });
+
+  if (result.ok) {
+    closeDeclaration();
+    statusEl.textContent = "Declaration saved";
+    await saveDraft();
+  } else {
+    alert(result.error || "Failed to save declaration");
+  }
+}
 
   function applyDarkMode(enabled) {
     document.body.classList.toggle("dark-mode", enabled);
@@ -568,6 +685,12 @@ body.dark-mode .button.secondary {
         padding: 0 2px;
       }
 
+    .internal-move-content {
+  background: #dbeafe;
+  border-bottom: 2px solid #2563eb;
+  padding: 0 2px;
+}
+
       img {
         max-width: 100%;
         height: auto;
@@ -578,36 +701,13 @@ body.dark-mode .button.secondary {
       editor.on("paste", async (e) => {
   e.preventDefault();
 
-  let lastCopiedText = "";
-
-editor.on("copy", async () => {
-  const selected = editor.selection.getContent({ format: "text" });
-  lastCopiedText = selected;
-
-  await logEvent("copy", {
-    selectedLength: selected.length,
-    selectedPreview: selected.slice(0, 120)
-  });
-});
-
-editor.on("cut", async () => {
-  const selected = editor.selection.getContent({ format: "text" });
-  lastCopiedText = selected;
-
-  await logEvent("cut", {
-    selectedLength: selected.length,
-    selectedPreview: selected.slice(0, 120)
-  });
-});
-
   const pastedText =
     (e.clipboardData && e.clipboardData.getData("text/plain")) || "";
 
   const currentText = editor.getContent({ format: "text" });
 
   const likelyInternalMove =
-  pastedText.length > 20 &&
-  (currentText.includes(pastedText) || pastedText === lastCopiedText);
+    pastedText.length > 20 && currentText.includes(pastedText);
 
   const spanClass = likelyInternalMove
     ? "internal-move-content"
@@ -619,17 +719,18 @@ editor.on("cut", async () => {
   editor.insertContent(html);
 
   if (likelyInternalMove) {
-    const reason = prompt(
-      "You pasted text that appears to already exist in your document.\n\nWhy did you move/copy it?\nExamples: headings, restructuring, improving order, editing clarity."
-    );
-
     await logEvent("internal_paste", {
       pastedLength: pastedText.length,
-      pastedPreview: pastedText.slice(0, 120),
-      reason: reason || "No reason given"
+      pastedPreview: pastedText.slice(0, 120)
     });
 
-    statusEl.textContent = "Internal move recorded";
+    openDeclaration({
+      type: "internal_move",
+      toolName: "Own document",
+      originalTextExcerpt: pastedText.slice(0, 500)
+    });
+
+    statusEl.textContent = "Internal move declaration opened";
   } else {
     await logEvent("external_paste", {
       pastedLength: pastedText.length,
@@ -640,6 +741,8 @@ editor.on("cut", async () => {
       type: "pasted_research",
       originalTextExcerpt: pastedText.slice(0, 500)
     });
+
+    statusEl.textContent = "External paste declaration opened";
   }
 
   updateWordCount();
@@ -712,7 +815,7 @@ editor.on("cut", async () => {
   document.getElementById("declare-btn")?.addEventListener("click", () => openDeclaration());
   document.getElementById("save-declaration-btn")?.addEventListener("click", saveDeclaration);
   document.getElementById("cancel-declaration-btn")?.addEventListener("click", closeDeclaration);
-
+  document.getElementById("type")?.addEventListener("change", updateDeclarationUI);
   document.getElementById("dark-mode-btn")?.addEventListener("click", () => {
     const enabled = !document.body.classList.contains("dark-mode");
     applyDarkMode(enabled);
@@ -753,6 +856,51 @@ editor.on("cut", async () => {
 
   </div>
 </div>
+
+<!-- DECLARATION MODAL -->
+<div id="declaration-modal" class="declaration-modal">
+  <div class="declaration-box">
+    <h2 id="declaration-title">Declaration</h2>
+    <p id="declaration-help" class="small">
+      Explain how this content was used.
+    </p>
+
+    <label>Declaration type</label>
+    <select id="type">
+      <option value="pasted_research">External paste / research</option>
+      <option value="internal_move">Moved within my own document</option>
+      <option value="ai_assistance">AI assistance</option>
+      <option value="manual_declaration">Manual declaration</option>
+    </select>
+
+    <div id="internal-reason-group" style="display:none;">
+      <label>Reason for moving/copying within your document</label>
+      <select id="internal-reason">
+        <option value="">Select reason</option>
+        <option value="headings">Moved headings</option>
+        <option value="restructure">Restructured paragraphs</option>
+        <option value="editing_clarity">Edited for clarity</option>
+        <option value="grouping_ideas">Grouped similar ideas</option>
+        <option value="other">Other</option>
+      </select>
+    </div>
+
+    <label>Tool / Source</label>
+    <input id="tool-name" placeholder="Website, textbook, ChatGPT, class notes, or own document" />
+
+    <label>How did you use it?</label>
+    <textarea id="explain" placeholder="Explain what you used, moved, changed, or checked."></textarea>
+
+    <label>Original text / excerpt</label>
+    <textarea id="original-text-excerpt" placeholder="This is auto-filled when pasting."></textarea>
+
+    <div class="declaration-actions">
+      <button id="save-declaration-btn" class="button primary" type="button">Save Declaration</button>
+      <button id="cancel-declaration-btn" class="button secondary" type="button">Cancel</button>
+    </div>
+  </div>
+</div>
+
 
 </body>
 </html>
