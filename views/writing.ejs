@@ -38,6 +38,24 @@
       margin-bottom: 10px;
     }
 
+    body.dark-mode {
+  background: #111827;
+  color: #f9fafb;
+}
+
+body.dark-mode .card {
+  background: #1f2937;
+  color: #f9fafb;
+}
+
+body.dark-mode textarea,
+body.dark-mode input,
+body.dark-mode select {
+  background: #111827;
+  color: #f9fafb;
+  border-color: #374151;
+}
+
     .button.warning {
       background: #b45309;
     }
@@ -236,6 +254,9 @@
         <button class="button" id="save-btn" type="button">Save</button>
         <button class="button warning" id="declare-btn" type="button">Declare</button>
         <button class="button" id="submit-btn" type="button">Submit</button>
+        <button class="button secondary" id="dark-mode-btn" type="button">
+  Dark Mode
+</button>
       </div>
     </div>
 
@@ -398,6 +419,28 @@
         content,
         wordCount: countWords(content)
       });
+
+      const darkModeBtn = document.getElementById("dark-mode-btn");
+
+function applyDarkMode(enabled) {
+  document.body.classList.toggle("dark-mode", enabled);
+
+  const ed = editorInstance();
+  if (ed) {
+    ed.getBody().classList.toggle("dark-editor", enabled);
+  }
+
+  localStorage.setItem("studentEvidenceDarkMode", enabled ? "1" : "0");
+}
+
+darkModeBtn?.addEventListener("click", () => {
+  const enabled = !document.body.classList.contains("dark-mode");
+  applyDarkMode(enabled);
+});
+
+if (localStorage.getItem("studentEvidenceDarkMode") === "1") {
+  applyDarkMode(true);
+}
 
       if (result.ok) {
         statusEl.textContent = "Saved";
@@ -647,11 +690,15 @@ function updateBibliography(entry) {
       height: 520,
       menubar: false,
       branding: false,
+      indent_use_margin: true,
+      nonbreaking_force_tab: true,
       browser_spellcheck: true,
       contextmenu: false,
       plugins: "lists link image table code paste wordcount",
       toolbar:
-        "undo redo | bold italic underline | bullist numlist | alignleft aligncenter alignright | image table | removeformat",
+  "undo redo | blocks fontfamily fontsize | bold italic underline | outdent indent | bullist numlist | alignleft aligncenter alignright | image table | removeformat",
+      font_size_formats:
+      "10pt 11pt 12pt 14pt 16pt 18pt 20pt 24pt 28pt 32pt",
       extended_valid_elements: "span[class|data-pasted],img[src|alt|width|height|style],section[id],ol[id],li[class|id],h2,hr",
       content_style: `
         body { font-family: Arial, sans-serif; font-size: 16px; }
@@ -669,6 +716,11 @@ function updateBibliography(entry) {
           color: #1d4ed8;
           font-weight: 600;
         }
+        body.dark-editor {
+          background: #111827;
+          color: #f9fafb;
+}
+
         #bibliography-section {
           margin-top: 24px;
           border-top: 1px solid #ccc;
@@ -696,33 +748,65 @@ function updateBibliography(entry) {
 
         return data.location;
       },
-      setup: (editor) => {
-        editor.on("init", async () => {
-          updateWordCount();
-          await startSession();
-          setupActivityTracking();
-        });
+      editor.on("cut", async () => {
+  const selected = editor.selection.getContent({ format: "text" });
 
-        editor.on("keyup change input SetContent", () => {
-          updateWordCount();
-          debounceSave();
-        });
+  await logEvent("cut", {
+    selectedLength: selected.length,
+    selectedPreview: selected.slice(0, 120)
+  });
+});
 
-        editor.on("paste", async (e) => {
-          e.preventDefault();
+editor.on("copy", async () => {
+  const selected = editor.selection.getContent({ format: "text" });
 
-          const pastedText =
-            (e.clipboardData && e.clipboardData.getData("text/plain")) || "";
+  await logEvent("copy", {
+    selectedLength: selected.length,
+    selectedPreview: selected.slice(0, 120)
+  });
+});
 
-          const html =
-            `<span class="pasted-content" data-pasted="true">${escapeHtml(pastedText).replace(/\n/g, "<br>")}</span>`;
+editor.on("paste", async (e) => {
+  e.preventDefault();
 
-          editor.insertContent(html);
+  const pastedText =
+    (e.clipboardData && e.clipboardData.getData("text/plain")) || "";
 
-          await logEvent("paste", {
-            pastedLength: pastedText.length,
-            pastedPreview: pastedText.slice(0, 120)
-          });
+  const currentText = editor.getContent({ format: "text" });
+
+  const likelyInternalMove =
+    pastedText.length > 20 && currentText.includes(pastedText);
+
+  const html =
+    `<span class="pasted-content" data-pasted="true">${escapeHtml(pastedText).replace(/\n/g, "<br>")}</span>`;
+
+  editor.insertContent(html);
+
+  await logEvent(likelyInternalMove ? "internal_move_paste" : "paste", {
+    pastedLength: pastedText.length,
+    pastedPreview: pastedText.slice(0, 120),
+    likelyInternalMove
+  });
+
+  if (!likelyInternalMove) {
+    openDeclaration({
+      type: "pasted_research",
+      originalTextExcerpt: pastedText.slice(0, 500)
+    });
+  } else {
+    statusEl.textContent = "Moved text recorded";
+  }
+
+  updateWordCount();
+  debounceSave();
+});
+
+
+editor.on("drop", async () => {
+  await logEvent("move_or_drop", {
+    note: "Text or content may have been moved within the document."
+  });
+});
 
           openDeclaration({
             type: "pasted_research",
