@@ -784,9 +784,6 @@ async function saveDeclaration() {
 
   document.getElementById("save-btn")?.addEventListener("click", saveDraft);
   document.getElementById("submit-btn")?.addEventListener("click", submitWork);
-  document.getElementById("declare-btn")?.addEventListener("click", () => openDeclaration());
-  document.getElementById("save-declaration-btn")?.addEventListener("click", saveDeclaration);
-document.getElementById("cancel-declaration-btn")?.addEventListener("click", closeDeclaration);
   document.getElementById("type")?.addEventListener("change", updateDeclarationUI);
   document.getElementById("dark-mode-btn")?.addEventListener("click", () => {
     const enabled = !document.body.classList.contains("dark-mode");
@@ -796,6 +793,27 @@ document.getElementById("cancel-declaration-btn")?.addEventListener("click", clo
   window.addEventListener("beforeunload", () => {
     endSession();
   });
+
+  document.addEventListener("click", async (e) => {
+  if (e.target && e.target.id === "save-declaration-btn") {
+    e.preventDefault();
+    await saveDeclaration();
+  }
+
+  if (e.target && e.target.id === "cancel-declaration-btn") {
+    e.preventDefault();
+    closeDeclaration();
+  }
+
+  if (e.target && e.target.id === "declare-btn") {
+    e.preventDefault();
+    openDeclaration({
+      type: "manual_declaration",
+      originalTextExcerpt: ""
+    });
+  }
+});
+
 </script>
 
 <!-- DECLARATION MODAL -->
