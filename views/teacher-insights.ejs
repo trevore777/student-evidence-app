@@ -1,0 +1,28 @@
+<div class="container">
+  <h1>Class Insights</h1>
+
+  <a href="/teacher" class="button">← Back</a>
+
+  <div class="grid">
+    <% insights.forEach(i => { %>
+      <div class="card <%= i.status %>">
+
+        <h3><%= i.student.name %></h3>
+
+        <p>Words: <%= i.wordCount %></p>
+        <p>Pastes: <%= i.pasteEvents %></p>
+
+        <p class="status <%= i.status %>">
+          <%= i.status.replace("_", " ") %>
+        </p>
+
+        <% if (i.submissionId) { %>
+          <a href="/teacher/review/<%= i.submissionId %>" class="btn">
+            View Work
+          </a>
+        <% } %>
+
+      </div>
+    <% }) %>
+  </div>
+</div>

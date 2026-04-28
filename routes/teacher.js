@@ -262,6 +262,86 @@ router.get("/dashboard", requireTeacher, async (req, res) => {
   }
 });
 
+
+router.get("/class/:classId/insights", async (req, res) => {
+  try {
+    const { classId } = req.params;
+
+    // ✅ Students
+    const studentsRes = await db.execute({
+      sql: `SELECT id, name FROM students WHERE class_id = ?`,
+      args: [classId]
+    });
+
+    const students = studentsRes.rows || [];
+
+    const insights = [];
+
+    for (const student of students) {
+
+      // ✅ Latest submission
+      const submissionRes = await db.execute({
+        sql: `
+          SELECT id, content
+          FROM submissions
+          WHERE student_id = ?
+          ORDER BY id DESC
+          LIMIT 1
+        `,
+        args: [student.id]
+      });
+
+      const submission = submissionRes.rows?.[0];
+
+      // ✅ Events
+      const eventsRes = await db.execute({
+        sql: `
+          SELECT event_type, event_meta
+          FROM writing_events
+          WHERE submission_id = ?
+        `,
+        args: [submission?.id || 0]
+      });
+
+      const events = eventsRes.rows || [];
+
+      // ✅ Metrics
+      const wordCount = (submission?.content || "")
+        .replace(/<[^>]*>/g, " ")
+        .split(/\s+/)
+        .filter(Boolean).length;
+
+      const pasteEvents = events.filter(e => e.event_type === "paste").length;
+
+      // ✅ Status logic
+      let status = "on_track";
+
+      if (!submission) status = "no_work";
+      else if (wordCount < 100) status = "needs_help";
+      else if (pasteEvents > 3) status = "at_risk";
+      else if (wordCount > 800) status = "excelling";
+
+      insights.push({
+        student,
+        submissionId: submission?.id,
+        wordCount,
+        pasteEvents,
+        status
+      });
+    }
+
+    res.render("teacher-insights", {
+      insights,
+      classId
+    });
+
+  } catch (err) {
+    console.error("Insights error:", err);
+    res.send("Server error");
+  }
+});
+
+
 /* =========================
    TEACHER SUBMISSION REVIEW
 ========================= */
