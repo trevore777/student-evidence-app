@@ -684,158 +684,42 @@ function updateBibliography(entry) {
   }
 }
 
-    tinymce.init({
+  tinymce.init({
   selector: "#editor",
-  license_key: "gpl",
   height: 520,
   menubar: false,
-  branding: false,
-  browser_spellcheck: true,
-  contextmenu: false,
 
   plugins: "lists link image table code wordcount",
   toolbar:
-    "undo redo | blocks fontfamily fontsize | bold italic underline | outdent indent | bullist numlist | alignleft aligncenter alignright | image table | removeformat code",
-
-  font_size_formats:
-    "10pt 11pt 12pt 14pt 16pt 18pt 20pt 24pt 28pt 32pt",
-
-  indent_use_margin: true,
-
-  extended_valid_elements:
-    "span[class|data-pasted],img[src|alt|width|height|style],section[id],ol[id],li[class|id],h2,hr",
-
-  content_style: `
-    body {
-      font-family: Arial, sans-serif;
-      font-size: 16px;
-    }
-
-    .pasted-content {
-      background: #fff3b0;
-      border-bottom: 2px solid #f59e0b;
-      padding: 0 2px;
-    }
-
-    .citation-marker {
-      color: #1d4ed8;
-      font-weight: 600;
-    }
-
-    img {
-      max-width: 100%;
-      height: auto;
-    }
-  `,
+    "undo redo | bold italic underline | alignleft aligncenter alignright | bullist numlist | code",
 
   setup: (editor) => {
-    editor.on("init", async () => {
-      updateWordCount();
-      await startSession();
-      setupActivityTracking();
-    });
 
-    editor.on("keyup change input SetContent", () => {
-      updateWordCount();
-      debounceSave();
-    });
-
-    editor.on("cut", async () => {
-      const selected = editor.selection.getContent({ format: "text" });
-      await logEvent("cut", {
-        selectedLength: selected.length,
-        selectedPreview: selected.slice(0, 120)
-      });
-    });
-
-    editor.on("copy", async () => {
-      const selected = editor.selection.getContent({ format: "text" });
-      await logEvent("copy", {
-        selectedLength: selected.length,
-        selectedPreview: selected.slice(0, 120)
-      });
+    editor.on("init", () => {
+      console.log("Editor loaded");
     });
 
     editor.on("paste", async (e) => {
       e.preventDefault();
 
-      const pastedText =
+      const text =
         (e.clipboardData && e.clipboardData.getData("text/plain")) || "";
 
-      const currentText = editor.getContent({ format: "text" });
+      editor.insertContent(`<span style="background:yellow">${text}</span>`);
 
-      const likelyInternalMove =
-        pastedText.length > 20 && currentText.includes(pastedText);
-
-      const html =
-        `<span class="pasted-content" data-pasted="true">${escapeHtml(pastedText).replace(/\n/g, "<br>")}</span>`;
-
-      editor.insertContent(html);
-
-      await logEvent(likelyInternalMove ? "internal_move_paste" : "paste", {
-        pastedLength: pastedText.length,
-        pastedPreview: pastedText.slice(0, 120),
-        likelyInternalMove
+      await logEvent("paste", {
+        length: text.length
       });
-
-      if (!likelyInternalMove) {
-        openDeclaration({
-          type: "pasted_research",
-          originalTextExcerpt: pastedText.slice(0, 500)
-        });
-      } else {
-        statusEl.textContent = "Moved text recorded";
-      }
-
-      updateWordCount();
-      debounceSave();
     });
+
+    editor.on("drop", async () => {
+      await logEvent("move_or_drop", {
+        note: "Content moved or dropped"
+      });
+    });
+
   }
 });
-
-
-        editor.on("paste", async (e) => {
-          e.preventDefault();
-
-          const pastedText =
-            (e.clipboardData && e.clipboardData.getData("text/plain")) || "";
-
-          const currentText = editor.getContent({ format: "text" });
-
-          const likelyInternalMove =
-            pastedText.length > 20 && currentText.includes(pastedText);
-
-          const html =
-            `<span class="pasted-content" data-pasted="true">${escapeHtml(pastedText).replace(/\n/g, "<br>")}</span>`;
-
-          editor.insertContent(html);
-
-          await logEvent(likelyInternalMove ? "internal_move_paste" : "paste", {
-            pastedLength: pastedText.length,
-            pastedPreview: pastedText.slice(0, 120),
-            likelyInternalMove
-          });
-
-          if (!likelyInternalMove) {
-            openDeclaration({
-              type: "pasted_research",
-              originalTextExcerpt: pastedText.slice(0, 500)
-            });
-          } else {
-            statusEl.textContent = "Moved text recorded";
-          }
-
-          updateWordCount();
-          debounceSave();
-        });
-
-        editor.on("drop", async () => {
-          await logEvent("move_or_drop", {
-            note: "Text, image, or content may have been moved/dropped in the document."
-          });
-        });
-      }
-    });
 
     document.getElementById("save-btn").addEventListener("click", saveDraft);
     document.getElementById("submit-btn").addEventListener("click", submitWork);
