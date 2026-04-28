@@ -22,6 +22,26 @@ function stripHtml(html = "") {
     .trim();
 }
 
+function formatDate(dt) {
+  if (!dt) return "";
+
+  const date = new Date(dt);
+
+  const day = String(date.getDate()).padStart(2, "0");
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const year = date.getFullYear();
+
+  let hours = date.getHours();
+  const minutes = String(date.getMinutes()).padStart(2, "0");
+
+  const ampm = hours >= 12 ? "PM" : "AM";
+  hours = hours % 12 || 12;
+
+  return `${day}/${month}/${year} ${hours}:${minutes} ${ampm}`;
+}
+
+
+
 function estimateComposition({ events = [], declarations = [], finalText = "" }) {
   const cleanText = stripHtml(finalText);
   const totalChars = cleanText.length || 1;
@@ -221,6 +241,9 @@ router.get("/dashboard", requireTeacher, async (req, res) => {
       exams = (examsResult.rows || []).map((row) =>
         normalizeRow(row, ["id", "title", "created_at"])
       );
+      exams.forEach((exam) => {
+  exam.created_at_fmt = formatDate(exam.created_at);
+});
     }
 
     res.render("teacher-dashboard", {

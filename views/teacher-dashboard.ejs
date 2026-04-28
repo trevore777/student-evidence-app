@@ -155,7 +155,7 @@
         <div class="exam-card">
           <div>
             <strong><%= exam.title %></strong>
-            <p class="small">Created: <%= exam.created_at || "—" %></p>
+            <p class="small">Created: <%= exam.created_at_fmt || "—" %></p>
           </div>
 
           <a class="button small-button" href="/teacher/exams/<%= exam.id %>">Open</a>
