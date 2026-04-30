@@ -98,10 +98,88 @@
       border-radius: 8px;
     }
 
-    .pasted-content {
+    /* Evidence colouring used in student editor and teacher review */
+    .pasted-content,
+    .evidence-external-paste {
       background: #fff3b0;
       border-bottom: 2px solid #f59e0b;
-      padding: 0 2px;
+      padding: 0 3px;
+      border-radius: 3px;
+    }
+
+    .internal-move-content,
+    .evidence-internal-paste {
+      background: #dbeafe;
+      border-bottom: 2px solid #2563eb;
+      padding: 0 3px;
+      border-radius: 3px;
+    }
+
+    .ai-modified-content,
+    .evidence-ai-modified {
+      background: #fee2e2;
+      border-bottom: 2px solid #dc2626;
+      padding: 0 3px;
+      border-radius: 3px;
+    }
+
+    .ai-generated-content,
+    .evidence-ai-generated {
+      background: #fce7f3;
+      border-bottom: 2px solid #db2777;
+      padding: 0 3px;
+      border-radius: 3px;
+    }
+
+    .declared-content,
+    .evidence-declared {
+      background: #e5e7eb;
+      border-bottom: 2px solid #6b7280;
+      padding: 0 3px;
+      border-radius: 3px;
+    }
+
+    .citation-marker,
+    .evidence-citation {
+      background: #dcfce7;
+      border: 1px solid #16a34a;
+      border-radius: 4px;
+      padding: 0 4px;
+      font-weight: 700;
+    }
+
+    .references-section {
+      margin-top: 2rem;
+      border-top: 2px solid #16a34a;
+      padding-top: 0.75rem;
+    }
+
+    .references-list {
+      padding-left: 1.5rem;
+    }
+
+    .bibliography-entry,
+    .evidence-bibliography {
+      background: #f0fdf4;
+      border-left: 4px solid #16a34a;
+      padding: 0.35rem 0.5rem;
+      margin: 0.35rem 0;
+      border-radius: 6px;
+    }
+
+    .evidence-legend {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 8px;
+      margin: 10px 0 14px;
+    }
+
+    .legend-chip {
+      display: inline-block;
+      padding: 8px 10px;
+      border-radius: 8px;
+      font-size: 13px;
+      border: 1px solid rgba(0,0,0,0.08);
     }
 
     details {
@@ -182,7 +260,15 @@
       <details open>
         <summary>Final Submission</summary>
         <div class="details-body">
-          <div class="final-text"><%- submission.final_text %></div>
+          <div class="evidence-legend" aria-label="Evidence colour legend">
+            <span class="legend-chip pasted-content">Yellow = external paste / research</span>
+            <span class="legend-chip internal-move-content">Blue = internal paste / moved own text</span>
+            <span class="legend-chip ai-modified-content">Red = AI modified</span>
+            <span class="legend-chip ai-generated-content">Pink = AI generated</span>
+            <span class="legend-chip citation-marker">Green = in-text citation</span>
+            <span class="legend-chip bibliography-entry">Green side bar = bibliography/reference entry</span>
+          </div>
+          <div class="final-text"><%- submission.final_text || "" %></div>
         </div>
       </details>
     </div>

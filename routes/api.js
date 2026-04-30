@@ -532,6 +532,7 @@ End with "Regards, Teacher".
       error: "Failed to generate AI feedback email"
     });
   }
+});
 
 router.post("/ai/mark-question", async (req, res) => {
   try {
@@ -583,6 +584,64 @@ Return JSON:
   }
 });
 
+
+router.post("/reference/generate", async (req, res) => {
+  try {
+    const {
+      citationStyle = "apa7",
+      sourceType = "",
+      sourceAuthor,
+      sourceYear,
+      sourceTitle,
+      sourcePublisher,
+      sourceUrl,
+      accessedDate
+    } = req.body || {};
+
+    const author = String(sourceAuthor || "Unknown author").trim();
+    const year = String(sourceYear || "n.d.").trim();
+    const title = String(sourceTitle || "Untitled source").trim();
+    const publisher = String(sourcePublisher || "").trim();
+    const url = String(sourceUrl || "").trim();
+    const accessed = String(accessedDate || "").trim();
+    const type = String(sourceType || "").trim();
+
+    let inTextCitation = `(${author}, ${year})`;
+    let bibliographyEntry = "";
+
+    if (citationStyle !== "apa7") {
+      bibliographyEntry = `${author}. (${year}). ${title}. ${publisher}. ${url}`;
+    } else if (type === "book") {
+      bibliographyEntry = `${author}. (${year}). ${title}. ${publisher}.`;
+    } else if (type === "ai") {
+      bibliographyEntry = `${author}. (${year}). ${title} [Large language model]. ${publisher || "AI tool"}. ${url}`;
+    } else if (type === "video") {
+      bibliographyEntry = `${author}. (${year}). ${title} [Video]. ${publisher}. ${url}`;
+    } else {
+      bibliographyEntry = `${author}. (${year}). ${title}. ${publisher}. ${url}`;
+    }
+
+    bibliographyEntry = bibliographyEntry
+      .replace(/\s+\./g, ".")
+      .replace(/\s+/g, " ")
+      .trim();
+
+    if (accessed && type === "website") {
+      bibliographyEntry += ` Accessed ${accessed}.`;
+    }
+
+    res.json({
+      ok: true,
+      inTextCitation,
+      bibliographyEntry
+    });
+  } catch (err) {
+    console.error("POST /api/reference/generate error:", err);
+    res.status(500).json({
+      ok: false,
+      error: "Failed to generate reference"
+    });
+  }
 });
 
 router.post("/ai/grammar-check", async (req, res) => {

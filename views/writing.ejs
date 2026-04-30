@@ -13,78 +13,6 @@
       color: #222;
     }
 
-    .declaration-modal {
-  display: none;
-  position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,0.65);
-  z-index: 9999;
-  align-items: flex-start;
-  justify-content: center;
-  padding: 30px 16px;
-  overflow-y: auto;
-}
-
-.declaration-box {
-  background: #fff;
-  color: #222;
-  width: 100%;
-  max-width: 620px;
-  border-radius: 14px;
-  padding: 22px;
-  box-shadow: 0 10px 35px rgba(0,0,0,0.25);
-}
-
-.declaration-box label {
-  display: block;
-  font-weight: 700;
-  margin-top: 12px;
-  margin-bottom: 6px;
-}
-
-.declaration-box input,
-.declaration-box select,
-.declaration-box textarea {
-  width: 100%;
-  box-sizing: border-box;
-  padding: 11px;
-  border: 1px solid #ccc;
-  border-radius: 10px;
-  font-size: 15px;
-}
-
-.declaration-box textarea {
-  min-height: 90px;
-}
-
-.declaration-actions {
-  display: flex;
-  gap: 10px;
-  margin-top: 16px;
-  position: sticky;
-  bottom: 0;
-  background: #fff;
-  padding-top: 12px;
-  border-top: 1px solid #e5e7eb;
-}
-
-body.dark-mode .declaration-box {
-  background: #1f2937;
-  color: #f9fafb;
-}
-
-body.dark-mode .declaration-box input,
-body.dark-mode .declaration-box select,
-body.dark-mode .declaration-box textarea {
-  background: #111827;
-  color: #f9fafb;
-  border-color: #374151;
-}
-
-body.dark-mode .declaration-actions {
-  background: #1f2937;
-}
-
     .container {
       max-width: 1100px;
       margin: 30px auto;
@@ -108,48 +36,21 @@ body.dark-mode .declaration-actions {
       cursor: pointer;
       margin-right: 10px;
       margin-bottom: 10px;
+      text-decoration: none;
+      display: inline-block;
+      font-size: 14px;
     }
 
-    body.dark-mode {
-  background: #111827;
-  color: #f9fafb;
-}
-
-body.dark-mode .card {
-  background: #1f2937;
-  color: #f9fafb;
-}
-
-body.dark-mode textarea,
-body.dark-mode input,
-body.dark-mode select {
-  background: #111827;
-  color: #f9fafb;
-  border-color: #374151;
-}
-
-    .button.warning {
-      background: #b45309;
-    }
-
-    .button.secondary {
-      background: #666;
-    }
+    .button.warning { background: #b45309; }
+    .button.secondary { background: #666; }
+    .button.success { background: #15803d; }
 
     .small {
       font-size: 14px;
       color: #666;
     }
 
-    .status {
-      font-weight: 600;
-    }
-
-    .pasted-content {
-      background: #fff3b0;
-      border-bottom: 2px solid #f59e0b;
-      padding: 0 2px;
-    }
+    .status { font-weight: 600; }
 
     .notice {
       background: #eff6ff;
@@ -169,65 +70,7 @@ body.dark-mode select {
       margin-top: 12px;
     }
 
-    .modal {
-  position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,0.5);
-  display: none;
-  align-items: flex-start;
-  justify-content: center;
-  z-index: 9999;
-  padding: 20px;
-  overflow-y: auto;
-}
-
-.modal-box {
-  background: white;
-  padding: 20px;
-  border-radius: 12px;
-  width: 100%;
-  max-width: 620px;
-  max-height: calc(100vh - 40px);
-  overflow-y: auto;
-}
-
-.modal-actions {
-  position: sticky;
-  bottom: 0;
-  background: white;
-  padding-top: 12px;
-  border-top: 1px solid #ddd;
-}
-
-    .modal-box {
-      background: white;
-      padding: 20px;
-      border-radius: 12px;
-      width: 100%;
-      max-width: 500px;
-    }
-
-    .modal-box textarea,
-    .modal-box select,
-    .modal-box input {
-      width: 100%;
-      box-sizing: border-box;
-      margin-top: 8px;
-      margin-bottom: 12px;
-      padding: 10px;
-      border-radius: 8px;
-      border: 1px solid #ccc;
-    }
-
-    img {
-      max-width: 100%;
-      height: auto;
-      border-radius: 8px;
-    }
-
-    details {
-      border-radius: 10px;
-    }
+    details { border-radius: 10px; }
 
     summary {
       cursor: pointer;
@@ -237,52 +80,179 @@ body.dark-mode select {
       user-select: none;
     }
 
-    summary::-webkit-details-marker {
-      display: none;
+    summary::-webkit-details-marker { display: none; }
+    summary::after { content: " ▼"; font-size: 14px; color: #666; }
+    details[open] summary::after { content: " ▲"; }
+
+    .details-body { margin-top: 14px; }
+
+    .editor-actions {
+      margin-top: 16px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
     }
 
-    summary::after {
-      content: " ▼";
+    .pasted-content {
+      background: #fff3b0;
+      border-bottom: 2px solid #f59e0b;
+      padding: 0 2px;
+    }
+
+    .internal-move-content {
+      background: #dbeafe;
+      border-bottom: 2px solid #2563eb;
+      padding: 0 2px;
+    }
+
+    .ai-modified-content {
+      background: #fee2e2;
+      border-bottom: 2px solid #dc2626;
+      padding: 0 2px;
+    }
+
+    .ai-generated-content {
+      background: #fce7f3;
+      border-bottom: 2px solid #db2777;
+      padding: 0 2px;
+    }
+
+    .declared-content {
+      background: #e5e7eb;
+      border-bottom: 2px solid #6b7280;
+      padding: 0 2px;
+    }
+
+    .citation-marker {
+      background: #dcfce7;
+      border: 1px solid #16a34a;
+      border-radius: 4px;
+      padding: 0 3px;
+      font-weight: 700;
+    }
+
+    .references-section {
+      margin-top: 2rem;
+      border-top: 2px solid #16a34a;
+      padding-top: 0.75rem;
+    }
+
+    .bibliography-entry {
+      background: #f0fdf4;
+      border-left: 4px solid #16a34a;
+      padding: 0.35rem 0.5rem;
+      margin: 0.35rem 0;
+    }
+
+    .legend-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .legend-item {
+      border-radius: 10px;
+      padding: 8px 10px;
       font-size: 14px;
-      color: #666;
+      border: 1px solid rgba(0,0,0,0.08);
     }
 
-    details[open] summary::after {
-      content: " ▲";
+    .hidden { display: none !important; }
+
+    .declaration-modal {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.65);
+      z-index: 9999;
+      align-items: flex-start;
+      justify-content: center;
+      padding: 30px 16px;
+      overflow-y: auto;
     }
 
-    .details-body {
-      margin-top: 14px;
+    .declaration-modal.is-open { display: flex; }
+
+    .declaration-box {
+      background: #fff;
+      color: #222;
+      width: 100%;
+      max-width: 680px;
+      border-radius: 14px;
+      padding: 22px;
+      box-shadow: 0 10px 35px rgba(0,0,0,0.25);
+    }
+
+    .declaration-box label {
+      display: block;
+      font-weight: 700;
+      margin-top: 12px;
+      margin-bottom: 6px;
+    }
+
+    .declaration-box input,
+    .declaration-box select,
+    .declaration-box textarea {
+      width: 100%;
+      box-sizing: border-box;
+      padding: 11px;
+      border: 1px solid #ccc;
+      border-radius: 10px;
+      font-size: 15px;
+    }
+
+    .declaration-box textarea { min-height: 90px; }
+
+    .declaration-actions {
+      display: flex;
+      gap: 10px;
+      margin-top: 16px;
+      position: sticky;
+      bottom: 0;
+      background: #fff;
+      padding-top: 12px;
+      border-top: 1px solid #e5e7eb;
+      flex-wrap: wrap;
+    }
+
+    hr {
+      border: none;
+      border-top: 1px solid #e5e7eb;
+      margin: 20px 0 12px;
     }
 
     body.dark-mode {
-  background: #111827;
-  color: #f9fafb;
-}
+      background: #111827;
+      color: #f9fafb;
+    }
 
-body.dark-mode .card,
-body.dark-mode .panel {
-  background: #1f2937;
-  color: #f9fafb;
-}
+    body.dark-mode .card,
+    body.dark-mode .declaration-box {
+      background: #1f2937;
+      color: #f9fafb;
+    }
 
-body.dark-mode .button.secondary {
-  background: #374151;
-}
+    body.dark-mode .small { color: #d1d5db; }
+    body.dark-mode .button.secondary { background: #374151; }
 
-.internal-move-content {
-  background: #dbeafe;
-  border-bottom: 2px solid #2563eb;
-  padding: 0 2px;
-}
+    body.dark-mode textarea,
+    body.dark-mode input,
+    body.dark-mode select,
+    body.dark-mode .declaration-box input,
+    body.dark-mode .declaration-box select,
+    body.dark-mode .declaration-box textarea {
+      background: #111827;
+      color: #f9fafb;
+      border-color: #374151;
+    }
 
-
+    body.dark-mode .declaration-actions { background: #1f2937; }
   </style>
-
 </head>
 <body>
   <main class="container">
-
     <div class="card">
       <h1><%= assignment.title %></h1>
       <p class="small">
@@ -326,7 +296,15 @@ body.dark-mode .button.secondary {
             <li>insert supporting materials that are not fully your own writing</li>
           </ul>
           <div class="warning-box">
-            Highlighted yellow = pasted content.
+            <strong>Evidence colour guide:</strong>
+            <div class="legend-grid">
+              <div class="legend-item pasted-content">Yellow = external paste / research notes</div>
+              <div class="legend-item internal-move-content">Blue = internal paste / moved from own document</div>
+              <div class="legend-item ai-modified-content">Red = AI modified or rewrote student text</div>
+              <div class="legend-item ai-generated-content">Pink = AI generated new text</div>
+              <div class="legend-item citation-marker">Green = in-text citation</div>
+              <div class="legend-item bibliography-entry">Green side bar = bibliography/reference entry</div>
+            </div>
           </div>
         </div>
       </details>
@@ -334,569 +312,123 @@ body.dark-mode .button.secondary {
 
     <div class="card">
       <div class="small">
-        Status: <span id="status" class="status">Loading…</span> |
+        Status: <span id="save-status" class="status">Loading…</span> |
+        Time: <span id="session-time">00:00</span> |
         Words: <span id="word-count">0</span>
       </div>
 
       <p class="small" style="margin-top:10px;">
-        You can type, paste, drag in images, save drafts, and submit when ready.
+        You can type, paste, save drafts, declare sources, reference material, and submit when ready.
       </p>
 
       <textarea id="editor"><%- latestContent || "" %></textarea>
 
-      <div style="margin-top: 16px;">
+      <div class="editor-actions">
         <button class="button" id="save-btn" type="button">Save</button>
         <button class="button warning" id="declare-btn" type="button">Declare</button>
-        <button class="button" id="submit-btn" type="button">Submit</button>
-        <button class="button secondary" id="dark-mode-btn" type="button">
-  Dark Mode
-</button>
+        <button class="button secondary" id="reference-btn" type="button">Reference / Cite Material</button>
+        <button class="button success" id="submit-btn" type="button">Submit</button>
+        <button class="button secondary" id="dark-mode-btn" type="button">Dark Mode</button>
       </div>
     </div>
-
   </main>
 
-  <div id="modal" class="modal">
-    <div class="modal-box">
-      <h3>Declare Use</h3>
+  <div id="declaration-modal" class="declaration-modal" aria-hidden="true">
+    <div class="declaration-box">
+      <h2 id="declaration-title">Declaration Required</h2>
+      <p id="declaration-help" class="small">
+        Explain where the material came from and how you used it.
+      </p>
 
-      <label for="type">Declaration type</label>
-      <select id="type">
-        <option value="pasted_research">Pasted research / notes</option>
-        <option value="ai_generated">AI generated</option>
-        <option value="ai_modified">AI modified my writing</option>
-        <option value="other">Other</option>
-      </select>
+      <form id="declaration-form">
+        <label for="declaration-type">Declaration type</label>
+        <select id="declaration-type" required>
+          <option value="">Select type</option>
+          <option value="pasted_research">Pasted research / notes</option>
+          <option value="internal_move">Moved within my own document</option>
+          <option value="ai_generated">AI generated</option>
+          <option value="ai_modified">AI modified my writing</option>
+          <option value="manual_declaration">Manual declaration</option>
+          <option value="other">Other</option>
+        </select>
 
-      <label for="tool-name">Tool / source</label>
-      <input id="tool-name" type="text" placeholder="e.g. ChatGPT, textbook, website notes" />
+        <label for="tool-name">Tool / Source</label>
+        <input id="tool-name" type="text" placeholder="e.g. ChatGPT, textbook, website notes" />
 
-      <label for="prompt-text">Prompt / source detail</label>
-      <textarea id="prompt-text" placeholder="What did you ask or where did the material come from?"></textarea>
+        <div id="ai-fields" class="hidden">
+          <label for="prompt-text">Prompt used</label>
+          <textarea id="prompt-text" placeholder="What did you ask the AI tool?"></textarea>
+        </div>
 
-      <label for="original-text-excerpt">Excerpt</label>
-      <textarea id="original-text-excerpt" placeholder="Paste a short excerpt or summary"></textarea>
+        <label for="pasted-preview">Original text / excerpt</label>
+        <textarea id="pasted-preview" placeholder="Auto-filled when pasted or selected"></textarea>
 
-      <label for="citation-style">Referencing style</label>
-<select id="citation-style">
-  <option value="apa7">APA 7th</option>
-  <option value="harvard">Harvard</option>
-  <option value="mla9">MLA 9</option>
-</select>
+        <label for="student-explanation">How did you use it?</label>
+        <textarea id="student-explanation" placeholder="Explain what you changed, summarised, copied, quoted, or used."></textarea>
 
-<label for="source-type">Source type</label>
-<select id="source-type">
-  <option value="website">Website</option>
-  <option value="book">Book / Textbook</option>
-  <option value="ai">AI Tool</option>
-  <option value="class_notes">Class notes / teacher resource</option>
-  <option value="other">Other</option>
-</select>
+        <hr>
 
-<label for="source-author">Author / organisation</label>
-<input id="source-author" type="text" placeholder="e.g. Australian Bureau of Statistics" />
+        <h3>Reference Details</h3>
 
-<label for="source-year">Year</label>
-<input id="source-year" type="text" placeholder="e.g. 2026" />
+        <label for="citation-style">Citation style</label>
+        <select id="citation-style">
+          <option value="apa7">APA 7</option>
+        </select>
 
-<label for="source-title">Title</label>
-<input id="source-title" type="text" placeholder="Title of page, book, article, or resource" />
+        <label for="source-type">Source type</label>
+        <select id="source-type">
+          <option value="">Select source type</option>
+          <option value="website">Website</option>
+          <option value="book">Book</option>
+          <option value="article">Article</option>
+          <option value="ai">AI tool</option>
+          <option value="video">Video</option>
+        </select>
 
-<label for="source-publisher">Website / publisher</label>
-<input id="source-publisher" type="text" placeholder="e.g. ABS, Oxford University Press" />
+        <label for="source-author">Author / Organisation</label>
+        <input id="source-author" type="text" />
 
-<label for="source-url">URL</label>
-<input id="source-url" type="text" placeholder="https://..." />
+        <label for="source-year">Year</label>
+        <input id="source-year" type="text" />
 
-<label for="accessed-date">Accessed date</label>
-<input id="accessed-date" type="date" />
-      
-      
-      <label for="explain">How did you use it?</label>
-      <textarea id="explain" placeholder="Explain what you changed or used"></textarea>
+        <label for="source-title">Title</label>
+        <input id="source-title" type="text" />
 
-      <div class="modal-actions">
-  <button class="button" id="save-declaration-btn" type="button">Save Declaration</button>
-  <button class="button secondary" id="cancel-declaration-btn" type="button">Cancel</button>
-</div>
-      <button class="button secondary" id="cancel-declaration-btn" type="button">Cancel</button>
+        <label for="source-publisher">Publisher / Website Name</label>
+        <input id="source-publisher" type="text" />
+
+        <label for="source-url">URL</label>
+        <input id="source-url" type="text" />
+
+        <label for="accessed-date">Accessed date</label>
+        <input id="accessed-date" type="date" />
+
+        <button class="button secondary" id="generate-reference-btn" type="button">Generate Reference + Add to Work</button>
+        <p class="small">This adds the in-text citation at the cursor/selected text and adds the bibliography entry to the References section at the bottom of the work.</p>
+
+        <label for="in-text-citation">In-text citation</label>
+        <input id="in-text-citation" type="text" />
+
+        <label for="bibliography-entry">Reference list entry</label>
+        <textarea id="bibliography-entry"></textarea>
+
+        <div class="declaration-actions">
+          <button class="button" id="save-declaration-btn" type="submit">Save Declaration</button>
+          <button class="button secondary" id="cancel-declaration-btn" type="button">Cancel</button>
+        </div>
+      </form>
     </div>
-    <button class="button secondary" id="grammar-btn" type="button">
-  Check Spelling & Grammar
-</button>
   </div>
-  
 
+  <script>
+    window.APP_DATA = {
+      submissionId: <%- JSON.stringify(submission.id) %>,
+      initialContent: <%- JSON.stringify(latestContent || "") %>,
+      requireDeclaration: <%- JSON.stringify(Boolean(assignment.require_declaration)) %>,
+      yearLevel: <%- JSON.stringify(student.year_level || student.yearLevel || "") %>
+    };
+  </script>
   <script src="/vendor/tinymce/tinymce.min.js"></script>
-
-<script>
-  const submissionId = <%= submission.id %>;
-let sessionId = null;
-
-window.addEventListener("load", async () => {
-  try {
-    const res = await postJson("/api/session/start", {
-      submissionId
-    });
-
-    console.log("SESSION RESPONSE:", res);
-
-    if (res.ok && res.sessionId) {
-      sessionId = res.sessionId;
-      console.log("Session started:", sessionId);
-    } else {
-      console.error("Session failed:", res);
-    }
-  } catch (err) {
-    console.error("Session error:", err);
-  }
-});
-  
-
-  let saveTimer = null;
-
-  const statusEl = document.getElementById("status");
-  const wordCountEl = document.getElementById("wordCount");
-
-  function editorInstance() {
-    return tinymce.get("editor");
-  }
-
-  function escapeHtml(str) {
-    return String(str || "")
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;");
-  }
-
-  async function postJson(url, data) {
-    const res = await fetch(url, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(data)
-    });
-
-    return res.json();
-  }
-
-  function updateWordCount() {
-    const ed = editorInstance();
-    if (!ed) return;
-
-    const text = ed.getContent({ format: "text" }).trim();
-    const words = text ? text.split(/\s+/).length : 0;
-
-    if (wordCountEl) {
-      wordCountEl.textContent = words;
-    }
-  }
-
-  async function startSession() {
-    const result = await postJson("/api/session/start", {
-      submissionId,
-      deviceInfo: navigator.userAgent
-    });
-
-    if (result.ok) {
-      sessionId = result.sessionId;
-      statusEl.textContent = "Ready";
-    } else {
-      statusEl.textContent = "Session error";
-    }
-  }
-
-  async function endSession() {
-    if (!sessionId) return;
-
-    await postJson("/api/session/end", {
-      sessionId,
-      activeSeconds: 0,
-      idleSeconds: 0
-    });
-  }
-
-  async function logEvent(eventType, eventMeta = {}) {
-    if (!sessionId) return;
-
-    await postJson("/api/event", {
-      submissionId,
-      sessionId,
-      eventType,
-      eventMeta
-    });
-  }
-
-  async function saveDraft() {
-    const ed = editorInstance();
-    if (!ed || !sessionId) return;
-
-    statusEl.textContent = "Saving...";
-
-    const content = ed.getContent();
-    const text = ed.getContent({ format: "text" }).trim();
-    const wordCount = text ? text.split(/\s+/).length : 0;
-
-    const result = await postJson("/api/draft/autosave", {
-      submissionId,
-      sessionId,
-      content,
-      wordCount
-    });
-
-    statusEl.textContent = result.ok ? "Saved" : "Save failed";
-  }
-
-  function debounceSave() {
-    clearTimeout(saveTimer);
-    saveTimer = setTimeout(saveDraft, 1500);
-  }
-
-  async function submitWork() {
-    const ed = editorInstance();
-    if (!ed) return;
-
-    await saveDraft();
-
-    const result = await postJson("/api/submit", {
-      submissionId,
-      finalText: ed.getContent()
-    });
-
-    if (result.ok) {
-      alert("Work submitted");
-      window.location.href = "/student/dashboard";
-    } else {
-      alert("Submit failed");
-    }
-  }
-
-  function openDeclaration(data = {}) {
-  const modal = document.getElementById("declaration-modal");
-  if (!modal) {
-    alert("Declaration form is missing from the page.");
-    return;
-  }
-
-  const type = data.type || "manual_declaration";
-  const typeEl = document.getElementById("type");
-
-  typeEl.value = type;
-
-  document.getElementById("tool-name").value = data.toolName || "";
-  document.getElementById("explain").value = data.explain || "";
-  document.getElementById("original-text-excerpt").value = data.originalTextExcerpt || "";
-
-
-
-  modal.style.display = "flex";
-}
-
-function closeDeclaration() {
-  const modal = document.getElementById("declaration-modal");
-  if (modal) modal.style.display = "none";
-}
-
-function updateDeclarationUI() {
-  const type = document.getElementById("type")?.value;
-  const internalGroup = document.getElementById("internal-reason-group");
-  const title = document.getElementById("declaration-title");
-  const help = document.getElementById("declaration-help");
-
-  if (internalGroup) {
-    internalGroup.style.display = type === "internal_move" ? "block" : "none";
-  }
-
-  if (type === "internal_move") {
-    title.textContent = "Internal Move Declaration";
-    help.textContent = "This looks like text moved or copied within your own document. Choose why you moved it.";
-  } else if (type === "pasted_research") {
-    title.textContent = "External Paste Declaration";
-    help.textContent = "Explain where this pasted content came from and how you used it.";
-  } else if (type === "ai_assistance") {
-    title.textContent = "AI Assistance Declaration";
-    help.textContent = "Explain what AI tool you used and what it helped with.";
-  } else {
-    title.textContent = "Manual Declaration";
-    help.textContent = "Record anything important about how you created this work.";
-  }
-}
-
-async function saveDeclaration() {
-  console.log("Save declaration clicked");
-
-  if (!sessionId) {
-    console.warn("No sessionId yet");
-    alert("Session is still loading. Please wait a moment and try again.");
-    return;
-  }
-
-  const payload = {
-    submissionId,
-    sessionId,
-    declarationType: document.getElementById("type")?.value || "manual_declaration",
-    toolName: document.getElementById("tool-name")?.value || "",
-    promptText: "",
-    originalTextExcerpt: document.getElementById("original-text-excerpt")?.value || "",
-    studentExplanation: document.getElementById("explain")?.value || "",
-
-    citationStyle: "",
-    sourceType: "",
-    sourceAuthor: "",
-    sourceYear: "",
-    sourceTitle: "",
-    sourcePublisher: "",
-    sourceUrl: "",
-    accessedDate: "",
-    inTextCitation: "",
-    bibliographyEntry: ""
-  };
-
-  console.log("Declaration payload:", payload);
-
-  try {
-    const result = await postJson("/api/declaration", payload);
-
-    console.log("Declaration result:", result);
-
-    if (result.ok) {
-      closeDeclaration();
-      statusEl.textContent = "Declaration saved";
-      await saveDraft();
-    } else {
-      alert(result.error || "Failed to save declaration");
-    }
-  } catch (err) {
-    console.error("Declaration save error:", err);
-    alert("Declaration save failed. Check console and Render logs.");
-  }
-}
-
-  function applyDarkMode(enabled) {
-    document.body.classList.toggle("dark-mode", enabled);
-    localStorage.setItem("studentEvidenceDarkMode", enabled ? "1" : "0");
-
-    const ed = editorInstance();
-    if (ed) {
-      ed.getBody().style.background = enabled ? "#111827" : "#ffffff";
-      ed.getBody().style.color = enabled ? "#f9fafb" : "#111827";
-    }
-  }
-
-  tinymce.init({
-    selector: "#editor",
-    license_key: "gpl",
-    height: 560,
-    menubar: false,
-    branding: false,
-    browser_spellcheck: true,
-    contextmenu: false,
-
-    plugins: "lists link image table code wordcount",
-
-    toolbar:
-      "undo redo | blocks fontfamily fontsize | bold italic underline | alignleft aligncenter alignright | bullist numlist | outdent indent | image table | code",
-
-    font_size_formats:
-      "10pt 11pt 12pt 14pt 16pt 18pt 20pt 24pt 28pt 32pt",
-
-    content_style: `
-      body {
-        font-family: Arial, sans-serif;
-        font-size: 16px;
-      }
-
-      .pasted-content {
-        background: #fff3b0;
-        border-bottom: 2px solid #f59e0b;
-        padding: 0 2px;
-      }
-
-    .internal-move-content {
-  background: #dbeafe;
-  border-bottom: 2px solid #2563eb;
-  padding: 0 2px;
-}
-
-      img {
-        max-width: 100%;
-        height: auto;
-      }
-    `,
-
-    setup: (editor) => {
-     editor.on("paste", async (e) => {
-  e.preventDefault();
-
-  const pastedText =
-    (e.clipboardData && e.clipboardData.getData("text/plain")) || "";
-
-  const currentText = editor.getContent({ format: "text" });
-
-  const likelyInternalMove =
-    pastedText.length > 20 && currentText.includes(pastedText);
-
-  const spanClass = likelyInternalMove
-    ? "internal-move-content"
-    : "pasted-content";
-
-  const html =
-    `<span class="${spanClass}" data-pasted="true">${escapeHtml(pastedText).replace(/\n/g, "<br>")}</span>`;
-
-  editor.insertContent(html);
-
-  if (likelyInternalMove) {
-    await logEvent("internal_paste", {
-      pastedLength: pastedText.length,
-      pastedPreview: pastedText.slice(0, 120)
-    });
-
-    openDeclaration({
-      type: "internal_move",
-      toolName: "Own document",
-      originalTextExcerpt: pastedText.slice(0, 500)
-    });
-
-    statusEl.textContent = "Internal move declaration opened";
-  } else {
-    await logEvent("external_paste", {
-      pastedLength: pastedText.length,
-      pastedPreview: pastedText.slice(0, 120)
-    });
-
-    openDeclaration({
-      type: "pasted_research",
-      originalTextExcerpt: pastedText.slice(0, 500)
-    });
-
-    statusEl.textContent = "External paste declaration opened";
-  }
-
-  updateWordCount();
-  debounceSave();
-});
-
-      editor.on("cut", async () => {
-        const selected = editor.selection.getContent({ format: "text" });
-
-        await logEvent("cut", {
-          selectedLength: selected.length,
-          selectedPreview: selected.slice(0, 120)
-        });
-      });
-
-      editor.on("copy", async () => {
-        const selected = editor.selection.getContent({ format: "text" });
-
-        await logEvent("copy", {
-          selectedLength: selected.length,
-          selectedPreview: selected.slice(0, 120)
-        });
-      });
-
-      
-
-      editor.on("drop", async () => {
-        await logEvent("move_or_drop", {
-          note: "Text, image, or content may have been moved/dropped in the document."
-        });
-      });
-    }
-  });
-
-  document.getElementById("save-btn")?.addEventListener("click", saveDraft);
-  document.getElementById("submit-btn")?.addEventListener("click", submitWork);
-  document.getElementById("type")?.addEventListener("change", updateDeclarationUI);
-  document.getElementById("dark-mode-btn")?.addEventListener("click", () => {
-    const enabled = !document.body.classList.contains("dark-mode");
-    applyDarkMode(enabled);
-  });
-
-  window.addEventListener("beforeunload", () => {
-    endSession();
-  });
-
-  document.addEventListener("click", async (e) => {
-  if (e.target && e.target.id === "save-declaration-btn") {
-    e.preventDefault();
-    await saveDeclaration();
-  }
-
-  if (e.target && e.target.id === "cancel-declaration-btn") {
-    e.preventDefault();
-    closeDeclaration();
-  }
-
-  if (e.target && e.target.id === "declare-btn") {
-    e.preventDefault();
-    openDeclaration({
-      type: "manual_declaration",
-      originalTextExcerpt: ""
-    });
-  }
-});
-
-</script>
-
-<!-- DECLARATION MODAL -->
-<div id="declaration-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:9999; align-items:center; justify-content:center;">
-  
-  <div style="background:#fff; padding:20px; width:500px; border-radius:10px;">
-
-    <h2>Declaration Required</h2>
-
-    <label>Type</label>
-    <select id="type" style="width:100%; margin-bottom:10px;">
-      <option value="pasted_research">Pasted from research</option>
-      <option value="ai_assistance">AI assistance</option>
-      <option value="manual_declaration">Manual declaration</option>
-    </select>
-
-    <label>Tool / Source (if AI or website)</label>
-    <input id="tool-name" style="width:100%; margin-bottom:10px;" />
-
-    <label>Explain how you used it</label>
-    <textarea id="explain" style="width:100%; height:80px; margin-bottom:10px;"></textarea>
-
-    <label>Original text (auto-filled for paste)</label>
-    <textarea id="original-text-excerpt" style="width:100%; height:80px;"></textarea>
-
-    <div style="margin-top:15px; display:flex; gap:10px;">
-      <button id="save-declaration-btn" class="button primary" type="button">Save</button>
-      <button id="cancel-declaration-btn" class="button secondary" type="button">Cancel</button>
-    </div>
-
-  </div>
-</div>
-
-<!-- DECLARATION MODAL -->
-<div id="declaration-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:9999; align-items:center; justify-content:center;">
-  <div style="background:#fff; padding:20px; width:500px; border-radius:10px;">
-    <h2>Declaration Required</h2>
-
-    <label>Type</label>
-    <select id="type" style="width:100%; margin-bottom:10px;">
-      <option value="pasted_research">Pasted from research</option>
-      <option value="internal_move">Moved within my own document</option>
-      <option value="ai_assistance">AI assistance</option>
-      <option value="manual_declaration">Manual declaration</option>
-    </select>
-
-    <label>Tool / Source</label>
-    <input id="tool-name" style="width:100%; margin-bottom:10px;" />
-
-    <label>Explain how you used it</label>
-    <textarea id="explain" style="width:100%; height:80px; margin-bottom:10px;"></textarea>
-
-    <label>Original text / excerpt</label>
-    <textarea id="original-text-excerpt" style="width:100%; height:80px;"></textarea>
-
-    <div style="margin-top:15px; display:flex; gap:10px;">
-      <button id="save-declaration-btn" class="button primary" type="button">Save</button>
-      <button id="cancel-declaration-btn" class="button secondary" type="button">Cancel</button>
-    </div>
-  </div>
-</div>
-
-
+  <script src="/js/writing-editor.js"></script>
 </body>
 </html>
