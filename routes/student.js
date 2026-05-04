@@ -16,6 +16,71 @@ function normalizeRow(row, keys = []) {
   return obj;
 }
 
+function stripHtml(html = "") {
+  return String(html)
+    .replace(/<[^>]*>/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function estimateComposition({ events = [], declarations = [], finalText = "" }) {
+  const cleanText = stripHtml(finalText);
+  const totalChars = cleanText.length || 1;
+
+  const pasteEvents = events.filter((e) =>
+    ["paste", "external_paste", "internal_paste", "internal_move_paste"].includes(e.event_type)
+  );
+
+  let pastedChars = 0;
+
+  pasteEvents.forEach((event) => {
+    try {
+      const meta = JSON.parse(event.event_meta || "{}");
+      pastedChars += Number(meta.pastedLength || meta.length || 0);
+    } catch {
+      pastedChars += 0;
+    }
+  });
+
+  const aiDeclarations = declarations.filter((d) =>
+    String(d.declaration_type || "").toLowerCase().includes("ai")
+  );
+
+  const pastePercent = Math.min(100, Math.round((pastedChars / totalChars) * 100));
+  const aiDeclaredPercent = aiDeclarations.length
+    ? Math.min(100, Math.round(aiDeclarations.length * 10))
+    : 0;
+
+  const ownWorkPercent = Math.max(0, 100 - pastePercent - aiDeclaredPercent);
+
+  return {
+    own_work_percent: ownWorkPercent,
+    paste_percent: pastePercent,
+    ai_declared_percent: aiDeclaredPercent,
+    confidence: events.length || declarations.length ? "Medium" : "Low"
+  };
+}
+
+function applyEvidenceHighlights(html, events = [], declarations = []) {
+  const output = html || "";
+
+  const pasteEvents = events.filter((e) =>
+    ["paste", "external_paste"].includes(e.event_type)
+  );
+
+  if (!pasteEvents.length) return output;
+
+  if (output.includes("data-pasted") || output.includes("pasted-content")) {
+    return output;
+  }
+
+  return `
+    <div class="pasted-content" data-pasted="true">
+      ${output}
+    </div>
+  `;
+}
+
 /* CHANGE PIN PAGE */
 router.get("/change-pin", requireStudent, async (req, res) => {
   try {
@@ -296,15 +361,78 @@ router.get("/assignment/:id", requireStudent, async (req, res) => {
       "saved_at"
     ]);
 
-    res.render("writing", {
-      student: {
-        ...student,
-        class_name: studentRecord.class_name
-      },
-      assignment,
-      submission,
-      latestContent: latestDraft.content || submission.final_text || ""
-    });
+    const eventsResult = await db.execute({
+  sql: `
+    SELECT event_type, event_meta, created_at
+    FROM editor_events
+    WHERE submission_id = ?
+    ORDER BY created_at ASC
+  `,
+  args: [submission.id]
+});
+
+const events = (eventsResult.rows || []).map((row) =>
+  normalizeRow(row, ["event_type", "event_meta", "created_at"])
+);
+
+const baseContent = latestDraft.content || submission.final_text || "";
+
+const hasPasteEvents = events.some((event) =>
+  ["paste", "external_paste", "internal_paste", "internal_move_paste"].includes(event.event_type)
+);
+
+let renderedHtml = baseContent;
+
+if (
+  hasPasteEvents &&
+  !baseContent.includes("pasted-content") &&
+  !baseContent.includes("data-pasted")
+) {
+  renderedHtml = `
+    <div class="pasted-content" data-pasted="true">
+      ${baseContent}
+    </div>
+  `;
+}
+
+const declarationsResult = await db.execute({
+  sql: `
+    SELECT declaration_type, original_text_excerpt, student_explanation
+    FROM source_declarations
+    WHERE submission_id = ?
+    ORDER BY created_at ASC
+  `,
+  args: [submission.id]
+});
+
+const declarations = (declarationsResult.rows || []).map((row) =>
+  normalizeRow(row, [
+    "declaration_type",
+    "original_text_excerpt",
+    "student_explanation"
+  ])
+);
+
+
+const composition = estimateComposition({
+  events,
+  declarations,
+  finalText: baseContent
+});
+
+res.render("writing", {
+  student: {
+    ...student,
+    class_name: studentRecord.class_name
+  },
+  assignment,
+  submission: {
+    ...submission,
+    renderedHtml
+  },
+  latestContent: renderedHtml,
+  composition
+});
   } catch (err) {
     console.error("GET /student/assignment/:id error:", err);
     res.status(500).send(`Failed to load assignment: ${err.message}`);

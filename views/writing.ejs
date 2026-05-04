@@ -23,6 +23,79 @@
       box-shadow: 0 4px 18px rgba(15, 23, 42, 0.06);
     }
 
+    .evidence-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 12px;
+    }
+
+    .evidence-pill {
+      padding: 10px 12px;
+      border-radius: 10px;
+      border: 1px solid #e5e7eb;
+      font-weight: 700;
+    }
+
+    .pasted-content {
+      background: #fff3b0;
+      border-bottom: 2px solid #f59e0b;
+      padding: 1px 3px;
+      border-radius: 4px;
+    }
+
+    .declared-content {
+      background: #dcfce7;
+      border-bottom: 2px solid #16a34a;
+      padding: 1px 3px;
+      border-radius: 4px;
+    }
+
+    .ai-content {
+      background: #fee2e2;
+      border-bottom: 2px solid #dc2626;
+      padding: 1px 3px;
+      border-radius: 4px;
+    }
+
+    .citation-marker {
+      background: #dcfce7;
+      border: 1px solid #16a34a;
+      border-radius: 4px;
+      padding: 0 3px;
+      font-weight: 700;
+    }
+
+    .composition-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 12px;
+      margin-top: 12px;
+    }
+
+    .composition-box {
+      border: 1px solid #e5e7eb;
+      border-radius: 14px;
+      padding: 14px;
+      background: #f9fafb;
+      text-align: center;
+    }
+
+    .composition-box strong {
+      display: block;
+      font-size: 1.6rem;
+      margin-bottom: 4px;
+    }
+
+    #riskIndicator {
+      padding: 10px 14px;
+      color: #ffffff;
+      border-radius: 10px;
+      display: inline-block;
+      font-weight: 700;
+      margin-top: 14px;
+      background: #16a34a;
+    }
+
     .editor-actions {
       margin-top: 18px;
       display: flex;
@@ -79,6 +152,16 @@
       gap: 10px;
       margin-top: 18px;
     }
+
+    .footer {
+      margin-top: 40px;
+      padding: 20px;
+      text-align: center;
+      font-size: 13px;
+      color: #6b7280;
+      border-top: 1px solid #e5e7eb;
+      background: #f9fafb;
+    }
   </style>
 </head>
 
@@ -91,6 +174,45 @@
         <%= student.class_name %>
       </p>
       <a class="button secondary" href="/student/dashboard">Back to dashboard</a>
+    </section>
+
+    <section class="writing-card">
+      <h2>Student Writing Evidence</h2>
+
+      <div class="evidence-grid">
+        <div class="evidence-pill pasted-content">External pasted text</div>
+        <div class="evidence-pill declared-content">Declared material</div>
+        <div class="evidence-pill ai-content">AI generated / modified</div>
+        <div class="evidence-pill citation-marker">Citation / bibliography</div>
+      </div>
+    </section>
+
+    <section class="writing-card">
+      <h2>Composition</h2>
+
+      <div class="small">
+        Status: <span id="save-status">Loading...</span> |
+        Words: <span id="word-count">0</span>
+      </div>
+
+      <div class="composition-grid">
+        <div class="composition-box">
+          <strong id="ownPercent">0%</strong>
+          Own work
+        </div>
+
+        <div class="composition-box">
+          <strong id="pastePercent">0%</strong>
+          Paste
+        </div>
+
+        <div class="composition-box">
+          <strong id="declaredPercent">0%</strong>
+          Declared
+        </div>
+      </div>
+
+      <div id="riskIndicator">Risk: Low</div>
     </section>
 
     <section class="writing-card">
@@ -165,35 +287,30 @@
   </div>
 
   <script>
-    window.APP_DATA = {
-      submissionId: <%- JSON.stringify(submission.id) %>,
-      initialContent: <%- JSON.stringify(latestContent || submission.final_text || "") %>
-    };
-  </script>
+  window.APP_DATA = {
+    submissionId: <%- JSON.stringify(submission.id) %>,
+    initialContent: <%- JSON.stringify(submission.renderedHtml || latestContent || submission.final_text || "") %>,
+    serverComposition: <%- JSON.stringify(typeof composition !== "undefined" ? composition : {
+      own_work_percent: 100,
+      paste_percent: 0,
+      ai_declared_percent: 0,
+      confidence: "Low"
+    }) %>
+  };
+</script>
 
   <script src="https://cdn.jsdelivr.net/npm/tinymce@6/tinymce.min.js"></script>
   <script src="/js/writing-editor.js"></script>
-  <footer style="
-  margin-top:40px;
-  padding:20px;
-  text-align:center;
-  font-size:13px;
-  color:#6b7280;
-  border-top:1px solid #e5e7eb;
-  background:#f9fafb;
-">
-  <div>
-    © <%= new Date().getFullYear() %> Trevor Elliott. All rights reserved.
-  </div>
 
-  <div style="margin-top:6px;">
-    Student Evidence App is a teacher-developed educational tool.  
-    Not for redistribution, resale, or commercial use without permission.
-  </div>
-
-  <div style="margin-top:6px;">
-    <a href="/about-compliance">Privacy, Compliance & Copyright</a>
-  </div>
-</footer>
+  <footer class="footer">
+    <div>© <%= new Date().getFullYear() %> Trevor Elliott. All rights reserved.</div>
+    <div style="margin-top:6px;">
+      Student Evidence App is a teacher-developed educational tool.
+      Not for redistribution, resale, or commercial use without permission.
+    </div>
+    <div style="margin-top:6px;">
+      <a href="/about-compliance">Privacy, Compliance & Copyright</a>
+    </div>
+  </footer>
 </body>
 </html>

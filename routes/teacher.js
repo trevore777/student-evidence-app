@@ -643,7 +643,7 @@ router.get("/submission/:id", requireTeacher, async (req, res) => {
       declarations
     });
 
-    const renderedHtml = applyEvidenceHighlights(
+   const renderedHtml = applyEvidenceHighlights(
   submission.final_text || "",
   events,
   declarations
