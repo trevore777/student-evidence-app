@@ -13,8 +13,6 @@ import classRoutes from "./routes/classes.js";
 import apiRoutes from "./routes/api.js";
 import uploadRoutes from "./routes/upload.js";
 import printRoutes from "./routes/print.js";
-import examRoutes from "./routes/exams.js";
-import studentExamRoutes from "./routes/student-exams.js";
 
 
 dotenv.config();
@@ -29,6 +27,10 @@ const uploadsDir = path.join(__dirname, "uploads");
 if (!fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir, { recursive: true });
 }
+
+app.get("/about-compliance", (req, res) => {
+  res.render("about-compliance");
+});
 
 /* VIEW ENGINE (MUST COME BEFORE ROUTES) */
 app.set("view engine", "ejs");
@@ -59,13 +61,13 @@ app.use("/teacher/classes", classRoutes);
 app.use("/teacher/print", printRoutes);
 app.use("/api", apiRoutes);
 app.use("/api/upload", uploadRoutes);
-app.use("/teacher/exams", examRoutes);
-app.use("/student/exams", studentExamRoutes);
+
 
 /* HEALTH */
 app.get("/health", (req, res) => {
   res.send("ok");
 });
+
 
 /* 404 */
 app.use((req, res) => {

@@ -22,24 +22,26 @@ function stripHtml(html = "") {
     .trim();
 }
 
-function formatDate(dt) {
-  if (!dt) return "";
+/* ADD IT HERE */
+function applyEvidenceHighlights(html, events = [], declarations = []) {
+  let output = html || "";
 
-  const date = new Date(dt);
+  const pasteEvents = events.filter((e) =>
+    ["paste", "external_paste"].includes(e.event_type)
+  );
 
-  const day = String(date.getDate()).padStart(2, "0");
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const year = date.getFullYear();
+  if (!pasteEvents.length) return output;
 
-  let hours = date.getHours();
-  const minutes = String(date.getMinutes()).padStart(2, "0");
+  if (output.includes("data-pasted") || output.includes("pasted-content")) {
+    return output;
+  }
 
-  const ampm = hours >= 12 ? "PM" : "AM";
-  hours = hours % 12 || 12;
-
-  return `${day}/${month}/${year} ${hours}:${minutes} ${ampm}`;
+  return `
+    <div class="evidence-paste pasted-content">
+      ${output}
+    </div>
+  `;
 }
-
 
 
 function estimateComposition({ events = [], declarations = [], finalText = "" }) {
@@ -63,7 +65,9 @@ function estimateComposition({ events = [], declarations = [], finalText = "" })
   );
 
   const pastePercent = Math.min(100, Math.round((pastedChars / totalChars) * 100));
-  const aiDeclaredPercent = aiDeclarations.length ? Math.min(100, Math.round(aiDeclarations.length * 10)) : 0;
+  const aiDeclaredPercent = aiDeclarations.length
+    ? Math.min(100, Math.round(aiDeclarations.length * 10))
+    : 0;
   const ownWorkPercent = Math.max(0, 100 - pastePercent - aiDeclaredPercent);
 
   return {
@@ -76,8 +80,7 @@ function estimateComposition({ events = [], declarations = [], finalText = "" })
 
 function computeFlags({ events = [], declarations = [] }) {
   const flags = [];
-
-  const pasteEvents = events.filter((e) => e.event_type === "paste");
+    const pasteEvents = events.filter((e) => e.event_type === "paste");
 
   if (pasteEvents.length >= 3) {
     flags.push({
@@ -127,8 +130,8 @@ function computeFlags({ events = [], declarations = [] }) {
 
 router.get("/dashboard", requireTeacher, async (req, res) => {
   try {
-    const teacher = req.signedCookies.user;
-    const selectedClassId = req.query.classId ? Number(req.query.classId) : null;
+    const user = req.signedCookies?.user;
+    const teacher = req.signedCookies?.user;
     const show = req.query.show || "all";
 
     const classesResult = await db.execute({
@@ -145,116 +148,148 @@ router.get("/dashboard", requireTeacher, async (req, res) => {
       normalizeRow(row, ["id", "class_name", "year_level", "join_code"])
     );
 
+    let selectedClassId = req.query.classId ? Number(req.query.classId) : null;
+
+    if (!Number.isFinite(selectedClassId)) {
+      selectedClassId = null;
+    }
+
     const selectedClass =
       classes.find((c) => Number(c.id) === Number(selectedClassId)) ||
       classes[0] ||
       null;
 
-    let assignments = [];
-    let submissions = [];
-    let exams = [];
+    selectedClassId = selectedClass ? Number(selectedClass.id) : null;
 
-    if (selectedClass) {
-      const assignmentsResult = await db.execute({
-        sql: `
-          SELECT
-            id,
-            title,
-            instructions,
-            class_name,
-            due_date,
-            word_target,
-            created_at
-          FROM assignments
-          WHERE teacher_id = ? AND class_id = ?
-          ORDER BY created_at DESC
-        `,
-        args: [teacher.id, selectedClass.id]
+    if (!selectedClassId) {
+      return res.render("teacher-dashboard", {
+        user,
+        teacher,
+        classes,
+        selectedClassId: null,
+        selectedClass: null,
+        assignments: [],
+        students: [],
+        submissions: [],
+        show
       });
-
-      assignments = (assignmentsResult.rows || []).map((row) =>
-        normalizeRow(row, [
-          "id",
-          "title",
-          "instructions",
-          "class_name",
-          "due_date",
-          "word_target",
-          "created_at"
-        ])
-      );
-
-      let submissionWhere = `
-        WHERE a.teacher_id = ?
-          AND a.class_id = ?
-      `;
-
-      const submissionArgs = [teacher.id, selectedClass.id];
-
-      if (show === "submitted") {
-        submissionWhere += ` AND sub.status = 'submitted'`;
-      }
-
-      if (show === "draft") {
-        submissionWhere += ` AND sub.status = 'draft'`;
-      }
-
-      const submissionsResult = await db.execute({
-        sql: `
-          SELECT
-            sub.id,
-            sub.status,
-            sub.submitted_at,
-            s.name AS student_name,
-            s.email AS student_email,
-            a.title AS assignment_title
-          FROM submissions sub
-          JOIN students s ON s.id = sub.student_id
-          JOIN assignments a ON a.id = sub.assignment_id
-          ${submissionWhere}
-          ORDER BY sub.submitted_at DESC, s.name ASC
-        `,
-        args: submissionArgs
-      });
-
-      submissions = (submissionsResult.rows || []).map((row) =>
-        normalizeRow(row, [
-          "id",
-          "status",
-          "submitted_at",
-          "student_name",
-          "student_email",
-          "assignment_title"
-        ])
-      );
-
-      const examsResult = await db.execute({
-        sql: `
-          SELECT id, title, created_at
-          FROM exams
-          WHERE teacher_id = ? AND class_id = ?
-          ORDER BY created_at DESC
-        `,
-        args: [teacher.id, selectedClass.id]
-      });
-
-      exams = (examsResult.rows || []).map((row) =>
-        normalizeRow(row, ["id", "title", "created_at"])
-      );
-      exams.forEach((exam) => {
-  exam.created_at_fmt = formatDate(exam.created_at);
-});
     }
 
+    const assignmentsResult = await db.execute({
+      sql: `
+        SELECT
+          id,
+          title,
+          instructions,
+          class_name,
+          due_date,
+          word_target,
+          created_at
+        FROM assignments
+        WHERE class_id = ?
+        ORDER BY created_at DESC
+      `,
+      args: [selectedClassId]
+    });
+
+    const assignments = (assignmentsResult.rows || []).map((row) =>
+      normalizeRow(row, [
+        "id",
+        "title",
+        "instructions",
+        "class_name",
+        "due_date",
+        "word_target",
+        "created_at"
+      ])
+    );
+
+    const studentsResult = await db.execute({
+      sql: `
+        SELECT id, name, email, class_id
+        FROM students
+        WHERE class_id = ?
+        ORDER BY name ASC
+      `,
+      args: [selectedClassId]
+    });
+
+    const students = (studentsResult.rows || []).map((row) =>
+      normalizeRow(row, ["id", "name", "email", "class_id"])
+    );
+
+    let submissionWhere = `
+      WHERE a.teacher_id = ?
+        AND a.class_id = ?
+    `;
+
+    const submissionArgs = [teacher.id, selectedClassId];
+
+    if (show === "submitted") {
+      submissionWhere += ` AND sub.status = 'submitted'`;
+    }
+
+    if (show === "draft") {
+      submissionWhere += ` AND sub.status = 'draft'`;
+    }
+
+    if (show === "flagged") {
+      submissionWhere += `
+        AND (
+          EXISTS (
+            SELECT 1
+            FROM editor_events ev
+            WHERE ev.submission_id = sub.id
+              AND ev.event_type IN ('paste', 'external_paste', 'internal_paste', 'internal_move_paste')
+          )
+          OR EXISTS (
+            SELECT 1
+            FROM source_declarations sd
+            WHERE sd.submission_id = sub.id
+          )
+        )
+      `;
+    }
+
+    const submissionsResult = await db.execute({
+  sql: `
+    SELECT
+      sub.id,
+      sub.status,
+      sub.submitted_at,
+      s.name AS student_name,
+      s.email AS student_email,
+      a.title AS assignment_title
+    FROM submissions sub
+    JOIN students s ON s.id = sub.student_id
+    JOIN assignments a ON a.id = sub.assignment_id
+    ${submissionWhere}
+    ORDER BY sub.submitted_at DESC, s.name ASC
+  `,
+  args: submissionArgs
+});
+
+const submissions = (submissionsResult.rows || []).map((row) =>
+  normalizeRow(row, [
+    "id",
+    "status",
+    "submitted_at",
+    "student_name",
+    "student_email",
+    "assignment_title"
+  ])
+);
+
     res.render("teacher-dashboard", {
+      user,
       teacher,
       classes,
+      selectedClassId,
       selectedClass,
       assignments,
+      students,
       submissions,
-      exams,
-      show,
-      welcome: req.query.welcome === "1"
+      show
     });
   } catch (err) {
     console.error("GET /teacher/dashboard error:", err);
@@ -262,11 +297,18 @@ router.get("/dashboard", requireTeacher, async (req, res) => {
   }
 });
 
+/* =========================
+   CLASS INSIGHTS
+========================= */
 
 router.get("/class/:classId/insights", requireTeacher, async (req, res) => {
   try {
-    const teacher = req.signedCookies.user;
+    const teacher = req.signedCookies?.user;
     const classId = Number(req.params.classId);
+
+    if (!Number.isFinite(classId)) {
+      return res.status(400).send("Invalid class ID");
+    }
 
     const classCheck = await db.execute({
       sql: `
@@ -383,15 +425,15 @@ router.get("/class/:classId/insights", requireTeacher, async (req, res) => {
 
       insights.push({
         teacherAction:
-  status === "needs_help"
-    ? "Check in during class."
-    : status === "at_risk"
-      ? "Review paste/declaration evidence."
-      : status === "no_work"
-        ? "Prompt student to begin."
-        : status === "excelling"
-          ? "Extension task recommended."
-          : "Monitor progress.",
+          status === "needs_help"
+            ? "Check in during class."
+            : status === "at_risk"
+              ? "Review paste/declaration evidence."
+              : status === "no_work"
+                ? "Prompt student to begin."
+                : status === "excelling"
+                  ? "Extension task recommended."
+                  : "Monitor progress.",
         student,
         submissionId: submission.id || null,
         assignmentTitle: submission.assignment_title || "—",
@@ -403,47 +445,41 @@ router.get("/class/:classId/insights", requireTeacher, async (req, res) => {
         lastActivity: events[0]?.created_at || submission.submitted_at || "",
         status,
         statusLabel
-        
       });
+    }
+
+    const priority = {
+      needs_help: 1,
+      at_risk: 2,
+      no_work: 3,
+      on_track: 4,
+      excelling: 5
     };
 
-// ---- SORT FIRST ----
-const priority = {
-  needs_help: 1,
-  at_risk: 2,
-  no_work: 3,
-  on_track: 4,
-  excelling: 5
-};
+    insights.sort((a, b) => {
+      return (priority[a.status] || 9) - (priority[b.status] || 9);
+    });
 
-insights.sort((a, b) => {
-  return (priority[a.status] || 9) - (priority[b.status] || 9);
-});
+    const summary = {
+      needs_help: insights.filter((i) => i.status === "needs_help").length,
+      at_risk: insights.filter((i) => i.status === "at_risk").length,
+      no_work: insights.filter((i) => i.status === "no_work").length,
+      on_track: insights.filter((i) => i.status === "on_track").length,
+      excelling: insights.filter((i) => i.status === "excelling").length,
+      total: insights.length
+    };
 
-// ---- THEN BUILD SUMMARY ----
-const summary = {
-  needs_help: insights.filter(i => i.status === "needs_help").length,
-  at_risk: insights.filter(i => i.status === "at_risk").length,
-  no_work: insights.filter(i => i.status === "no_work").length,
-  on_track: insights.filter(i => i.status === "on_track").length,
-  excelling: insights.filter(i => i.status === "excelling").length,
-  total: insights.length
-};
-
-// ---- THEN RENDER ----
-res.render("teacher-insights", {
-  teacher,
-  classRow,
-  insights,
-  summary
-});
-
+    res.render("teacher-insights", {
+      teacher,
+      classRow,
+      insights,
+      summary
+    });
   } catch (err) {
     console.error("Insights error:", err);
     res.status(500).send(`Failed to load class insights: ${err.message}`);
   }
 });
-
 
 /* =========================
    TEACHER SUBMISSION REVIEW
@@ -451,8 +487,12 @@ res.render("teacher-insights", {
 
 router.get("/submission/:id", requireTeacher, async (req, res) => {
   try {
-    const teacher = req.signedCookies.user;
+    const teacher = req.signedCookies?.user;
     const submissionId = Number(req.params.id);
+
+    if (!Number.isFinite(submissionId)) {
+      return res.status(400).send("Invalid submission ID");
+    }
 
     const submissionResult = await db.execute({
       sql: `
@@ -595,26 +635,32 @@ router.get("/submission/:id", requireTeacher, async (req, res) => {
     const composition = estimateComposition({
       events,
       declarations,
-      sessions,
       finalText: submission.final_text || ""
     });
 
     const flags = computeFlags({
       events,
-      declarations,
-      sessions,
-      finalText: submission.final_text || ""
+      declarations
     });
 
-    res.render("teacher-review", {
-      submission,
-      sessions,
-      events,
-      declarations,
-      snapshots,
-      flags,
-      composition
-    });
+    const renderedHtml = applyEvidenceHighlights(
+  submission.final_text || "",
+  events,
+  declarations
+);
+
+res.render("teacher-review", {
+  submission: {
+    ...submission,
+    renderedHtml
+  },
+  sessions,
+  events,
+  declarations,
+  snapshots,
+  flags,
+  composition
+});
   } catch (err) {
     console.error("GET /teacher/submission/:id error:", err);
     res.status(500).send(`Failed to load teacher review: ${err.message}`);

@@ -1,6 +1,6 @@
 import express from "express";
 import { db } from "../lib/db.js";
-import { hashPassword, comparePassword } from "../lib/auth.js";
+import { comparePassword } from "../lib/auth.js";
 
 const router = express.Router();
 
@@ -43,110 +43,6 @@ router.get("/login", async (req, res) => {
   }
 });
 
-/* SIGNUP PAGE */
-router.get("/signup", (req, res) => {
-  res.render("signup", {
-    error: null
-  });
-});
-
-/* CREATE TEACHER ACCOUNT */
-router.post("/signup", async (req, res) => {
-  try {
-    const body = req.body || {};
-    const { name, email, password, className } = body;
-
-    if (!name || !email || !password) {
-      return res.render("signup", {
-        error: "All fields are required"
-      });
-    }
-
-    const existing = await db.execute({
-      sql: `
-        SELECT id
-        FROM teachers
-        WHERE email = ?
-      `,
-      args: [email.trim()]
-    });
-
-    if (existing.rows.length > 0) {
-      return res.render("signup", {
-        error: "Email already exists"
-      });
-    }
-
-    const passwordHash = await hashPassword(password);
-
-    const teacherResult = await db.execute({
-      sql: `
-        INSERT INTO teachers (
-          name,
-          email,
-          password_hash,
-          plan,
-          subscription_status
-        )
-        VALUES (?, ?, ?, 'free', 'inactive')
-        RETURNING id
-      `,
-      args: [
-        name.trim(),
-        email.trim(),
-        passwordHash
-      ]
-    });
-
-    const teacherId =
-      teacherResult.rows?.[0]?.id ??
-      teacherResult.rows?.[0]?.[0];
-
-    const initialClassName = className?.trim() || "My First Class";
-    const joinCode = `CLASS-${teacherId}-${Math.floor(1000 + Math.random() * 9000)}`;
-
-    await db.execute({
-      sql: `
-        INSERT INTO classes (
-          teacher_id,
-          class_name,
-          year_level,
-          join_code
-        )
-        VALUES (?, ?, ?, ?)
-      `,
-      args: [
-        teacherId,
-        initialClassName,
-        "",
-        joinCode
-      ]
-    });
-
-    res.cookie(
-      "user",
-      {
-        id: teacherId,
-        name: name.trim(),
-        role: "teacher",
-        class_name: initialClassName,
-        plan: "free",
-        onboarding: true
-      },
-      {
-        signed: true,
-        httpOnly: true,
-        sameSite: "strict",
-        secure: true
-      }
-    );
-
-    res.redirect("/teacher/dashboard?welcome=1");
-  } catch (err) {
-    console.error("POST /signup error:", err);
-    res.status(500).send(`Failed to create account: ${err.message}`);
-  }
-});
 
 /* LOGIN SUBMIT */
 router.post("/login", async (req, res) => {

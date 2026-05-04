@@ -2,6 +2,8 @@ import express from "express";
 import { db } from "../lib/db.js";
 import { openai } from "../lib/openai.js";
 import { sanitizeRichText } from "../lib/sanitize.js";
+import OpenAI from "openai";
+
 
 const router = express.Router();
 
@@ -719,6 +721,239 @@ Rules:
     });
   }
 });
+function buildApaReference({
+  sourceAuthor,
+  sourceYear,
+  sourceTitle,
+  sourcePublisher,
+  sourceUrl,
+  accessedDate,
+  sourceType
+}) {
+  const author = sourceAuthor?.trim() || "Unknown author";
+  const year = sourceYear?.trim() || "n.d.";
+  const title = sourceTitle?.trim() || "Untitled source";
+  const publisher = sourcePublisher?.trim() || "";
+  const url = sourceUrl?.trim() || "";
 
+  const inTextCitation = `(${author}, ${year})`;
+
+  let bibliographyEntry = `${author}. (${year}). ${title}.`;
+
+  if (publisher) {
+    bibliographyEntry += ` ${publisher}.`;
+  }
+
+  if (url) {
+    bibliographyEntry += ` ${url}`;
+  }
+
+  if (sourceType === "website" && accessedDate) {
+    bibliographyEntry += ` Accessed ${accessedDate}.`;
+  }
+
+  return {
+    inTextCitation,
+    bibliographyEntry
+  };
+}
+
+router.post("/declarations", async (req, res) => {
+  try {
+    const user = req.signedCookies?.user;
+
+    if (!user) {
+      return res.status(401).send("Not logged in");
+    }
+
+    const {
+      submissionId,
+      pasteId,
+      pastedText,
+      declarationType,
+      citationStyle,
+      sourceType,
+      sourceAuthor,
+      sourceYear,
+      sourceTitle,
+      sourcePublisher,
+      sourceUrl,
+      accessedDate,
+      studentExplanation
+    } = req.body || {};
+
+    if (!submissionId) {
+      return res.status(400).send("Missing submissionId");
+    }
+
+    if (!declarationType) {
+      return res.status(400).send("Missing declaration type");
+    }
+
+    if (!studentExplanation || !studentExplanation.trim()) {
+      return res.status(400).send("Student explanation is required");
+    }
+
+    const citation = buildApaReference({
+      sourceAuthor,
+      sourceYear,
+      sourceTitle,
+      sourcePublisher,
+      sourceUrl,
+      accessedDate,
+      sourceType
+    });
+
+    await db.execute({
+      sql: `
+        INSERT INTO source_declarations (
+          submission_id,
+          declaration_type,
+          tool_name,
+          prompt_text,
+          original_text_excerpt,
+          student_explanation,
+          citation_style,
+          source_type,
+          source_author,
+          source_year,
+          source_title,
+          source_publisher,
+          source_url,
+          accessed_date,
+          in_text_citation,
+          bibliography_entry,
+          created_at
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
+      `,
+      args: [
+        Number(submissionId),
+        declarationType,
+        sourceType === "ai_tool" ? sourcePublisher || "AI tool" : "",
+        "",
+        pastedText || "",
+        studentExplanation,
+        citationStyle || "apa7",
+        sourceType || "",
+        sourceAuthor || "",
+        sourceYear || "",
+        sourceTitle || "",
+        sourcePublisher || "",
+        sourceUrl || "",
+        accessedDate || "",
+        citation.inTextCitation,
+        citation.bibliographyEntry
+      ]
+    });
+
+    res.json({
+      success: true,
+      pasteId,
+      inTextCitation: citation.inTextCitation,
+      bibliographyEntry: citation.bibliographyEntry
+    });
+  } catch (err) {
+    console.error("POST /api/declarations error:", err);
+    res.status(500).send(`Failed to save declaration: ${err.message}`);
+  }
+});
+
+router.post("/ai-feedback", async (req, res) => {
+  try {
+    const user = req.signedCookies?.user;
+
+    if (!user || user.role !== "teacher") {
+      return res.status(401).json({ error: "Teacher login required" });
+    }
+
+    const {
+      studentName,
+      assignmentTitle,
+      submissionText,
+      rubricText,
+      composition,
+      flags,
+      declarations
+    } = req.body || {};
+
+    if (!submissionText || !submissionText.trim()) {
+      return res.status(400).json({ error: "Missing student submission text" });
+    }
+
+    if (!rubricText || !rubricText.trim()) {
+      return res.status(400).json({ error: "Missing rubric / ISMG text" });
+    }
+
+    const prompt = `
+You are helping a teacher assess student work against a rubric or ISMG.
+
+Important rules:
+- Do NOT make the final teacher decision.
+- Do NOT accuse the student of misconduct.
+- Use student-friendly language.
+- Refer to evidence from the student's writing.
+- Assess against the rubric/ISMG only.
+- If evidence is limited, say so.
+- Suggested level/grade must be cautious and teacher-reviewable.
+
+Student name:
+${studentName || "Student"}
+
+Assignment:
+${assignmentTitle || "Assignment"}
+
+Rubric / ISMG:
+${rubricText}
+
+Student response:
+${submissionText}
+
+Evidence data:
+Composition estimate: ${JSON.stringify(composition || {})}
+Flags: ${JSON.stringify(flags || [])}
+Declarations: ${JSON.stringify(declarations || [])}
+
+Return JSON only with this exact structure:
+{
+  "suggestedLevel": "A/B/C/D/E or Not enough evidence",
+  "studentFriendlyFeedback": "120-180 words written directly to the student",
+  "strengths": ["strength 1", "strength 2", "strength 3"],
+  "nextSteps": ["next step 1", "next step 2", "next step 3"],
+  "rubricAlignment": [
+    {
+      "criterion": "criterion name",
+      "evidence": "what the student did",
+      "suggestedLevel": "level or descriptor"
+    }
+  ],
+  "teacherNotes": "brief notes for the teacher"
+}
+`;
+
+    const response = await openai.responses.create({
+      model: "gpt-5.4",
+      input: prompt,
+      text: {
+        format: {
+          type: "json_object"
+        }
+      }
+    });
+
+    const outputText = response.output_text || "{}";
+    const parsed = JSON.parse(outputText);
+
+    res.json({
+      ok: true,
+      ...parsed
+    });
+  } catch (err) {
+    console.error("POST /api/ai-feedback error:", err);
+    res.status(500).json({
+      error: err.message || "Failed to generate AI feedback"
+    });
+  }
+});
 
 export default router;

@@ -138,35 +138,8 @@
   <a href="/teacher/class/<%= selectedClass.id %>/insights" class="button">
     Class Insights
 </a>
-<a class="button" href="/teacher/exams/new">+ Create Exam</a>
-  <div class="card">
-  <div class="section-header">
-    <div>
-      <h2>Exam Evidence Mode</h2>
-      <p class="small">Create, manage, and review exam-style responses.</p>
-    </div>
+<a class="button secondary" href="/about-compliance">About / Compliance</a>
 
-    
-  </div>
-
-  <h3>Existing Exams</h3>
-
-  <% if (!exams || !exams.length) { %>
-    <p class="small">No exams created for this class yet.</p>
-  <% } else { %>
-    <div class="exam-grid">
-      <% exams.forEach(exam => { %>
-        <div class="exam-card">
-          <div>
-            <strong><%= exam.title %></strong>
-            <p class="small">Created: <%= exam.created_at_fmt || "—" %></p>
-          </div>
-
-          <a class="button small-button" href="/teacher/exams/<%= exam.id %>">Open</a>
-        </div>
-      <% }) %>
-    </div>
-  <% } %>
 </div>
 
     <div class="card">
@@ -247,5 +220,27 @@
       <% }) %>
     </div>
   </main>
+  <footer style="
+  margin-top:40px;
+  padding:20px;
+  text-align:center;
+  font-size:13px;
+  color:#6b7280;
+  border-top:1px solid #e5e7eb;
+  background:#f9fafb;
+">
+  <div>
+    © <%= new Date().getFullYear() %> Trevor Elliott. All rights reserved.
+  </div>
+
+  <div style="margin-top:6px;">
+    Student Evidence App is a teacher-developed educational tool.  
+    Not for redistribution, resale, or commercial use without permission.
+  </div>
+
+  <div style="margin-top:6px;">
+    <a href="/about-compliance">Privacy, Compliance & Copyright</a>
+  </div>
+</footer>
 </body>
 </html>

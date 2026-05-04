@@ -149,28 +149,6 @@ router.get("/dashboard", requireStudent, async (req, res) => {
       ])
     );
 
-    const examsResult = await db.execute({
-      sql: `
-        SELECT
-          id,
-          title,
-          instructions,
-          created_at
-        FROM exams
-        WHERE class_id = ?
-        ORDER BY created_at DESC
-      `,
-      args: [studentRecord.class_id]
-    });
-
-    const exams = (examsResult.rows || []).map((row) =>
-      normalizeRow(row, [
-        "id",
-        "title",
-        "instructions",
-        "created_at"
-      ])
-    );
 
     res.render("student-dashboard", {
       student: {
@@ -181,7 +159,7 @@ router.get("/dashboard", requireStudent, async (req, res) => {
         class_name: studentRecord.class_name
       },
       assignments,
-      exams
+      
     });
   } catch (err) {
     console.error("GET /student/dashboard error:", err);

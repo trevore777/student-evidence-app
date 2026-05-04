@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="stylesheet" href="/css/styles.css">
+  <title>Teacher Review</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      background: #f4f6f8;
+      color: #222;
+    }
+
+    .container {
+      max-width: 1100px;
+      margin: 30px auto;
+      padding: 20px;
+    }
+
+    .card {
+      background: #fff;
+      border-radius: 14px;
+      padding: 20px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+      margin-bottom: 16px;
+    }
+
+    .button {
+      display: inline-block;
+      padding: 10px 14px;
+      background: #1d4ed8;
+      color: #fff;
+      text-decoration: none;
+      border-radius: 10px;
+      margin-top: 10px;
+      border: none;
+      cursor: pointer;
+    }
+
+    .button.secondary {
+      background: #666;
+    }
+
+    .small {
+      font-size: 14px;
+      color: #666;
+    }
+
+    .flag {
+      display: inline-block;
+      background: #fee2e2;
+      color: #991b1b;
+      padding: 4px 8px;
+      border-radius: 8px;
+      font-size: 12px;
+      margin-right: 6px;
+      margin-bottom: 6px;
+    }
+
+    .final-text,
+    .snapshot-box,
+    .timeline-box,
+    .declaration-box,
+    .session-box {
+      background: #f9fafb;
+      padding: 16px;
+      border-radius: 10px;
+      border: 1px solid #ddd;
+      margin-top: 10px;
+    }
+
+    textarea {
+      width: 100%;
+      min-height: 120px;
+      padding: 12px;
+      border-radius: 10px;
+      border: 1px solid #ccc;
+      box-sizing: border-box;
+      margin-top: 6px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 14px;
+    }
+
+    .mono {
+      font-family: monospace;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    img {
+      max-width: 100%;
+      height: auto;
+      border-radius: 8px;
+    }
+
+    /* Evidence colouring used in student editor and teacher review */
+    .pasted-content,
+    .evidence-external-paste {
+      background: #fff3b0;
+      border-bottom: 2px solid #f59e0b;
+      padding: 0 3px;
+      border-radius: 3px;
+    }
+
+    .internal-move-content,
+    .evidence-internal-paste {
+      background: #dbeafe;
+      border-bottom: 2px solid #2563eb;
+      padding: 0 3px;
+      border-radius: 3px;
+    }
+
+    .ai-modified-content,
+    .evidence-ai-modified {
+      background: #fee2e2;
+      border-bottom: 2px solid #dc2626;
+      padding: 0 3px;
+      border-radius: 3px;
+    }
+
+    .ai-generated-content,
+    .evidence-ai-generated {
+      background: #fce7f3;
+      border-bottom: 2px solid #db2777;
+      padding: 0 3px;
+      border-radius: 3px;
+    }
+
+    .declared-content,
+    .evidence-declared {
+      background: #e5e7eb;
+      border-bottom: 2px solid #6b7280;
+      padding: 0 3px;
+      border-radius: 3px;
+    }
+
+    .citation-marker,
+    .evidence-citation {
+      background: #dcfce7;
+      border: 1px solid #16a34a;
+      border-radius: 4px;
+      padding: 0 4px;
+      font-weight: 700;
+    }
+
+    .references-section {
+      margin-top: 2rem;
+      border-top: 2px solid #16a34a;
+      padding-top: 0.75rem;
+    }
+
+    .references-list {
+      padding-left: 1.5rem;
+    }
+
+    .bibliography-entry,
+    .evidence-bibliography {
+      background: #f0fdf4;
+      border-left: 4px solid #16a34a;
+      padding: 0.35rem 0.5rem;
+      margin: 0.35rem 0;
+      border-radius: 6px;
+    }
+
+    .evidence-legend {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 8px;
+      margin: 10px 0 14px;
+    }
+
+    .legend-chip {
+      display: inline-block;
+      padding: 8px 10px;
+      border-radius: 8px;
+      font-size: 13px;
+      border: 1px solid rgba(0,0,0,0.08);
+    }
+
+    details {
+      border-radius: 10px;
+    }
+
+    summary {
+      cursor: pointer;
+      font-size: 18px;
+      font-weight: 600;
+      list-style: none;
+      user-select: none;
+    }
+
+    summary::-webkit-details-marker {
+      display: none;
+    }
+
+    summary::after {
+      content: " ▼";
+      font-size: 14px;
+      color: #666;
+    }
+
+    details[open] summary::after {
+      content: " ▲";
+    }
+
+    .details-body {
+      margin-top: 14px;
+    }
+  </style>
+</head>
+<body>
+  <main class="container">
+    <div class="card">
+      <h1>Teacher Review</h1>
+      <p><strong>Student:</strong> <%= submission.student_name %></p>
+      <p><strong>Assignment:</strong> <%= submission.assignment_title %></p>
+      <p><strong>Email:</strong> <%= submission.student_email %></p>
+      <p class="small">
+        Status: <%= submission.status %> |
+        Submitted: <%= submission.submitted_at || "Not yet submitted" %>
+      </p>
+      <a class="button secondary" href="/teacher/dashboard">Back</a>
+    </div>
+
+    <div class="card">
+      <h2>Estimated Composition</h2>
+      <div class="grid">
+        <div class="snapshot-box">
+          <strong>Own work:</strong> <%= composition.own_work_percent %>%
+        </div>
+        <div class="snapshot-box">
+          <strong>Copy and paste:</strong> <%= composition.paste_percent %>%
+        </div>
+        <div class="snapshot-box">
+          <strong>AI declared:</strong> <%= composition.ai_declared_percent %>%
+        </div>
+        <div class="snapshot-box">
+          <strong>Confidence:</strong> <%= composition.confidence %>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Flags</h2>
+      <% if (!flags || !flags.length) { %>
+        <p>No flags raised.</p>
+      <% } else { %>
+        <% flags.forEach(flag => { %>
+          <span class="flag"><%= flag.flag_code %></span>
+        <% }) %>
+      <% } %>
+    </div>
+
+    <section class="review-card">
+  <h2>Student Writing Evidence</h2>
+
+  <div class="evidence-legend">
+    <span><span class="evidence-dot dot-paste"></span> External pasted text</span>
+    <span><span class="evidence-dot dot-internal"></span> Internal moved/pasted text</span>
+    <span><span class="evidence-dot dot-ai"></span> AI generated/modified</span>
+    <span><span class="evidence-dot dot-declared"></span> Declared / referenced</span>
+  </div>
+
+  <div class="evidence-document">
+    <%- submission.renderedHtml || submission.final_text || "<p>No writing submitted.</p>" %>
+  </div>
+</section>
+
+        </div>
+      </details>
+    </div>
+
+    <div class="card">
+      <details>
+        <summary>Draft Snapshots</summary>
+        <div class="details-body">
+          <% if (!snapshots || !snapshots.length) { %>
+            <p>No draft snapshots found.</p>
+          <% } else { %>
+            <% snapshots.forEach((snapshot, index) => { %>
+              <div class="snapshot-box">
+                <p><strong>Snapshot <%= index + 1 %></strong></p>
+                <p class="small">Saved: <%= snapshot.saved_at || "Unknown" %></p>
+                <p class="small">Word count: <%= snapshot.word_count || 0 %></p>
+                <div><%- snapshot.content || "" %></div>
+              </div>
+            <% }) %>
+          <% } %>
+        </div>
+      </details>
+    </div>
+
+    <div class="card">
+      <details>
+        <summary>Source Declarations</summary>
+        <div class="details-body">
+          <% if (!declarations || !declarations.length) { %>
+            <p>No declarations recorded.</p>
+          <% } else { %>
+            <% declarations.forEach((d, index) => { %>
+              <div class="declaration-box">
+                <p><strong>Declaration <%= index + 1 %></strong></p>
+                <p><strong>Type:</strong> <%= d.declaration_type || "—" %></p>
+                <p><strong>Tool:</strong> <%= d.tool_name || "—" %></p>
+                <p><strong>Prompt:</strong> <%= d.prompt_text || "—" %></p>
+                <p><strong>Excerpt:</strong> <%= d.original_text_excerpt || "—" %></p>
+                <p><strong>Student explanation:</strong> <%= d.student_explanation || "—" %></p>
+                <p class="small">Recorded: <%= d.created_at || "Unknown" %></p>
+                <p><strong>Citation style:</strong> <%= d.citation_style || "—" %></p>
+                <p><strong>Source type:</strong> <%= d.source_type || "—" %></p>
+                <p><strong>Author / organisation:</strong> <%= d.source_author || "—" %></p>
+                <p><strong>Year:</strong> <%= d.source_year || "—" %></p>
+                <p><strong>Title:</strong> <%= d.source_title || "—" %></p>
+                <p><strong>Publisher / website:</strong> <%= d.source_publisher || "—" %></p>
+                <p><strong>URL:</strong> <%= d.source_url || "—" %></p>
+                <p><strong>Accessed:</strong> <%= d.accessed_date || "—" %></p>
+                <p><strong>In-text citation:</strong> <%= d.in_text_citation || "—" %></p>
+                <p><strong>Bibliography entry:</strong> <%= d.bibliography_entry || "—" %></p>
+              </div>
+            <% }) %>
+          <% } %>
+        </div>
+      </details>
+    </div>
+
+    <div class="card">
+      <details>
+        <summary>Writing Sessions</summary>
+        <div class="details-body">
+          <% if (!sessions || !sessions.length) { %>
+            <p>No session data recorded.</p>
+          <% } else { %>
+            <% sessions.forEach((s, index) => { %>
+              <div class="session-box">
+                <p><strong>Session <%= index + 1 %></strong></p>
+                <p><strong>Started:</strong> <%= s.started_at || "Unknown" %></p>
+                <p><strong>Ended:</strong> <%= s.ended_at || "Unknown" %></p>
+                <p><strong>Active seconds:</strong> <%= s.active_seconds || 0 %></p>
+                <p><strong>Idle seconds:</strong> <%= s.idle_seconds || 0 %></p>
+                <% if (s.device_info) { %>
+                  <p><strong>Device:</strong> <%= s.device_info %></p>
+                <% } %>
+              </div>
+            <% }) %>
+          <% } %>
+        </div>
+      </details>
+    </div>
+
+    <div class="card">
+      <details>
+        <summary>Evidence Timeline</summary>
+        <div class="details-body">
+          <% if (!events || !events.length) { %>
+            <p>No editor events recorded.</p>
+          <% } else { %>
+            <% events.forEach((event, index) => { %>
+              <div class="timeline-box">
+  <p><strong>Event <%= index + 1 %></strong></p>
+  <p><strong>Type:</strong> <%= event.event_type || "—" %></p>
+
+  <p class="small">
+    Time: 
+    <span class="event-date" data-date="<%= event.created_at %>"></span>
+  </p>
+
+  <div class="mono"><%= event.event_meta || "—" %></div>
+</div>
+            <% }) %>
+          <% } %>
+        </div>
+      </details>
+    </div>
+
+    <div class="card">
+      <details open>
+        <summary>Feedback to Student</summary>
+        <div class="details-body">
+          <label for="good-notes">What you did well</label>
+          <textarea id="good-notes"></textarea>
+
+          <label for="bad-notes">What needs improvement</label>
+          <textarea id="bad-notes"></textarea>
+
+          <label for="ugly-notes">Most important next step</label>
+          <textarea id="ugly-notes"></textarea>
+
+          <button class="button" id="create-email-btn" type="button">Create Email to Student</button>
+        </div>
+      </details>
+    </div>
+
+    <div class="card">
+      <details>
+        <summary>AI Email Draft</summary>
+        <div class="details-body">
+          <textarea id="ai-email-draft" placeholder="AI draft area"></textarea>
+          <button class="button" id="generate-ai-email-btn" type="button">Generate AI Email Draft</button>
+          <button class="button" id="create-email-from-ai-btn" type="button">Create Email from AI Draft</button>
+        </div>
+      </details>
+    </div>
+  </main>
+
+  <script>
+    const createEmailBtn = document.getElementById("create-email-btn");
+    const generateAiEmailBtn = document.getElementById("generate-ai-email-btn");
+    const createEmailFromAiBtn = document.getElementById("create-email-from-ai-btn");
+    const aiEmailDraft = document.getElementById("ai-email-draft");
+    const rubricText = <%- JSON.stringify(submission.rubric_text || "") %>;
+    const submissionText = <%- JSON.stringify(submission.renderedHtml || "") %>;
+
+    createEmailBtn?.addEventListener("click", () => {
+      const studentName = <%- JSON.stringify(submission.student_name || "") %>;
+      const studentEmail = <%- JSON.stringify(submission.student_email || "") %>;
+      const assignmentTitle = <%- JSON.stringify(submission.assignment_title || "Your submission") %>;
+
+      const good = document.getElementById("good-notes").value.trim();
+      const bad = document.getElementById("bad-notes").value.trim();
+      const ugly = document.getElementById("ugly-notes").value.trim();
+
+      const subject = `Feedback on ${assignmentTitle}`;
+      const body = `Hi ${studentName},
+
+What you did well:
+${good || "-"}
+
+What needs improvement:
+${bad || "-"}
+
+Most important next step:
+${ugly || "-"}
+
+Regards,
+Teacher`;
+
+      const mailto = `mailto:${encodeURIComponent(studentEmail)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+      window.location.href = mailto;
+    });
+
+  generateAiEmailBtn?.addEventListener("click", async () => {
+  const studentName = <%- JSON.stringify(submission.student_name || "") %>;
+  const assignmentTitle = <%- JSON.stringify(submission.assignment_title || "") %>;
+  const submissionText = <%- JSON.stringify(submission.renderedHtml || "") %>;
+  const rubricText = <%- JSON.stringify(submission.rubric_text || "") %>;
+  const yearLevel = <%- JSON.stringify(submission.class_name || "") %>;
+
+  const composition = {
+    own: <%= composition.own_work_percent || 0 %>,
+    paste: <%= composition.paste_percent || 0 %>,
+    ai: <%= composition.ai_declared_percent || 0 %>
+  };
+
+  const flags = <%- JSON.stringify((flags || []).map(f => f.flag_code || f)) %>;
+  const declarations = <%- JSON.stringify(declarations || []) %>;
+
+  const good = document.getElementById("good-notes").value.trim();
+  const bad = document.getElementById("bad-notes").value.trim();
+  const next = document.getElementById("ugly-notes").value.trim();
+
+  aiEmailDraft.value = "Generating AI feedback...";
+
+  try {
+    const res = await fetch("/api/ai/email", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        studentName,
+        assignmentTitle,
+        submissionText,
+        rubricText,
+        yearLevel,
+        composition,
+        flags,
+        declarations,
+        good,
+        bad,
+        next
+      })
+    });
+
+    const data = await res.json();
+
+    if (data.ok) {
+      aiEmailDraft.value = data.email;
+    } else {
+      aiEmailDraft.value = data.error || "Failed to generate AI feedback.";
+    }
+  } catch (err) {
+    console.error("AI email fetch error:", err);
+    aiEmailDraft.value = "Failed to generate AI feedback.";
+  }
+});
+
+    createEmailFromAiBtn?.addEventListener("click", () => {
+      const studentEmail = <%- JSON.stringify(submission.student_email || "") %>;
+      const assignmentTitle = <%- JSON.stringify(submission.assignment_title || "Your submission") %>;
+      const body = aiEmailDraft.value.trim();
+
+      const mailto = `mailto:${encodeURIComponent(studentEmail)}?subject=${encodeURIComponent(`Feedback on ${assignmentTitle}`)}&body=${encodeURIComponent(body)}`;
+      window.location.href = mailto;
+    });
+  </script>
+
+  <script>
+function formatDate(dt) {
+  if (!dt) return "";
+
+  const date = new Date(dt + "Z");
+
+  const day = String(date.getDate()).padStart(2, "0");
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const year = date.getFullYear();
+
+  let hours = date.getHours();
+  const minutes = String(date.getMinutes()).padStart(2, "0");
+
+  const ampm = hours >= 12 ? "PM" : "AM";
+  hours = hours % 12 || 12;
+
+  return `${day}/${month}/${year} ${hours}:${minutes} ${ampm}`;
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  document.querySelectorAll(".event-date").forEach(el => {
+    el.textContent = formatDate(el.dataset.date);
+  });
+});
+</script>
+</body>
+</html>

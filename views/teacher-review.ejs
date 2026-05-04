@@ -4,533 +4,585 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Teacher Review</title>
+
+  <link rel="stylesheet" href="/css/styles.css">
+
   <style>
     body {
-      font-family: Arial, sans-serif;
-      margin: 0;
       background: #f4f6f8;
-      color: #222;
+      font-family: Arial, sans-serif;
+      color: #111827;
+      margin: 0;
     }
 
-    .container {
-      max-width: 1100px;
-      margin: 30px auto;
+    .review-page {
+      max-width: 1250px;
+      margin: 28px auto;
       padding: 20px;
     }
 
-    .card {
-      background: #fff;
+    .review-header,
+    .review-card {
+      background: #ffffff;
+      border-radius: 18px;
+      padding: 22px;
+      margin-bottom: 18px;
+      border: 1px solid #e5e7eb;
+      box-shadow: 0 6px 22px rgba(15, 23, 42, 0.07);
+    }
+
+    .review-header h1 {
+      margin-top: 0;
+    }
+
+    .review-grid {
+      display: grid;
+      grid-template-columns: 1.3fr 0.7fr;
+      gap: 18px;
+      align-items: start;
+    }
+
+    .meta-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 10px;
+    }
+
+    .meta-box {
+      background: #f8fafc;
+      border: 1px solid #e5e7eb;
+      padding: 12px;
+      border-radius: 12px;
+    }
+
+    .composition-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 10px;
+    }
+
+    .metric {
       border-radius: 14px;
-      padding: 20px;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.08);
-      margin-bottom: 16px;
+      padding: 14px;
+      background: #f9fafb;
+      border: 1px solid #e5e7eb;
     }
 
-    .button {
-      display: inline-block;
-      padding: 10px 14px;
-      background: #1d4ed8;
-      color: #fff;
-      text-decoration: none;
-      border-radius: 10px;
-      margin-top: 10px;
-      border: none;
-      cursor: pointer;
-    }
-
-    .button.secondary {
-      background: #666;
-    }
-
-    .small {
-      font-size: 14px;
-      color: #666;
+    .metric strong {
+      display: block;
+      font-size: 1.6rem;
+      margin-bottom: 4px;
     }
 
     .flag {
-      display: inline-block;
-      background: #fee2e2;
-      color: #991b1b;
-      padding: 4px 8px;
-      border-radius: 8px;
-      font-size: 12px;
-      margin-right: 6px;
-      margin-bottom: 6px;
-    }
-
-    .final-text,
-    .snapshot-box,
-    .timeline-box,
-    .declaration-box,
-    .session-box {
-      background: #f9fafb;
-      padding: 16px;
-      border-radius: 10px;
-      border: 1px solid #ddd;
-      margin-top: 10px;
-    }
-
-    textarea {
-      width: 100%;
-      min-height: 120px;
       padding: 12px;
-      border-radius: 10px;
-      border: 1px solid #ccc;
-      box-sizing: border-box;
-      margin-top: 6px;
+      border-radius: 12px;
+      margin-bottom: 10px;
+      border: 1px solid #fcd34d;
+      background: #fffbeb;
     }
 
-    .grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-      gap: 14px;
+    .flag.info {
+      border-color: #93c5fd;
+      background: #eff6ff;
     }
 
-    .mono {
-      font-family: monospace;
-      white-space: pre-wrap;
-      word-break: break-word;
-    }
-
-    img {
-      max-width: 100%;
-      height: auto;
-      border-radius: 8px;
-    }
-
-    /* Evidence colouring used in student editor and teacher review */
-    .pasted-content,
-    .evidence-external-paste {
-      background: #fff3b0;
-      border-bottom: 2px solid #f59e0b;
-      padding: 0 3px;
-      border-radius: 3px;
-    }
-
-    .internal-move-content,
-    .evidence-internal-paste {
-      background: #dbeafe;
-      border-bottom: 2px solid #2563eb;
-      padding: 0 3px;
-      border-radius: 3px;
-    }
-
-    .ai-modified-content,
-    .evidence-ai-modified {
-      background: #fee2e2;
-      border-bottom: 2px solid #dc2626;
-      padding: 0 3px;
-      border-radius: 3px;
-    }
-
-    .ai-generated-content,
-    .evidence-ai-generated {
-      background: #fce7f3;
-      border-bottom: 2px solid #db2777;
-      padding: 0 3px;
-      border-radius: 3px;
-    }
-
-    .declared-content,
-    .evidence-declared {
-      background: #e5e7eb;
-      border-bottom: 2px solid #6b7280;
-      padding: 0 3px;
-      border-radius: 3px;
-    }
-
-    .citation-marker,
-    .evidence-citation {
-      background: #dcfce7;
-      border: 1px solid #16a34a;
-      border-radius: 4px;
-      padding: 0 4px;
-      font-weight: 700;
-    }
-
-    .references-section {
-      margin-top: 2rem;
-      border-top: 2px solid #16a34a;
-      padding-top: 0.75rem;
-    }
-
-    .references-list {
-      padding-left: 1.5rem;
-    }
-
-    .bibliography-entry,
-    .evidence-bibliography {
-      background: #f0fdf4;
-      border-left: 4px solid #16a34a;
-      padding: 0.35rem 0.5rem;
-      margin: 0.35rem 0;
-      border-radius: 6px;
+    .flag.warning {
+      border-color: #f59e0b;
+      background: #fff7ed;
     }
 
     .evidence-legend {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+      gap: 10px;
+      margin: 12px 0 18px;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
       gap: 8px;
-      margin: 10px 0 14px;
-    }
-
-    .legend-chip {
-      display: inline-block;
+      background: #f9fafb;
       padding: 8px 10px;
-      border-radius: 8px;
-      font-size: 13px;
-      border: 1px solid rgba(0,0,0,0.08);
-    }
-
-    details {
       border-radius: 10px;
+      border: 1px solid #e5e7eb;
+      font-size: 0.9rem;
     }
 
-    summary {
-      cursor: pointer;
-      font-size: 18px;
-      font-weight: 600;
-      list-style: none;
-      user-select: none;
+    .dot {
+      width: 18px;
+      height: 18px;
+      border-radius: 5px;
+      display: inline-block;
+      flex: 0 0 auto;
     }
 
-    summary::-webkit-details-marker {
-      display: none;
+    .dot-paste { background: #fff3b0; border: 2px solid #f59e0b; }
+    .dot-ai { background: #fee2e2; border: 2px solid #dc2626; }
+    .dot-declared { background: #dcfce7; border: 2px solid #16a34a; }
+    .dot-citation { background: #dcfce7; border: 2px solid #16a34a; }
+
+    .evidence-document {
+      background: #ffffff;
+      border: 1px solid #d1d5db;
+      border-radius: 14px;
+      padding: 22px;
+      line-height: 1.65;
+      min-height: 280px;
+      overflow-wrap: break-word;
     }
 
-    summary::after {
-      content: " ▼";
-      font-size: 14px;
-      color: #666;
+    .evidence-document .pasted-content,
+    .evidence-document span[data-pasted="true"] {
+      background: #fff3b0 !important;
+      border-bottom: 2px solid #f59e0b !important;
+      padding: 1px 3px;
+      border-radius: 4px;
     }
 
-    details[open] summary::after {
-      content: " ▲";
+    .evidence-document .ai-modified-content,
+    .evidence-document .ai-generated-content {
+      background: #fee2e2 !important;
+      border-bottom: 2px solid #dc2626 !important;
+      padding: 1px 3px;
+      border-radius: 4px;
     }
 
-    .details-body {
+    .evidence-document .declared-content,
+    .evidence-document .evidence-declared {
+      background: #dcfce7 !important;
+      border-bottom: 2px solid #16a34a !important;
+      padding: 1px 3px;
+      border-radius: 4px;
+    }
+
+    .evidence-document .citation-marker {
+      background: #dcfce7 !important;
+      border: 1px solid #16a34a !important;
+      border-radius: 4px;
+      padding: 0 3px;
+      font-weight: 700;
+    }
+
+    .declaration-card,
+    .event-card,
+    .snapshot-card {
+      background: #f9fafb;
+      border: 1px solid #e5e7eb;
+      border-radius: 12px;
+      padding: 12px;
+      margin-bottom: 10px;
+    }
+
+    .declaration-card strong {
+      color: #111827;
+    }
+
+    .small {
+      color: #6b7280;
+      font-size: 0.9rem;
+    }
+
+    .button-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
       margin-top: 14px;
+    }
+
+    .email-box {
+      width: 100%;
+      min-height: 140px;
+      padding: 12px;
+      border-radius: 12px;
+      border: 1px solid #cbd5e1;
+      font-family: Arial, sans-serif;
+      font-size: 0.95rem;
+      box-sizing: border-box;
+    }
+
+    details summary {
+      cursor: pointer;
+      font-weight: 700;
+      margin-bottom: 10px;
+    }
+
+    @media (max-width: 900px) {
+      .review-grid {
+        grid-template-columns: 1fr;
+      }
     }
   </style>
 </head>
-<body>
-  <main class="container">
-    <div class="card">
-      <h1>Teacher Review</h1>
-      <p><strong>Student:</strong> <%= submission.student_name %></p>
-      <p><strong>Assignment:</strong> <%= submission.assignment_title %></p>
-      <p><strong>Email:</strong> <%= submission.student_email %></p>
-      <p class="small">
-        Status: <%= submission.status %> |
-        Submitted: <%= submission.submitted_at || "Not yet submitted" %>
-      </p>
-      <a class="button secondary" href="/teacher/dashboard">Back</a>
-    </div>
 
-    <div class="card">
-      <h2>Estimated Composition</h2>
-      <div class="grid">
-        <div class="snapshot-box">
-          <strong>Own work:</strong> <%= composition.own_work_percent %>%
+<body>
+  <main class="review-page">
+    <section class="review-header">
+      <h1>Teacher Review</h1>
+
+      <div class="meta-grid">
+        <div class="meta-box">
+          <strong>Student</strong><br>
+          <%= submission.student_name %>
         </div>
-        <div class="snapshot-box">
-          <strong>Copy and paste:</strong> <%= composition.paste_percent %>%
+
+        <div class="meta-box">
+          <strong>Email</strong><br>
+          <%= submission.student_email || "—" %>
         </div>
-        <div class="snapshot-box">
-          <strong>AI declared:</strong> <%= composition.ai_declared_percent %>%
+
+        <div class="meta-box">
+          <strong>Class</strong><br>
+          <%= submission.class_name || "—" %>
         </div>
-        <div class="snapshot-box">
-          <strong>Confidence:</strong> <%= composition.confidence %>
+
+        <div class="meta-box">
+          <strong>Assignment</strong><br>
+          <%= submission.assignment_title || "—" %>
+        </div>
+
+        <div class="meta-box">
+          <strong>Status</strong><br>
+          <%= submission.status || "draft" %>
+        </div>
+
+        <div class="meta-box">
+          <strong>Submitted</strong><br>
+          <%= submission.submitted_at || "Not yet submitted" %>
         </div>
       </div>
-    </div>
 
-    <div class="card">
-      <h2>Flags</h2>
-      <% if (!flags || !flags.length) { %>
-        <p>No flags raised.</p>
-      <% } else { %>
-        <% flags.forEach(flag => { %>
-          <span class="flag"><%= flag.flag_code %></span>
-        <% }) %>
-      <% } %>
-    </div>
+      <div class="button-row">
+        <a class="button secondary" href="/teacher/dashboard">Back to dashboard</a>
+        <button class="button" type="button" id="generateFeedbackBtn">Generate AI feedback email</button>
+      </div>
+    </section>
 
-    <div class="card">
-      <details open>
-        <summary>Final Submission</summary>
-        <div class="details-body">
-          <div class="evidence-legend" aria-label="Evidence colour legend">
-            <span class="legend-chip pasted-content">Yellow = external paste / research</span>
-            <span class="legend-chip internal-move-content">Blue = internal paste / moved own text</span>
-            <span class="legend-chip ai-modified-content">Red = AI modified</span>
-            <span class="legend-chip ai-generated-content">Pink = AI generated</span>
-            <span class="legend-chip citation-marker">Green = in-text citation</span>
-            <span class="legend-chip bibliography-entry">Green side bar = bibliography/reference entry</span>
+    <section class="review-grid">
+      <div>
+        <section class="review-card">
+          <h2>Student Writing Evidence</h2>
+
+          <div class="evidence-legend">
+            <div class="legend-item"><span class="dot dot-paste"></span> External pasted text</div>
+            <div class="legend-item"><span class="dot dot-ai"></span> AI generated / modified</div>
+            <div class="legend-item"><span class="dot dot-declared"></span> Declared material</div>
+            <div class="legend-item"><span class="dot dot-citation"></span> Citation / bibliography</div>
           </div>
-          <div class="final-text"><%- submission.final_text || "" %></div>
-        </div>
-      </details>
-    </div>
 
-    <div class="card">
-      <details>
-        <summary>Draft Snapshots</summary>
-        <div class="details-body">
-          <% if (!snapshots || !snapshots.length) { %>
-            <p>No draft snapshots found.</p>
-          <% } else { %>
-            <% snapshots.forEach((snapshot, index) => { %>
-              <div class="snapshot-box">
-                <p><strong>Snapshot <%= index + 1 %></strong></p>
-                <p class="small">Saved: <%= snapshot.saved_at || "Unknown" %></p>
-                <p class="small">Word count: <%= snapshot.word_count || 0 %></p>
-                <div><%- snapshot.content || "" %></div>
-              </div>
-            <% }) %>
-          <% } %>
-        </div>
-      </details>
-    </div>
+          <div class="evidence-document">
+            <%- submission.renderedHtml || submission.final_text || "<p>No writing submitted.</p>" %>
+          </div>
+        </section>
+        <p class="small" style="margin-top:20px; opacity:0.6;">
+  Generated via Student Evidence App — © Trevor Elliott
+</p>
 
-    <div class="card">
-      <details>
-        <summary>Source Declarations</summary>
-        <div class="details-body">
+        <section class="review-card">
+          <h2>Declarations and References</h2>
+
           <% if (!declarations || !declarations.length) { %>
             <p>No declarations recorded.</p>
           <% } else { %>
             <% declarations.forEach((d, index) => { %>
-              <div class="declaration-box">
-                <p><strong>Declaration <%= index + 1 %></strong></p>
-                <p><strong>Type:</strong> <%= d.declaration_type || "—" %></p>
-                <p><strong>Tool:</strong> <%= d.tool_name || "—" %></p>
-                <p><strong>Prompt:</strong> <%= d.prompt_text || "—" %></p>
-                <p><strong>Excerpt:</strong> <%= d.original_text_excerpt || "—" %></p>
-                <p><strong>Student explanation:</strong> <%= d.student_explanation || "—" %></p>
-                <p class="small">Recorded: <%= d.created_at || "Unknown" %></p>
-                <p><strong>Citation style:</strong> <%= d.citation_style || "—" %></p>
-                <p><strong>Source type:</strong> <%= d.source_type || "—" %></p>
-                <p><strong>Author / organisation:</strong> <%= d.source_author || "—" %></p>
-                <p><strong>Year:</strong> <%= d.source_year || "—" %></p>
-                <p><strong>Title:</strong> <%= d.source_title || "—" %></p>
-                <p><strong>Publisher / website:</strong> <%= d.source_publisher || "—" %></p>
-                <p><strong>URL:</strong> <%= d.source_url || "—" %></p>
-                <p><strong>Accessed:</strong> <%= d.accessed_date || "—" %></p>
-                <p><strong>In-text citation:</strong> <%= d.in_text_citation || "—" %></p>
-                <p><strong>Bibliography entry:</strong> <%= d.bibliography_entry || "—" %></p>
-              </div>
-            <% }) %>
-          <% } %>
-        </div>
-      </details>
-    </div>
+              <div class="declaration-card">
+                <p><strong>#<%= index + 1 %> Type:</strong> <%= d.declaration_type || "—" %></p>
+                <p><strong>Explanation:</strong> <%= d.student_explanation || "—" %></p>
 
-    <div class="card">
-      <details>
-        <summary>Writing Sessions</summary>
-        <div class="details-body">
-          <% if (!sessions || !sessions.length) { %>
-            <p>No session data recorded.</p>
-          <% } else { %>
-            <% sessions.forEach((s, index) => { %>
-              <div class="session-box">
-                <p><strong>Session <%= index + 1 %></strong></p>
-                <p><strong>Started:</strong> <%= s.started_at || "Unknown" %></p>
-                <p><strong>Ended:</strong> <%= s.ended_at || "Unknown" %></p>
-                <p><strong>Active seconds:</strong> <%= s.active_seconds || 0 %></p>
-                <p><strong>Idle seconds:</strong> <%= s.idle_seconds || 0 %></p>
-                <% if (s.device_info) { %>
-                  <p><strong>Device:</strong> <%= s.device_info %></p>
+                <% if (d.original_text_excerpt) { %>
+                  <p><strong>Excerpt:</strong> <span class="small"><%= d.original_text_excerpt %></span></p>
+                <% } %>
+
+                <% if (d.in_text_citation) { %>
+                  <p><strong>In-text citation:</strong> <%= d.in_text_citation %></p>
+                <% } %>
+
+                <% if (d.bibliography_entry) { %>
+                  <p><strong>Bibliography:</strong> <%= d.bibliography_entry %></p>
+                <% } %>
+
+                <p class="small">
+                  Source:
+                  <%= d.source_author || "—" %>,
+                  <%= d.source_year || "n.d." %>,
+                  <%= d.source_title || "Untitled" %>
+                </p>
+
+                <% if (d.source_url) { %>
+                  <p class="small">URL: <%= d.source_url %></p>
                 <% } %>
               </div>
             <% }) %>
           <% } %>
-        </div>
-      </details>
-    </div>
+        </section>
 
-    <div class="card">
-      <details>
-        <summary>Evidence Timeline</summary>
-        <div class="details-body">
+        <section class="review-card">
+          <details>
+            <summary>Draft Snapshots</summary>
+
+            <% if (!snapshots || !snapshots.length) { %>
+              <p>No draft snapshots recorded.</p>
+            <% } else { %>
+              <% snapshots.slice().reverse().slice(0, 10).forEach((snap, index) => { %>
+                <div class="snapshot-card">
+                  <strong>Snapshot <%= index + 1 %></strong>
+                  <p class="small">
+                    Saved: <%= snap.saved_at || "—" %> |
+                    Words: <%= snap.word_count || 0 %>
+                  </p>
+                </div>
+              <% }) %>
+            <% } %>
+          </details>
+        </section>
+      </div>
+
+      <aside>
+        <section class="review-card">
+          <h2>Writing Composition</h2>
+
+          <div class="composition-grid">
+            <div class="metric">
+              <strong><%= composition.own_work_percent || 0 %>%</strong>
+              Own work estimate
+            </div>
+
+            <div class="metric">
+              <strong><%= composition.paste_percent || 0 %>%</strong>
+              Paste estimate
+            </div>
+
+            <div class="metric">
+              <strong><%= composition.ai_declared_percent || 0 %>%</strong>
+              AI declared
+            </div>
+
+            <div class="metric">
+              <strong><%= composition.confidence || "Low" %></strong>
+              Confidence
+            </div>
+          </div>
+        </section>
+
+        <section class="review-card">
+          <h2>Flags</h2>
+
+          <% if (!flags || !flags.length) { %>
+            <p>No flags raised.</p>
+          <% } else { %>
+            <% flags.forEach(flag => { %>
+              <div class="flag <%= flag.severity || 'warning' %>">
+                <strong><%= flag.flag_code || "Flag" %></strong>
+                <p><%= flag.flag_message || flag %></p>
+              </div>
+            <% }) %>
+          <% } %>
+        </section>
+
+        <section class="review-card">
+          <h2>Teacher Action</h2>
+
+          <% const hasFlags = flags && flags.length; %>
+          <% const hasDeclarations = declarations && declarations.length; %>
+
+          <% if (hasFlags && !hasDeclarations) { %>
+            <p><strong>Recommended:</strong> Ask the student to explain pasted or externally supported material.</p>
+          <% } else if (hasFlags && hasDeclarations) { %>
+            <p><strong>Recommended:</strong> Review the declarations and compare them to highlighted evidence.</p>
+          <% } else { %>
+            <p><strong>Recommended:</strong> Evidence appears low risk. Provide normal writing feedback.</p>
+          <% } %>
+        </section>
+
+        <section class="review-card">
+          <h2>Editor Events</h2>
+
           <% if (!events || !events.length) { %>
             <p>No editor events recorded.</p>
           <% } else { %>
-            <% events.forEach((event, index) => { %>
-              <div class="timeline-box">
-  <p><strong>Event <%= index + 1 %></strong></p>
-  <p><strong>Type:</strong> <%= event.event_type || "—" %></p>
-
-  <p class="small">
-    Time: 
-    <span class="event-date" data-date="<%= event.created_at %>"></span>
-  </p>
-
-  <div class="mono"><%= event.event_meta || "—" %></div>
-</div>
+            <% events.slice().reverse().slice(0, 12).forEach((event, index) => { %>
+              <div class="event-card">
+                <strong><%= event.event_type %></strong>
+                <p class="small"><%= event.created_at || "—" %></p>
+              </div>
             <% }) %>
           <% } %>
-        </div>
-      </details>
-    </div>
+        </section>
+      </aside>
+    </section>
 
-    <div class="card">
-      <details open>
-        <summary>Feedback to Student</summary>
-        <div class="details-body">
-          <label for="good-notes">What you did well</label>
-          <textarea id="good-notes"></textarea>
+    <section class="review-card">
+      <h2>AI Feedback Email Draft</h2>
 
-          <label for="bad-notes">What needs improvement</label>
-          <textarea id="bad-notes"></textarea>
+      <p class="small">
+        Generate a short teacher-controlled feedback email. Review and edit before sending.
+      </p>
 
-          <label for="ugly-notes">Most important next step</label>
-          <textarea id="ugly-notes"></textarea>
+      <div id="rubricVisual" class="rubric-visual" style="display:none;">
+  <h3>Rubric / ISMG Alignment</h3>
+  <div id="rubricSuggestedLevel" class="rubric-level"></div>
+  <div id="rubricCriteria"></div>
+</div>
 
-          <button class="button" id="create-email-btn" type="button">Create Email to Student</button>
-        </div>
-      </details>
-    </div>
+      <textarea id="feedbackEmail" class="email-box"></textarea>
 
-    <div class="card">
-      <details>
-        <summary>AI Email Draft</summary>
-        <div class="details-body">
-          <textarea id="ai-email-draft" placeholder="AI draft area"></textarea>
-          <button class="button" id="generate-ai-email-btn" type="button">Generate AI Email Draft</button>
-          <button class="button" id="create-email-from-ai-btn" type="button">Create Email from AI Draft</button>
-        </div>
-      </details>
-    </div>
+      <div class="button-row">
+        <button class="button" type="button" id="copyFeedbackBtn">Copy email draft</button>
+      </div>
+    </section>
   </main>
 
   <script>
-    const createEmailBtn = document.getElementById("create-email-btn");
-    const generateAiEmailBtn = document.getElementById("generate-ai-email-btn");
-    const createEmailFromAiBtn = document.getElementById("create-email-from-ai-btn");
-    const aiEmailDraft = document.getElementById("ai-email-draft");
-    const rubricText = <%- JSON.stringify(submission.rubric_text || "") %>;
-    const submissionText = <%- JSON.stringify(submission.final_text || "") %>;
-
-    createEmailBtn?.addEventListener("click", () => {
-      const studentName = <%- JSON.stringify(submission.student_name || "") %>;
-      const studentEmail = <%- JSON.stringify(submission.student_email || "") %>;
-      const assignmentTitle = <%- JSON.stringify(submission.assignment_title || "Your submission") %>;
-
-      const good = document.getElementById("good-notes").value.trim();
-      const bad = document.getElementById("bad-notes").value.trim();
-      const ugly = document.getElementById("ugly-notes").value.trim();
-
-      const subject = `Feedback on ${assignmentTitle}`;
-      const body = `Hi ${studentName},
-
-What you did well:
-${good || "-"}
-
-What needs improvement:
-${bad || "-"}
-
-Most important next step:
-${ugly || "-"}
-
-Regards,
-Teacher`;
-
-      const mailto = `mailto:${encodeURIComponent(studentEmail)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-      window.location.href = mailto;
-    });
-
-  generateAiEmailBtn?.addEventListener("click", async () => {
-  const studentName = <%- JSON.stringify(submission.student_name || "") %>;
-  const assignmentTitle = <%- JSON.stringify(submission.assignment_title || "") %>;
-  const submissionText = <%- JSON.stringify(submission.final_text || "") %>;
-  const rubricText = <%- JSON.stringify(submission.rubric_text || "") %>;
-  const yearLevel = <%- JSON.stringify(submission.class_name || "") %>;
-
-  const composition = {
-    own: <%= composition.own_work_percent || 0 %>,
-    paste: <%= composition.paste_percent || 0 %>,
-    ai: <%= composition.ai_declared_percent || 0 %>
+  const reviewData = {
+    studentName: <%- JSON.stringify(submission.student_name || "") %>,
+    studentEmail: <%- JSON.stringify(submission.student_email || "") %>,
+    assignmentTitle: <%- JSON.stringify(submission.assignment_title || "") %>,
+    submissionText: <%- JSON.stringify(submission.renderedHtml || submission.final_text || "") %>,
+    rubricText: <%- JSON.stringify(submission.rubric_text || "") %>,
+    composition: {
+      own: <%= composition.own_work_percent || 0 %>,
+      paste: <%= composition.paste_percent || 0 %>,
+      ai: <%= composition.ai_declared_percent || 0 %>
+    },
+    flags: <%- JSON.stringify((flags || []).map(f => f.flag_code || f)) %>,
+    declarations: <%- JSON.stringify(declarations || []) %>
   };
 
-  const flags = <%- JSON.stringify((flags || []).map(f => f.flag_code || f)) %>;
-  const declarations = <%- JSON.stringify(declarations || []) %>;
+function renderRubricVisual(result) {
+  const wrapper = document.getElementById("rubricVisual");
+  const levelBox = document.getElementById("rubricSuggestedLevel");
+  const criteriaBox = document.getElementById("rubricCriteria");
 
-  const good = document.getElementById("good-notes").value.trim();
-  const bad = document.getElementById("bad-notes").value.trim();
-  const next = document.getElementById("ugly-notes").value.trim();
+  if (!wrapper || !levelBox || !criteriaBox) return;
 
-  aiEmailDraft.value = "Generating AI feedback...";
+  wrapper.style.display = "block";
+  levelBox.textContent = `Suggested level: ${result.suggestedLevel || "Teacher review required"}`;
 
-  try {
-    const res = await fetch("/api/ai/email", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        studentName,
-        assignmentTitle,
-        submissionText,
-        rubricText,
-        yearLevel,
-        composition,
-        flags,
-        declarations,
-        good,
-        bad,
-        next
-      })
-    });
+  criteriaBox.innerHTML = "";
 
-    const data = await res.json();
+  (result.rubricAlignment || []).forEach(item => {
+    const div = document.createElement("div");
+    div.className = "rubric-criterion";
 
-    if (data.ok) {
-      aiEmailDraft.value = data.email;
-    } else {
-      aiEmailDraft.value = data.error || "Failed to generate AI feedback.";
-    }
-  } catch (err) {
-    console.error("AI email fetch error:", err);
-    aiEmailDraft.value = "Failed to generate AI feedback.";
-  }
-});
+    div.innerHTML = `
+      <strong>${item.criterion || "Criterion"}</strong>
+      <p><b>Evidence:</b> ${item.evidence || "No specific evidence supplied."}</p>
+      <p><b>Suggested:</b> ${item.suggestedLevel || "Teacher review required"}</p>
+    `;
 
-    createEmailFromAiBtn?.addEventListener("click", () => {
-      const studentEmail = <%- JSON.stringify(submission.student_email || "") %>;
-      const assignmentTitle = <%- JSON.stringify(submission.assignment_title || "Your submission") %>;
-      const body = aiEmailDraft.value.trim();
-
-      const mailto = `mailto:${encodeURIComponent(studentEmail)}?subject=${encodeURIComponent(`Feedback on ${assignmentTitle}`)}&body=${encodeURIComponent(body)}`;
-      window.location.href = mailto;
-    });
-  </script>
-
-  <script>
-function formatDate(dt) {
-  if (!dt) return "";
-
-  const date = new Date(dt + "Z");
-
-  const day = String(date.getDate()).padStart(2, "0");
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const year = date.getFullYear();
-
-  let hours = date.getHours();
-  const minutes = String(date.getMinutes()).padStart(2, "0");
-
-  const ampm = hours >= 12 ? "PM" : "AM";
-  hours = hours % 12 || 12;
-
-  return `${day}/${month}/${year} ${hours}:${minutes} ${ampm}`;
+    criteriaBox.appendChild(div);
+  });
 }
 
-document.addEventListener("DOMContentLoaded", () => {
-  document.querySelectorAll(".event-date").forEach(el => {
-    el.textContent = formatDate(el.dataset.date);
+  function renderAiFeedback(result) {
+    renderRubricVisual(result);
+
+    const box = document.getElementById("feedbackEmail");
+
+    const strengths = (result.strengths || [])
+      .map(item => `• ${item}`)
+      .join("\n");
+
+    const nextSteps = (result.nextSteps || [])
+      .map(item => `• ${item}`)
+      .join("\n");
+
+    const alignment = (result.rubricAlignment || [])
+      .map(item =>
+        `• ${item.criterion}: ${item.evidence} (${item.suggestedLevel})`
+      )
+      .join("\n");
+
+    box.value =
+`Suggested level: ${result.suggestedLevel || "Teacher review required"}
+
+Student-friendly feedback:
+${result.studentFriendlyFeedback || ""}
+
+Strengths:
+${strengths}
+
+Next steps:
+${nextSteps}
+
+Rubric / ISMG alignment:
+${alignment}
+
+Teacher notes:
+${result.teacherNotes || ""}`;
+  }
+
+  async function generateFeedbackEmail() {
+    const button = document.getElementById("generateFeedbackBtn");
+    const box = document.getElementById("feedbackEmail");
+
+    if (!reviewData.rubricText || !reviewData.rubricText.trim()) {
+      alert("No rubric / ISMG text found for this assignment.");
+      return;
+    }
+
+    button.disabled = true;
+    button.textContent = "Assessing against rubric...";
+    box.value = "Generating AI-assisted rubric feedback...";
+
+    try {
+      const response = await fetch("/api/ai-feedback", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(reviewData)
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || "AI feedback failed");
+      }
+      
+
+      renderAiFeedback(result);
+    } catch (err) {
+      console.error(err);
+      alert(err.message || "Could not generate feedback.");
+      box.value = "";
+    } finally {
+      button.disabled = false;
+      button.textContent = "Generate AI feedback email";
+    }
+  }
+
+  document.getElementById("generateFeedbackBtn")?.addEventListener("click", generateFeedbackEmail);
+
+  document.getElementById("copyFeedbackBtn")?.addEventListener("click", async () => {
+    const text = document.getElementById("feedbackEmail").value;
+    if (!text) return alert("Generate the feedback first.");
+    await navigator.clipboard.writeText(text);
+    alert("Feedback copied.");
   });
-});
 </script>
+<footer style="
+  margin-top:40px;
+  padding:20px;
+  text-align:center;
+  font-size:13px;
+  color:#6b7280;
+  border-top:1px solid #e5e7eb;
+  background:#f9fafb;
+">
+  <div>
+    © <%= new Date().getFullYear() %> Trevor Elliott. All rights reserved.
+  </div>
+
+  <div style="margin-top:6px;">
+    Student Evidence App is a teacher-developed educational tool.  
+    Not for redistribution, resale, or commercial use without permission.
+  </div>
+
+  <div style="margin-top:6px;">
+    <a href="/about-compliance">Privacy, Compliance & Copyright</a>
+  </div>
+</footer>
 </body>
 </html>
