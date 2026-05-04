@@ -768,6 +768,7 @@ router.post("/declarations", async (req, res) => {
 
     const {
       submissionId,
+      sessionId,
       pasteId,
       pastedText,
       declarationType,
@@ -808,6 +809,7 @@ router.post("/declarations", async (req, res) => {
       sql: `
         INSERT INTO source_declarations (
           submission_id,
+          session_id,
           declaration_type,
           tool_name,
           prompt_text,
@@ -825,10 +827,11 @@ router.post("/declarations", async (req, res) => {
           bibliography_entry,
           created_at
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
       `,
       args: [
         Number(submissionId),
+        Number(sessionId || 0),
         declarationType,
         sourceType === "ai_tool" ? sourcePublisher || "AI tool" : "",
         "",
@@ -849,6 +852,7 @@ router.post("/declarations", async (req, res) => {
 
     res.json({
       success: true,
+      sessionId,
       pasteId,
       inTextCitation: citation.inTextCitation,
       bibliographyEntry: citation.bibliographyEntry

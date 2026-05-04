@@ -157,6 +157,7 @@ async function saveDeclaration() {
 
   const result = await postJSON("/api/declarations", {
     submissionId,
+    sessionId: window.APP_DATA?.sessionId || 0,
     pasteId: activePasteId,
     pastedText: getValue("pastedText") || activePastedText,
     declarationType: getValue("declarationType"),
