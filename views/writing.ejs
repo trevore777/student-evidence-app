@@ -289,6 +289,7 @@
   <script>
   window.APP_DATA = {
     submissionId: <%- JSON.stringify(submission.id) %>,
+    sessionId: <%- JSON.stringify(typeof sessionId !== "undefined" ? sessionId : 0) %>,
     initialContent: <%- JSON.stringify(submission.renderedHtml || latestContent || submission.final_text || "") %>,
     serverComposition: <%- JSON.stringify(typeof composition !== "undefined" ? composition : {
       own_work_percent: 100,

@@ -22,6 +22,56 @@ function stripHtml(html = "") {
     .trim();
 }
 
+
+function countWords(text = "") {
+  const clean = String(text || "").trim();
+  return clean ? clean.split(/\s+/).filter(Boolean).length : 0;
+}
+
+function getTextFromHtml(html = "") {
+  return stripHtml(html);
+}
+
+function estimateCompositionFromHtml(html = "") {
+  const totalWords = countWords(getTextFromHtml(html));
+
+  if (!totalWords) {
+    return {
+      own_work_percent: 0,
+      paste_percent: 0,
+      ai_declared_percent: 0,
+      confidence: "Low"
+    };
+  }
+
+  const pastedMatches = String(html).match(
+    /<[^>]+(?:class="[^"]*pasted-content[^"]*"|data-pasted="true")[^>]*>[\s\S]*?<\/[^>]+>/gi
+  ) || [];
+
+  const declaredMatches = String(html).match(
+    /<[^>]+(?:class="[^"]*declared-content[^"]*"|data-declared="true")[^>]*>[\s\S]*?<\/[^>]+>/gi
+  ) || [];
+
+  const aiMatches = String(html).match(
+    /<[^>]+class="[^"]*(?:ai-generated-content|ai-modified-content)[^"]*"[^>]*>[\s\S]*?<\/[^>]+>/gi
+  ) || [];
+
+  const pastedWords = pastedMatches.reduce((sum, chunk) => sum + countWords(getTextFromHtml(chunk)), 0);
+  const declaredWords = declaredMatches.reduce((sum, chunk) => sum + countWords(getTextFromHtml(chunk)), 0);
+  const aiWords = aiMatches.reduce((sum, chunk) => sum + countWords(getTextFromHtml(chunk)), 0);
+
+  const pastePercent = Math.min(100, Math.round((pastedWords / totalWords) * 100));
+  const aiDeclaredPercent = Math.min(100, Math.round(((declaredWords + aiWords) / totalWords) * 100));
+  const ownWorkPercent = Math.max(0, 100 - pastePercent);
+
+  return {
+    own_work_percent: ownWorkPercent,
+    paste_percent: pastePercent,
+    ai_declared_percent: aiDeclaredPercent,
+    confidence: pastedWords || declaredWords || aiWords ? "High" : "Low"
+  };
+}
+
 /* ADD IT HERE */
 function applyEvidenceHighlights(html, events = [], declarations = []) {
   let output = html || "";
@@ -632,12 +682,6 @@ router.get("/submission/:id", requireTeacher, async (req, res) => {
       normalizeRow(row, ["id", "content", "word_count", "saved_at"])
     );
 
-    const composition = estimateComposition({
-      events,
-      declarations,
-      finalText: submission.final_text || ""
-    });
-
     const flags = computeFlags({
       events,
       declarations
@@ -648,6 +692,8 @@ router.get("/submission/:id", requireTeacher, async (req, res) => {
   events,
   declarations
 );
+
+const composition = estimateCompositionFromHtml(renderedHtml);
 
 res.render("teacher-review", {
   submission: {

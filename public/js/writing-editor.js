@@ -43,11 +43,11 @@ function updateStats() {
   let pastedWords = 0;
   let declaredWords = 0;
 
-  body.querySelectorAll(".pasted-content, [data-pasted='true']").forEach(el => {
+  body.querySelectorAll(".pasted-content, [data-pasted='true']").forEach((el) => {
     pastedWords += wordCount(el.innerText || "");
   });
 
-  body.querySelectorAll(".declared-content, [data-declared='true']").forEach(el => {
+  body.querySelectorAll(".declared-content, [data-declared='true']").forEach((el) => {
     declaredWords += wordCount(el.innerText || "");
   });
 
@@ -72,6 +72,7 @@ function updateStats() {
   setText("declaredPercent", `${declaredPercent}%`);
 
   const risk = document.getElementById("riskIndicator");
+
   if (risk) {
     if (undeclaredPasteIds.size > 0 || pastePercent > 40) {
       risk.textContent = "Risk: High";
@@ -93,6 +94,11 @@ function openDeclarationModal(text = "", pasteId = "") {
   setValue("pastedText", text);
   setValue("declarationExplanation", "");
 
+  const accessedDate = document.getElementById("accessedDate");
+  if (accessedDate && !accessedDate.value) {
+    accessedDate.value = new Date().toISOString().slice(0, 10);
+  }
+
   const modal = document.getElementById("declarationModal");
   if (modal) modal.style.display = "flex";
 }
@@ -103,32 +109,62 @@ function closeDeclarationModal() {
 }
 
 async function postJSON(url, payload) {
-  const res = await fetch(url, {
+  const response = await fetch(url, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json"
+    },
     body: JSON.stringify(payload)
   });
 
-  const text = await res.text();
-  let data = {};
-  try { data = text ? JSON.parse(text) : {}; } catch {}
+  const text = await response.text();
 
-  if (!res.ok) throw new Error(data.error || text || "Request failed");
+  let data = {};
+  try {
+    data = text ? JSON.parse(text) : {};
+  } catch {
+    data = {};
+  }
+
+  if (!response.ok) {
+    throw new Error(data.error || text || `Request failed: ${response.status}`);
+  }
+
   return data;
 }
 
+async function logEditorEvent(eventType, eventMeta = {}) {
+  try {
+    await postJSON("/api/event", {
+      submissionId,
+      eventType,
+      eventMeta
+    });
+  } catch (err) {
+    console.warn("Event log failed:", err.message);
+  }
+}
+
 async function save(showAlert = true) {
+  if (!editor) return;
+
+  setText("save-status", "Saving...");
+
   const content = editor.getContent();
   const words = wordCount(editor.getContent({ format: "text" }));
 
   await postJSON("/api/draft/autosave", {
-    submissionId,
-    content,
-    wordCount: words
-  });
+  submissionId,
+  sessionId: window.APP_DATA?.sessionId ?? 0,
+  content,
+  wordCount: words
+});
 
   setText("save-status", `Saved at ${new Date().toLocaleTimeString()}`);
-  if (showAlert) alert("Saved");
+
+  if (showAlert) {
+    alert("Saved");
+  }
 }
 
 async function submitWork() {
@@ -136,6 +172,9 @@ async function submitWork() {
     alert("You must declare all pasted text before submitting.");
     return;
   }
+
+  const confirmed = confirm("Submit this work?");
+  if (!confirmed) return;
 
   await save(false);
 
@@ -148,59 +187,122 @@ async function submitWork() {
   window.location.href = "/student/dashboard";
 }
 
+function addBibliographyEntry(entry) {
+  if (!entry || !editor) return;
+
+  let content = editor.getContent();
+
+  if (!content.includes('data-references-section="true"')) {
+    content += `
+      <div class="references-section" data-references-section="true">
+        <h2>References / Bibliography</h2>
+        <ul class="references-list"></ul>
+      </div>
+    `;
+  }
+
+  content = content.replace(
+    /<ul class="references-list">([\s\S]*?)<\/ul>/,
+    `<ul class="references-list">$1<li class="bibliography-entry">${escapeHtml(entry)}</li></ul>`
+  );
+
+  editor.setContent(content);
+  updateStats();
+}
+
 async function saveDeclaration() {
   const explanation = getValue("declarationExplanation").trim();
+
   if (!explanation) {
     alert("Please explain how you used this material.");
     return;
   }
 
   const result = await postJSON("/api/declarations", {
-    submissionId,
-    sessionId: window.APP_DATA?.sessionId || 0,
-    pasteId: activePasteId,
-    pastedText: getValue("pastedText") || activePastedText,
-    declarationType: getValue("declarationType"),
-    studentExplanation: explanation,
-    citationStyle: "apa7",
-    sourceType: getValue("sourceType"),
-    sourceAuthor: getValue("sourceAuthor"),
-    sourceYear: getValue("sourceYear"),
-    sourceTitle: getValue("sourceTitle"),
-    sourcePublisher: getValue("sourcePublisher"),
-    sourceUrl: getValue("sourceUrl"),
-    accessedDate: getValue("accessedDate")
-  });
+  submissionId,
+  sessionId: window.APP_DATA?.sessionId ?? 0,
+  pasteId: activePasteId,
+  pastedText: getValue("pastedText") || activePastedText,
+  declarationType: getValue("declarationType"),
+  studentExplanation: explanation,
+  citationStyle: "apa7",
+  sourceType: getValue("sourceType"),
+  sourceAuthor: getValue("sourceAuthor"),
+  sourceYear: getValue("sourceYear"),
+  sourceTitle: getValue("sourceTitle"),
+  sourcePublisher: getValue("sourcePublisher"),
+  sourceUrl: getValue("sourceUrl"),
+  accessedDate: getValue("accessedDate")
+});
 
   if (activePasteId) {
-    const span = editor.getBody().querySelector(`[data-paste-id="${CSS.escape(activePasteId)}"]`);
+    const span = editor
+      .getBody()
+      .querySelector(`[data-paste-id="${CSS.escape(activePasteId)}"]`);
+
     if (span) {
       span.classList.add("declared-content");
       span.setAttribute("data-declared", "true");
+      span.setAttribute("title", "Declared material");
     }
+
     undeclaredPasteIds.delete(activePasteId);
   }
 
   if (result.inTextCitation) {
-    editor.insertContent(` <sup class="citation-marker">${escapeHtml(result.inTextCitation)}</sup>`);
+    editor.insertContent(
+      ` <sup class="citation-marker">${escapeHtml(result.inTextCitation)}</sup>`
+    );
   }
 
-  await save(false);
-  closeDeclarationModal();
+  if (result.bibliographyEntry) {
+    addBibliographyEntry(result.bibliographyEntry);
+  }
+
+  await logEditorEvent("declaration_saved", {
+    pasteId: activePasteId,
+    declarationType: getValue("declarationType"),
+    hasCitation: Boolean(result.inTextCitation),
+    hasBibliography: Boolean(result.bibliographyEntry)
+  });
+
   updateStats();
-  alert("Declaration saved");
+
+  await save(false);
+
+  closeDeclarationModal();
+
+  activePasteId = "";
+  activePastedText = "";
+
+  setText("save-status", "Citation added and reference created ✓");
+  alert("Declaration saved. Citation and bibliography added.");
 }
 
 document.addEventListener("DOMContentLoaded", () => {
-  document.getElementById("saveBtn")?.addEventListener("click", () => save(true));
-  document.getElementById("submitBtn")?.addEventListener("click", submitWork);
-  document.getElementById("declareBtn")?.addEventListener("click", () => openDeclarationModal(""));
+  document.getElementById("saveBtn")?.addEventListener("click", () => {
+    save(true).catch((err) => alert(err.message || "Save failed"));
+  });
+
+  document.getElementById("submitBtn")?.addEventListener("click", () => {
+    submitWork().catch((err) => alert(err.message || "Submit failed"));
+  });
+
+  document.getElementById("declareBtn")?.addEventListener("click", () => {
+    const selected = editor?.selection?.getContent({ format: "text" }) || "";
+    openDeclarationModal(selected, "");
+  });
+
   document.getElementById("referenceBtn")?.addEventListener("click", () => {
     const selected = editor?.selection?.getContent({ format: "text" }) || "";
-    openDeclarationModal(selected);
+    openDeclarationModal(selected, "");
   });
+
   document.getElementById("cancelDeclarationBtn")?.addEventListener("click", closeDeclarationModal);
-  document.getElementById("saveDeclarationBtn")?.addEventListener("click", saveDeclaration);
+
+  document.getElementById("saveDeclarationBtn")?.addEventListener("click", () => {
+    saveDeclaration().catch((err) => alert(err.message || "Declaration save failed"));
+  });
 
   tinymce.init({
     selector: "#editor",
@@ -208,6 +310,7 @@ document.addEventListener("DOMContentLoaded", () => {
     menubar: "file edit insert view format table tools",
     branding: false,
     browser_spellcheck: true,
+    contextmenu: false,
     plugins: "lists advlist link image media table code wordcount autoresize charmap preview searchreplace visualblocks fullscreen",
     toolbar: [
       "undo redo | blocks fontfamily fontsize | bold italic underline strikethrough | forecolor backcolor",
@@ -216,22 +319,85 @@ document.addEventListener("DOMContentLoaded", () => {
     ],
     toolbar_mode: "sliding",
     paste_as_text: false,
+
     content_style: `
-      body { font-family: Arial, sans-serif; font-size: 16px; line-height: 1.6; padding: 12px; }
-      .pasted-content, span[data-pasted="true"] { background:#fff3b0!important; border-bottom:2px solid #f59e0b!important; padding:1px 3px; border-radius:4px; }
-      .declared-content, span[data-declared="true"] { background:#dcfce7!important; border-bottom:2px solid #16a34a!important; padding:1px 3px; border-radius:4px; }
-      .citation-marker { background:#dcfce7!important; border:1px solid #16a34a!important; border-radius:4px; padding:0 3px; font-weight:700; }
-      img { max-width:100%; height:auto; }
-      table { border-collapse:collapse; width:100%; }
-      td, th { border:1px solid #cbd5e1; padding:8px; }
+      body {
+        font-family: Arial, sans-serif;
+        font-size: 16px;
+        line-height: 1.6;
+        padding: 12px;
+      }
+
+      .pasted-content,
+      span[data-pasted="true"] {
+        background: #fff3b0 !important;
+        border-bottom: 2px solid #f59e0b !important;
+        padding: 1px 3px;
+        border-radius: 4px;
+      }
+
+      .declared-content,
+      span[data-declared="true"] {
+        background: #dcfce7 !important;
+        border-bottom: 2px solid #16a34a !important;
+        padding: 1px 3px;
+        border-radius: 4px;
+      }
+
+      .citation-marker {
+        background: #dcfce7 !important;
+        border: 1px solid #16a34a !important;
+        border-radius: 4px;
+        padding: 0 3px;
+        font-weight: 700;
+      }
+
+      .references-section {
+        margin-top: 2rem;
+        border-top: 2px solid #16a34a;
+        padding-top: 0.75rem;
+      }
+
+      .references-list {
+        padding-left: 1.5rem;
+      }
+
+      .bibliography-entry {
+        background: #f0fdf4;
+        border-left: 4px solid #16a34a;
+        padding: 0.35rem 0.5rem;
+        margin: 0.35rem 0;
+      }
+
+      span[data-normal-text="true"] {
+        background: transparent !important;
+        border-bottom: none !important;
+      }
+
+      img {
+        max-width: 100%;
+        height: auto;
+      }
+
+      table {
+        border-collapse: collapse;
+        width: 100%;
+      }
+
+      td,
+      th {
+        border: 1px solid #cbd5e1;
+        padding: 8px;
+      }
     `,
+
     setup: (ed) => {
       editor = ed;
 
       ed.on("init", () => {
         editor.setContent(initialContent || "");
 
-        editor.getBody().querySelectorAll(".pasted-content[data-paste-id]").forEach(el => {
+        editor.getBody().querySelectorAll(".pasted-content[data-paste-id]").forEach((el) => {
           if (el.getAttribute("data-declared") !== "true") {
             undeclaredPasteIds.add(el.getAttribute("data-paste-id"));
           }
@@ -253,15 +419,59 @@ document.addEventListener("DOMContentLoaded", () => {
 
         if (!text.trim()) return;
 
-        const pasteId = `paste-${Date.now()}`;
+        const pasteId = `paste-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
         undeclaredPasteIds.add(pasteId);
 
-        editor.insertContent(
-          `<span class="pasted-content" data-pasted="true" data-paste-id="${pasteId}">${escapeHtml(text)}</span>`
-        );
+        const pastedHtml = `
+          <span class="pasted-content" data-pasted="true" data-paste-id="${pasteId}">
+            ${escapeHtml(text)}
+          </span><span data-normal-text="true">&nbsp;</span>
+        `;
+
+        editor.insertContent(pastedHtml);
+
+        setTimeout(() => {
+          editor.focus();
+
+          const normalSpans = editor.getBody().querySelectorAll('[data-normal-text="true"]');
+          const normalSpan = normalSpans[normalSpans.length - 1];
+
+          if (normalSpan) {
+            const range = editor.dom.createRng();
+            range.setStartAfter(normalSpan);
+            range.setEndAfter(normalSpan);
+            editor.selection.setRng(range);
+          }
+        }, 0);
+
+        logEditorEvent("paste", {
+          pasteId,
+          pastedLength: text.length,
+          pastedPreview: text.slice(0, 300)
+        });
 
         openDeclarationModal(text, pasteId);
         updateStats();
+
+        save(false).catch(console.error);
+      });
+
+      ed.on("cut", () => {
+        const selected = editor.selection.getContent({ format: "text" }) || "";
+
+        logEditorEvent("cut", {
+          selectedLength: selected.length,
+          selectedPreview: selected.slice(0, 150)
+        });
+      });
+
+      ed.on("copy", () => {
+        const selected = editor.selection.getContent({ format: "text" }) || "";
+
+        logEditorEvent("copy", {
+          selectedLength: selected.length,
+          selectedPreview: selected.slice(0, 150)
+        });
       });
     }
   });
