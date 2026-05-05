@@ -321,5 +321,208 @@ router.get("/students/by-class", async (req, res) => {
   }
 });
 
+router.post("/ai-feedback", async (req, res) => {
+  try {
+    const {
+      studentName = "",
+      assignmentTitle = "",
+      submissionText = "",
+      rubricText = "",
+      composition = {},
+      flags = [],
+      declarations = [],
+      events = [],
+      snapshots = []
+    } = req.body || {};
+
+    if (!rubricText || !rubricText.trim()) {
+      return res.status(400).json({ error: "Rubric / ISMG text is required." });
+    }
+
+    if (!submissionText || !submissionText.trim()) {
+      return res.status(400).json({ error: "Submission text is required." });
+    }
+
+function stripHtmlForAi(html = "") {
+  return String(html)
+    .replace(/<script[\s\S]*?<\/script>/gi, "")
+    .replace(/<style[\s\S]*?<\/style>/gi, "")
+    .replace(/<[^>]*>/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function limitText(text = "", max = 6000) {
+  const clean = String(text || "");
+  return clean.length > max ? clean.slice(0, max) + "\n...[trimmed]" : clean;
+}
+
+const safeSubmissionText = limitText(stripHtmlForAi(submissionText), 7000);
+const safeRubricText = limitText(stripHtmlForAi(rubricText), 5000);
+
+const safeEvents = (events || []).slice(-20).map(e => ({
+  event_type: e.event_type,
+  created_at: e.created_at,
+  event_meta: (() => {
+    try {
+      const meta = typeof e.event_meta === "string" ? JSON.parse(e.event_meta) : e.event_meta || {};
+      return {
+        pasteId: meta.pasteId,
+        eventRef: meta.eventRef,
+        pastedLength: meta.pastedLength,
+        pastedPreview: limitText(meta.pastedPreview || "", 250)
+      };
+    } catch {
+      return {};
+    }
+  })()
+}));
+
+const safeDeclarations = (declarations || []).slice(-10).map(d => ({
+  declaration_type: d.declaration_type,
+  student_explanation: limitText(d.student_explanation || "", 500),
+  source_type: d.source_type,
+  source_author: d.source_author,
+  source_year: d.source_year,
+  source_title: d.source_title,
+  in_text_citation: d.in_text_citation,
+  bibliography_entry: limitText(d.bibliography_entry || "", 500)
+}));
+
+const safeSnapshots = (snapshots || []).slice(-5).map(s => ({
+  word_count: s.word_count,
+  saved_at: s.saved_at
+}));
+
+    const prompt = `
+You are assisting a school teacher to review student work.
+
+Assess:
+- submitted student work
+- rubric / ISMG
+- writing composition statistics
+- paste evidence
+- declarations and references
+- editor events
+- draft snapshot history
+
+Do not make the final teacher decision. Return JSON only.
+
+Rubric / ISMG:
+${safeRubricText}
+
+Student:
+${studentName}
+
+Assignment:
+${assignmentTitle}
+
+Student work:
+${safeSubmissionText}
+
+Composition:
+${JSON.stringify(composition, null, 2)}
+
+Flags:
+${JSON.stringify(flags, null, 2)}
+
+Declarations:
+${JSON.stringify(safeDeclarations, null, 2)}
+
+Editor events:
+${JSON.stringify(safeEvents, null, 2)}
+
+Draft snapshots:
+${JSON.stringify(safeSnapshots, null, 2)}
+
+Return this exact JSON structure:
+{
+  "totalMark": number,
+  "totalPossible": 25,
+  "suggestedGrade": string,
+  "evidenceIntegrity": {
+    "riskLevel": string,
+    "summary": string,
+    "recommendations": [string]
+  },
+  "criteria": [
+    {
+      "name": string,
+      "mark": number,
+      "possible": number,
+      "evidence": string,
+      "concern": string,
+      "nextStep": string
+    }
+  ],
+  "studentSummary": string,
+  "teacherRecommendation": string,
+  "teacherEmail": string
+}
+`;
+
+    if (!process.env.OPENAI_API_KEY) {
+      return res.json({
+        totalMark: 0,
+        totalPossible: 25,
+        suggestedGrade: "Teacher review required",
+        evidenceIntegrity: {
+          riskLevel: "Review required",
+          summary: "OpenAI API key is not configured. Manual review required.",
+          recommendations: [
+            "Check pasted and declared sections manually.",
+            "Compare the response directly against the ISMG.",
+            "Ask the student to explain key sections if authorship is unclear."
+          ]
+        },
+        criteria: [
+          {
+            name: "Rubric / ISMG review",
+            mark: 0,
+            possible: 25,
+            evidence: "AI assessment unavailable because API key is missing.",
+            concern: "Teacher must complete judgement manually.",
+            nextStep: "Configure OPENAI_API_KEY and retry."
+          }
+        ],
+        studentSummary:
+          "Your teacher will review your work against the rubric. Make sure your own explanations are clear and that copied, researched, or AI-supported material is declared and referenced.",
+        teacherRecommendation:
+          "Manual review required. AI endpoint is working, but OpenAI is not configured.",
+        teacherEmail:
+          `Hi ${studentName || "student"},\n\nYour work has been received. I will review it against the rubric and check the evidence record, including pasted material, declarations and references.\n\nRegards,\nTeacher`
+      });
+    }
+
+    const OpenAI = (await import("openai")).default;
+    const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+
+    const response = await openai.responses.create({
+      model: "gpt-5-mini",
+      input: prompt
+    });
+
+    const raw = response.output_text || "{}";
+
+    let parsed;
+    try {
+      parsed = JSON.parse(raw);
+    } catch {
+      const match = raw.match(/\{[\s\S]*\}/);
+      parsed = match ? JSON.parse(match[0]) : null;
+    }
+
+    if (!parsed) {
+      return res.status(500).json({ error: "AI returned invalid JSON." });
+    }
+
+    res.json(parsed);
+  } catch (err) {
+    console.error("POST /api/ai-feedback error:", err);
+    res.status(500).json({
+      error: err.message || "AI feedback failed"
+    });
+  }
+});
 
 export default router;

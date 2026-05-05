@@ -35,7 +35,32 @@ app.get("/about-compliance", (req, res) => {
 /* VIEW ENGINE (MUST COME BEFORE ROUTES) */
 app.set("view engine", "ejs");
 app.set("views", path.join(__dirname, "views"));
+app.locals.formatDateAU = function (date) {
+  if (!date) return "";
+  const d = new Date(date);
 
+  const day = String(d.getDate()).padStart(2, "0");
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const year = d.getFullYear();
+
+  return `${day}/${month}/${year}`;
+};
+
+app.locals.formatDateTimeAU = function (date) {
+  if (!date) return "";
+  const d = new Date(date);
+
+  const day = String(d.getDate()).padStart(2, "0");
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const year = d.getFullYear();
+
+  const time = d.toLocaleTimeString("en-AU", {
+    hour: "2-digit",
+    minute: "2-digit"
+  });
+
+  return `${day}/${month}/${year} ${time}`;
+};
 /* BODY PARSING (FIXES YOUR ERROR + LARGE PAYLOADS) */
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 app.use(express.json({ limit: "10mb" }));

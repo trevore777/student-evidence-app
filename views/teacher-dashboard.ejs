@@ -182,7 +182,7 @@
            <div class="muted-box">
             <h3><%= a.title %></h3>
             <p><%- a.instructions %></p>
-            <p class="small">Due: <%= a.due_date || "No due date" %></p>
+            <p class="small">Due: <%= formatDateAU(a.due_date) %></p>
             <p class="small">Word target: <%= a.word_target || "—" %></p>
             <a class="button" href="/teacher/assignments/<%= a.id %>/edit">Edit Assessment</a>
           </div>

@@ -31,9 +31,7 @@
       box-shadow: 0 6px 22px rgba(15, 23, 42, 0.07);
     }
 
-    .review-header h1 {
-      margin-top: 0;
-    }
+    .review-header h1 { margin-top: 0; }
 
     .review-grid {
       display: grid;
@@ -42,30 +40,23 @@
       align-items: start;
     }
 
-    .meta-grid {
+    .meta-grid,
+    .composition-grid,
+    .evidence-legend {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
       gap: 10px;
     }
 
-    .meta-box {
-      background: #f8fafc;
-      border: 1px solid #e5e7eb;
-      padding: 12px;
-      border-radius: 12px;
-    }
-
-    .composition-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-      gap: 10px;
-    }
-
-    .metric {
-      border-radius: 14px;
-      padding: 14px;
+    .meta-box,
+    .metric,
+    .declaration-card,
+    .event-card,
+    .snapshot-card {
       background: #f9fafb;
       border: 1px solid #e5e7eb;
+      border-radius: 12px;
+      padding: 12px;
     }
 
     .metric strong {
@@ -82,22 +73,8 @@
       background: #fffbeb;
     }
 
-    .flag.info {
-      border-color: #93c5fd;
-      background: #eff6ff;
-    }
-
-    .flag.warning {
-      border-color: #f59e0b;
-      background: #fff7ed;
-    }
-
-    .evidence-legend {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
-      gap: 10px;
-      margin: 12px 0 18px;
-    }
+    .flag.info { border-color: #93c5fd; background: #eff6ff; }
+    .flag.warning { border-color: #f59e0b; background: #fff7ed; }
 
     .legend-item {
       display: flex;
@@ -165,18 +142,15 @@
       font-weight: 700;
     }
 
-    .declaration-card,
-    .event-card,
-    .snapshot-card {
-      background: #f9fafb;
-      border: 1px solid #e5e7eb;
-      border-radius: 12px;
-      padding: 12px;
-      margin-bottom: 10px;
-    }
-
-    .declaration-card strong {
-      color: #111827;
+    .event-marker {
+      background: #e0f2fe;
+      border: 1px solid #0284c7;
+      color: #075985;
+      border-radius: 6px;
+      padding: 0 4px;
+      margin-left: 4px;
+      font-size: 0.75rem;
+      font-weight: 700;
     }
 
     .small {
@@ -191,27 +165,86 @@
       margin-top: 14px;
     }
 
-    .email-box {
-      width: 100%;
-      min-height: 140px;
+    details.fold-card {
+      margin-bottom: 16px;
+      border: 1px solid #e5e7eb;
+      border-radius: 14px;
       padding: 12px;
-      border-radius: 12px;
-      border: 1px solid #cbd5e1;
-      font-family: Arial, sans-serif;
-      font-size: 0.95rem;
-      box-sizing: border-box;
+      background: #f9fafb;
     }
 
-    details summary {
+    details.fold-card summary {
       cursor: pointer;
       font-weight: 700;
+      font-size: 1rem;
       margin-bottom: 10px;
     }
 
+    .rubric-visual {
+      width: 100%;
+      margin-top: 12px;
+      background: #f8fafc;
+      border: 1px solid #cbd5e1;
+      border-radius: 16px;
+      padding: 18px;
+      box-sizing: border-box;
+    }
+
+    .rubric-level {
+      padding: 12px;
+      background: #ffffff;
+      border-radius: 12px;
+      border: 1px solid #e5e7eb;
+      margin-bottom: 14px;
+    }
+
+    .rubric-criterion {
+      background: #ffffff;
+      border: 1px solid #e5e7eb;
+      border-left: 6px solid #2563eb;
+      border-radius: 12px;
+      padding: 12px;
+      margin-bottom: 12px;
+    }
+
+    .rubric-criterion summary {
+      cursor: pointer;
+      font-weight: 700;
+    }
+
+    .rubric-criterion label {
+      display: block;
+      font-weight: 700;
+      margin-top: 12px;
+    }
+
+    .editable-box,
+    .email-box {
+      width: 100%;
+      resize: vertical;
+      box-sizing: border-box;
+      border: 1px solid #cbd5e1;
+      border-radius: 12px;
+      padding: 12px;
+      font-family: Arial, sans-serif;
+      font-size: 0.95rem;
+    }
+
+    .editable-box { min-height: 90px; }
+    .email-box { min-height: 220px; }
+
+    footer {
+      margin-top: 40px;
+      padding: 20px;
+      text-align: center;
+      font-size: 13px;
+      color: #6b7280;
+      border-top: 1px solid #e5e7eb;
+      background: #f9fafb;
+    }
+
     @media (max-width: 900px) {
-      .review-grid {
-        grid-template-columns: 1fr;
-      }
+      .review-grid { grid-template-columns: 1fr; }
     }
   </style>
 </head>
@@ -222,40 +255,20 @@
       <h1>Teacher Review</h1>
 
       <div class="meta-grid">
-        <div class="meta-box">
-          <strong>Student</strong><br>
-          <%= submission.student_name %>
-        </div>
-
-        <div class="meta-box">
-          <strong>Email</strong><br>
-          <%= submission.student_email || "—" %>
-        </div>
-
-        <div class="meta-box">
-          <strong>Class</strong><br>
-          <%= submission.class_name || "—" %>
-        </div>
-
-        <div class="meta-box">
-          <strong>Assignment</strong><br>
-          <%= submission.assignment_title || "—" %>
-        </div>
-
-        <div class="meta-box">
-          <strong>Status</strong><br>
-          <%= submission.status || "draft" %>
-        </div>
-
+        <div class="meta-box"><strong>Student</strong><br><%= submission.student_name %></div>
+        <div class="meta-box"><strong>Email</strong><br><%= submission.student_email || "—" %></div>
+        <div class="meta-box"><strong>Class</strong><br><%= submission.class_name || "—" %></div>
+        <div class="meta-box"><strong>Assignment</strong><br><%= submission.assignment_title || "—" %></div>
+        <div class="meta-box"><strong>Status</strong><br><%= submission.status || "draft" %></div>
         <div class="meta-box">
           <strong>Submitted</strong><br>
-          <%= submission.submitted_at || "Not yet submitted" %>
+          <%= submission.submitted_at ? formatDateAU(submission.submitted_at) : "Not yet submitted" %>
         </div>
       </div>
 
       <div class="button-row">
         <a class="button secondary" href="/teacher/dashboard">Back to dashboard</a>
-        <button class="button" type="button" id="generateFeedbackBtn">Generate AI feedback email</button>
+        <button class="button" type="button" id="generateFeedbackBtn">Generate AI rubric review</button>
       </div>
     </section>
 
@@ -275,9 +288,10 @@
             <%- submission.renderedHtml || submission.final_text || "<p>No writing submitted.</p>" %>
           </div>
         </section>
+
         <p class="small" style="margin-top:20px; opacity:0.6;">
-  Generated via Student Evidence App — © Trevor Elliott
-</p>
+          Generated via Student Evidence App — © Trevor Elliott
+        </p>
 
         <section class="review-card">
           <h2>Declarations and References</h2>
@@ -285,8 +299,8 @@
           <% if (!declarations || !declarations.length) { %>
             <p>No declarations recorded.</p>
           <% } else { %>
-            <% declarations.forEach((d, index) => { %>
-              <div class="declaration-card">
+            <% declarations.forEach(function(d, index) { %>
+              <div class="declaration-card" style="margin-bottom:10px;">
                 <p><strong>#<%= index + 1 %> Type:</strong> <%= d.declaration_type || "—" %></p>
                 <p><strong>Explanation:</strong> <%= d.student_explanation || "—" %></p>
 
@@ -313,7 +327,7 @@
                   <p class="small">URL: <%= d.source_url %></p>
                 <% } %>
               </div>
-            <% }) %>
+            <% }); %>
           <% } %>
         </section>
 
@@ -324,15 +338,15 @@
             <% if (!snapshots || !snapshots.length) { %>
               <p>No draft snapshots recorded.</p>
             <% } else { %>
-              <% snapshots.slice().reverse().slice(0, 10).forEach((snap, index) => { %>
-                <div class="snapshot-card">
+              <% snapshots.slice().reverse().slice(0, 10).forEach(function(snap, index) { %>
+                <div class="snapshot-card" style="margin-bottom:10px;">
                   <strong>Snapshot <%= index + 1 %></strong>
                   <p class="small">
-                    Saved: <%= snap.saved_at || "—" %> |
+                    Saved: <%= snap.saved_at ? formatDateTimeAU(snap.saved_at) : "—" %> |
                     Words: <%= snap.word_count || 0 %>
                   </p>
                 </div>
-              <% }) %>
+              <% }); %>
             <% } %>
           </details>
         </section>
@@ -343,25 +357,10 @@
           <h2>Writing Composition</h2>
 
           <div class="composition-grid">
-            <div class="metric">
-              <strong><%= composition.own_work_percent || 0 %>%</strong>
-              Own work estimate
-            </div>
-
-            <div class="metric">
-              <strong><%= composition.paste_percent || 0 %>%</strong>
-              Paste estimate
-            </div>
-
-            <div class="metric">
-              <strong><%= composition.ai_declared_percent || 0 %>%</strong>
-              AI declared
-            </div>
-
-            <div class="metric">
-              <strong><%= composition.confidence || "Low" %></strong>
-              Confidence
-            </div>
+            <div class="metric"><strong><%= composition.own_work_percent || 0 %>%</strong>Own work estimate</div>
+            <div class="metric"><strong><%= composition.paste_percent || 0 %>%</strong>Paste estimate</div>
+            <div class="metric"><strong><%= composition.ai_declared_percent || 0 %>%</strong>AI declared</div>
+            <div class="metric"><strong><%= composition.confidence || "Low" %></strong>Confidence</div>
           </div>
         </section>
 
@@ -371,218 +370,295 @@
           <% if (!flags || !flags.length) { %>
             <p>No flags raised.</p>
           <% } else { %>
-            <% flags.forEach(flag => { %>
+            <% flags.forEach(function(flag) { %>
               <div class="flag <%= flag.severity || 'warning' %>">
                 <strong><%= flag.flag_code || "Flag" %></strong>
                 <p><%= flag.flag_message || flag %></p>
               </div>
-            <% }) %>
-          <% } %>
-        </section>
-
-        <section class="review-card">
-          <h2>Teacher Action</h2>
-
-          <% const hasFlags = flags && flags.length; %>
-          <% const hasDeclarations = declarations && declarations.length; %>
-
-          <% if (hasFlags && !hasDeclarations) { %>
-            <p><strong>Recommended:</strong> Ask the student to explain pasted or externally supported material.</p>
-          <% } else if (hasFlags && hasDeclarations) { %>
-            <p><strong>Recommended:</strong> Review the declarations and compare them to highlighted evidence.</p>
-          <% } else { %>
-            <p><strong>Recommended:</strong> Evidence appears low risk. Provide normal writing feedback.</p>
+            <% }); %>
           <% } %>
         </section>
 
         <section class="review-card">
           <h2>Editor Events</h2>
+          <p class="small">
+            Event markers are exact only when linked to saved paste IDs. Older paste events may appear as unlinked audit records.
+          </p>
 
           <% if (!events || !events.length) { %>
             <p>No editor events recorded.</p>
           <% } else { %>
-            <% events.slice().reverse().slice(0, 12).forEach((event, index) => { %>
-              <div class="event-card">
-                <strong><%= event.event_type %></strong>
-                <p class="small"><%= event.created_at || "—" %></p>
+            <% events.slice().reverse().slice(0, 20).forEach(function(event, index) { %>
+              <%
+                let eventMeta = {};
+                let eventRef = "";
+
+                try {
+                  eventMeta = event.event_meta ? JSON.parse(event.event_meta) : {};
+                } catch (err) {
+                  eventMeta = {};
+                }
+
+                if (eventMeta.eventRef) {
+                  eventRef = eventMeta.eventRef;
+                } else if (event.event_type === "paste") {
+                  eventRef = "Unlinked old paste event";
+                }
+              %>
+
+              <div class="event-card" style="margin-bottom:10px;">
+                <strong>
+                  <%= event.event_type %>
+                  <% if (eventRef && eventRef.startsWith("E")) { %>
+                    <span class="event-marker"><%= eventRef %></span>
+                  <% } else if (eventRef) { %>
+                    <span class="small">(<%= eventRef %>)</span>
+                  <% } %>
+                </strong>
+
+                <p class="small"><%= event.created_at ? formatDateTimeAU(event.created_at) : "—" %></p>
+
+                <% if (eventMeta.pastedPreview) { %>
+                  <p class="small"><strong>Preview:</strong> <%= eventMeta.pastedPreview %></p>
+                <% } %>
               </div>
-            <% }) %>
+            <% }); %>
           <% } %>
         </section>
       </aside>
     </section>
 
     <section class="review-card">
-      <h2>AI Feedback Email Draft</h2>
+      <h2>AI Rubric / ISMG Review</h2>
 
       <p class="small">
-        Generate a short teacher-controlled feedback email. Review and edit before sending.
+        AI reviews the submitted writing, rubric/ISMG, paste statistics, declarations, references, editor events and draft history. Teacher must confirm final judgement.
       </p>
 
-      <div id="rubricVisual" class="rubric-visual" style="display:none;">
-  <h3>Rubric / ISMG Alignment</h3>
-  <div id="rubricSuggestedLevel" class="rubric-level"></div>
-  <div id="rubricCriteria"></div>
-</div>
+      <details class="fold-card" open>
+        <summary>Rubric / ISMG marks and evidence</summary>
+        <div id="rubricVisual" class="rubric-visual" style="display:none;">
+          <div id="rubricSuggestedLevel" class="rubric-level"></div>
+          <div id="rubricCriteria"></div>
+        </div>
+      </details>
 
-      <textarea id="feedbackEmail" class="email-box"></textarea>
+      <details class="fold-card" open>
+        <summary>Student summary</summary>
+        <textarea id="studentSummaryBox" class="editable-box"></textarea>
+      </details>
+
+      <details class="fold-card" open>
+        <summary>AI generated review</summary>
+        <textarea id="aiOutputBox" class="email-box"></textarea>
+      </details>
+
+      <details class="fold-card">
+        <summary>Teacher final comment / email</summary>
+        <textarea id="feedbackEmail" class="email-box"></textarea>
+      </details>
 
       <div class="button-row">
-        <button class="button" type="button" id="copyFeedbackBtn">Copy email draft</button>
+        <button class="button" type="button" id="copyFeedbackBtn">Copy teacher final comment</button>
       </div>
     </section>
   </main>
 
   <script>
-  const reviewData = {
-    studentName: <%- JSON.stringify(submission.student_name || "") %>,
-    studentEmail: <%- JSON.stringify(submission.student_email || "") %>,
-    assignmentTitle: <%- JSON.stringify(submission.assignment_title || "") %>,
-    submissionText: <%- JSON.stringify(submission.renderedHtml || submission.final_text || "") %>,
-    rubricText: <%- JSON.stringify(submission.rubric_text || "") %>,
-    composition: {
-      own: <%= composition.own_work_percent || 0 %>,
-      paste: <%= composition.paste_percent || 0 %>,
-      ai: <%= composition.ai_declared_percent || 0 %>
-    },
-    flags: <%- JSON.stringify((flags || []).map(f => f.flag_code || f)) %>,
-    declarations: <%- JSON.stringify(declarations || []) %>
-  };
+    const reviewData = {
+      studentName: <%- JSON.stringify(submission.student_name || "") %>,
+      studentEmail: <%- JSON.stringify(submission.student_email || "") %>,
+      assignmentTitle: <%- JSON.stringify(submission.assignment_title || "") %>,
+      submissionText: <%- JSON.stringify(submission.renderedHtml || submission.final_text || "") %>,
+      rubricText: <%- JSON.stringify(submission.rubric_text || "") %>,
+      composition: {
+        own: <%= composition.own_work_percent || 0 %>,
+        paste: <%= composition.paste_percent || 0 %>,
+        ai: <%= composition.ai_declared_percent || 0 %>
+      },
+      flags: <%- JSON.stringify((flags || []).map(function(f) { return f.flag_code || f; })) %>,
+      declarations: <%- JSON.stringify(declarations || []) %>,
+      events: <%- JSON.stringify(events || []) %>,
+      snapshots: <%- JSON.stringify(snapshots || []) %>
+    };
 
-function renderRubricVisual(result) {
-  const wrapper = document.getElementById("rubricVisual");
-  const levelBox = document.getElementById("rubricSuggestedLevel");
-  const criteriaBox = document.getElementById("rubricCriteria");
+    function escapeHtmlClient(value) {
+      return String(value || "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;");
+    }
 
-  if (!wrapper || !levelBox || !criteriaBox) return;
+    function renderRubricVisual(result) {
+      const wrapper = document.getElementById("rubricVisual");
+      const levelBox = document.getElementById("rubricSuggestedLevel");
+      const criteriaBox = document.getElementById("rubricCriteria");
 
-  wrapper.style.display = "block";
-  levelBox.textContent = `Suggested level: ${result.suggestedLevel || "Teacher review required"}`;
+      if (!wrapper || !levelBox || !criteriaBox) return;
 
-  criteriaBox.innerHTML = "";
+      wrapper.style.display = "block";
 
-  (result.rubricAlignment || []).forEach(item => {
-    const div = document.createElement("div");
-    div.className = "rubric-criterion";
+      levelBox.innerHTML = `
+        <strong>Total:</strong> ${result.totalMark ?? 0}/${result.totalPossible ?? 25}
+        &nbsp; | &nbsp;
+        <strong>Suggested grade:</strong> ${escapeHtmlClient(result.suggestedGrade || "Teacher review required")}
+        <br><br>
+        <strong>Evidence risk:</strong> ${escapeHtmlClient(result.evidenceIntegrity?.riskLevel || "Review required")}
+        <p>${escapeHtmlClient(result.evidenceIntegrity?.summary || "")}</p>
+      `;
 
-    div.innerHTML = `
-      <strong>${item.criterion || "Criterion"}</strong>
-      <p><b>Evidence:</b> ${item.evidence || "No specific evidence supplied."}</p>
-      <p><b>Suggested:</b> ${item.suggestedLevel || "Teacher review required"}</p>
-    `;
+      criteriaBox.innerHTML = "";
 
-    criteriaBox.appendChild(div);
-  });
+      (result.criteria || []).forEach((item, index) => {
+        const details = document.createElement("details");
+        details.className = "rubric-criterion";
+        details.open = index === 0;
+
+        details.innerHTML = `
+          <summary>${escapeHtmlClient(item.name || "Criterion")} — ${item.mark ?? 0}/${item.possible ?? 5}</summary>
+
+          <label>Evidence</label>
+          <textarea class="editable-box">${escapeHtmlClient(item.evidence || "")}</textarea>
+
+          <label>Concern / limitation</label>
+          <textarea class="editable-box">${escapeHtmlClient(item.concern || "")}</textarea>
+
+          <label>Next step</label>
+          <textarea class="editable-box">${escapeHtmlClient(item.nextStep || "")}</textarea>
+        `;
+
+        criteriaBox.appendChild(details);
+      });
+    }
+
+    function renderAiFeedback(result) {
+  renderRubricVisual(result);
+
+  const studentBox = document.getElementById("studentSummaryBox");
+  if (studentBox) {
+    studentBox.value = result.studentSummary || "";
+  }
+
+  const recommendations = (result.evidenceIntegrity?.recommendations || [])
+    .map(function(item) { return "• " + item; })
+    .join("\n");
+
+  const aiBox = document.getElementById("aiOutputBox");
+  if (aiBox) {
+    aiBox.value =
+`Suggested result: ${result.totalMark ?? 0}/${result.totalPossible ?? 25}
+Suggested grade: ${result.suggestedGrade || "Teacher review required"}
+
+Evidence integrity:
+${result.evidenceIntegrity?.summary || ""}
+
+Teacher recommendations:
+${recommendations}
+
+Teacher recommendation:
+${result.teacherRecommendation || ""}`;
+  }
+
+  const emailBox = document.getElementById("feedbackEmail");
+  if (emailBox) {
+    const generatedEmail = result.teacherEmail || "";
+
+    emailBox.value = generatedEmail.length > 40
+      ? generatedEmail
+      : `Hi ${reviewData.studentName || "student"},
+
+Thank you for submitting your ${reviewData.assignmentTitle || "assessment"}.
+
+Suggested result: ${result.totalMark ?? 0}/${result.totalPossible ?? 25}
+Suggested grade: ${result.suggestedGrade || "Teacher review required"}
+
+${result.studentSummary || "Your work has been reviewed against the rubric. Please check the feedback above and improve your evidence, explanations and referencing where needed."}
+
+Next step:
+${result.teacherRecommendation || "Review the highlighted evidence, strengthen your own explanations, and ensure copied, researched or AI-supported material is declared and referenced."}
+
+Regards,
+Teacher`;
+  }
 }
 
-  function renderAiFeedback(result) {
-    renderRubricVisual(result);
+async function generateFeedbackEmail() {
+  const button = document.getElementById("generateFeedbackBtn");
+  const aiBox = document.getElementById("aiOutputBox");
 
-    const box = document.getElementById("feedbackEmail");
-
-    const strengths = (result.strengths || [])
-      .map(item => `• ${item}`)
-      .join("\n");
-
-    const nextSteps = (result.nextSteps || [])
-      .map(item => `• ${item}`)
-      .join("\n");
-
-    const alignment = (result.rubricAlignment || [])
-      .map(item =>
-        `• ${item.criterion}: ${item.evidence} (${item.suggestedLevel})`
-      )
-      .join("\n");
-
-    box.value =
-`Suggested level: ${result.suggestedLevel || "Teacher review required"}
-
-Student-friendly feedback:
-${result.studentFriendlyFeedback || ""}
-
-Strengths:
-${strengths}
-
-Next steps:
-${nextSteps}
-
-Rubric / ISMG alignment:
-${alignment}
-
-Teacher notes:
-${result.teacherNotes || ""}`;
+  if (!button) {
+    alert("AI button not found.");
+    return;
   }
 
-  async function generateFeedbackEmail() {
-    const button = document.getElementById("generateFeedbackBtn");
-    const box = document.getElementById("feedbackEmail");
+  if (!reviewData.rubricText || !reviewData.rubricText.trim()) {
+    alert("No rubric / ISMG text found for this assignment.");
+    return;
+  }
 
-    if (!reviewData.rubricText || !reviewData.rubricText.trim()) {
-      alert("No rubric / ISMG text found for this assignment.");
-      return;
-    }
+  button.disabled = true;
+  button.textContent = "Assessing all evidence...";
 
-    button.disabled = true;
-    button.textContent = "Assessing against rubric...";
-    box.value = "Generating AI-assisted rubric feedback...";
+  if (aiBox) {
+    aiBox.value = "Generating AI-assisted rubric and evidence review...";
+  }
 
+  try {
+    const response = await fetch("/api/ai-feedback", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(reviewData)
+    });
+
+    const text = await response.text();
+
+    let result;
     try {
-      const response = await fetch("/api/ai-feedback", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify(reviewData)
-      });
-
-      const result = await response.json();
-
-      if (!response.ok) {
-        throw new Error(result.error || "AI feedback failed");
-      }
-      
-
-      renderAiFeedback(result);
-    } catch (err) {
-      console.error(err);
-      alert(err.message || "Could not generate feedback.");
-      box.value = "";
-    } finally {
-      button.disabled = false;
-      button.textContent = "Generate AI feedback email";
+      result = JSON.parse(text);
+    } catch {
+      throw new Error(text || "AI endpoint did not return JSON.");
     }
+
+    if (!response.ok) {
+      throw new Error(result.error || "AI feedback failed.");
+    }
+
+    renderAiFeedback(result);
+  } catch (err) {
+    console.error("AI feedback error:", err);
+    alert(err.message || "Could not generate feedback.");
+
+    if (aiBox) {
+      aiBox.value = "";
+    }
+  } finally {
+    button.disabled = false;
+    button.textContent = "Generate AI rubric review";
   }
+}
 
-  document.getElementById("generateFeedbackBtn")?.addEventListener("click", generateFeedbackEmail);
+    document.getElementById("generateFeedbackBtn")?.addEventListener("click", generateFeedbackEmail);
 
-  document.getElementById("copyFeedbackBtn")?.addEventListener("click", async () => {
-    const text = document.getElementById("feedbackEmail").value;
-    if (!text) return alert("Generate the feedback first.");
-    await navigator.clipboard.writeText(text);
-    alert("Feedback copied.");
-  });
-</script>
-<footer style="
-  margin-top:40px;
-  padding:20px;
-  text-align:center;
-  font-size:13px;
-  color:#6b7280;
-  border-top:1px solid #e5e7eb;
-  background:#f9fafb;
-">
-  <div>
-    © <%= new Date().getFullYear() %> Trevor Elliott. All rights reserved.
-  </div>
+    document.getElementById("copyFeedbackBtn")?.addEventListener("click", async () => {
+      const text = document.getElementById("feedbackEmail").value;
+      if (!text) return alert("Generate the feedback first.");
+      await navigator.clipboard.writeText(text);
+      alert("Teacher final comment copied.");
+    });
+  </script>
 
-  <div style="margin-top:6px;">
-    Student Evidence App is a teacher-developed educational tool.  
-    Not for redistribution, resale, or commercial use without permission.
-  </div>
-
-  <div style="margin-top:6px;">
-    <a href="/about-compliance">Privacy, Compliance & Copyright</a>
-  </div>
-</footer>
+  <footer>
+    <div>© <%= new Date().getFullYear() %> Trevor Elliott. All rights reserved.</div>
+    <div style="margin-top:6px;">
+      Student Evidence App is a teacher-developed educational tool.
+      Not for redistribution, resale, or commercial use without permission.
+    </div>
+    <div style="margin-top:6px;">
+      <a href="/about-compliance">Privacy, Compliance & Copyright</a>
+    </div>
+  </footer>
 </body>
 </html>

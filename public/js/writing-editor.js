@@ -410,51 +410,44 @@ document.addEventListener("DOMContentLoaded", () => {
       ed.on("input keyup change undo redo setcontent", updateStats);
 
       ed.on("paste", (event) => {
-        event.preventDefault();
+  event.preventDefault();
 
-        const text =
-          event.clipboardData?.getData("text/plain") ||
-          event.originalEvent?.clipboardData?.getData("text/plain") ||
-          "";
+  const text =
+    event.clipboardData?.getData("text/plain") ||
+    event.originalEvent?.clipboardData?.getData("text/plain") ||
+    "";
 
-        if (!text.trim()) return;
+  if (!text.trim()) return;
 
-        const pasteId = `paste-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
-        undeclaredPasteIds.add(pasteId);
+  const pasteId = `paste-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
+  const eventRef = `E${Date.now().toString().slice(-4)}`;
 
-        const pastedHtml = `
-          <span class="pasted-content" data-pasted="true" data-paste-id="${pasteId}">
-            ${escapeHtml(text)}
-          </span><span data-normal-text="true">&nbsp;</span>
-        `;
+  undeclaredPasteIds.add(pasteId);
 
-        editor.insertContent(pastedHtml);
+  const pastedHtml = `
+    <span
+      class="pasted-content"
+      data-pasted="true"
+      data-paste-id="${pasteId}"
+      data-event-ref="${eventRef}"
+    >${escapeHtml(text)} <sup class="event-marker">${eventRef}</sup></span>
+    <span data-normal-text="true">&nbsp;</span>
+  `;
 
-        setTimeout(() => {
-          editor.focus();
+  editor.insertContent(pastedHtml);
 
-          const normalSpans = editor.getBody().querySelectorAll('[data-normal-text="true"]');
-          const normalSpan = normalSpans[normalSpans.length - 1];
+  logEditorEvent("paste", {
+    pasteId,
+    eventRef,
+    pastedLength: text.length,
+    pastedPreview: text.slice(0, 300)
+  });
 
-          if (normalSpan) {
-            const range = editor.dom.createRng();
-            range.setStartAfter(normalSpan);
-            range.setEndAfter(normalSpan);
-            editor.selection.setRng(range);
-          }
-        }, 0);
+  openDeclarationModal(text, pasteId);
+  updateStats();
 
-        logEditorEvent("paste", {
-          pasteId,
-          pastedLength: text.length,
-          pastedPreview: text.slice(0, 300)
-        });
-
-        openDeclarationModal(text, pasteId);
-        updateStats();
-
-        save(false).catch(console.error);
-      });
+  save(false).catch(console.error);
+});
 
       ed.on("cut", () => {
         const selected = editor.selection.getContent({ format: "text" }) || "";

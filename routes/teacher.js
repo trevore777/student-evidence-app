@@ -22,7 +22,6 @@ function stripHtml(html = "") {
     .trim();
 }
 
-
 function countWords(text = "") {
   const clean = String(text || "").trim();
   return clean ? clean.split(/\s+/).filter(Boolean).length : 0;
@@ -44,24 +43,41 @@ function estimateCompositionFromHtml(html = "") {
     };
   }
 
-  const pastedMatches = String(html).match(
-    /<[^>]+(?:class="[^"]*pasted-content[^"]*"|data-pasted="true")[^>]*>[\s\S]*?<\/[^>]+>/gi
-  ) || [];
+  const pastedMatches =
+    String(html).match(
+      /<[^>]+(?:class="[^"]*pasted-content[^"]*"|data-pasted="true")[^>]*>[\s\S]*?<\/[^>]+>/gi
+    ) || [];
 
-  const declaredMatches = String(html).match(
-    /<[^>]+(?:class="[^"]*declared-content[^"]*"|data-declared="true")[^>]*>[\s\S]*?<\/[^>]+>/gi
-  ) || [];
+  const declaredMatches =
+    String(html).match(
+      /<[^>]+(?:class="[^"]*declared-content[^"]*"|data-declared="true")[^>]*>[\s\S]*?<\/[^>]+>/gi
+    ) || [];
 
-  const aiMatches = String(html).match(
-    /<[^>]+class="[^"]*(?:ai-generated-content|ai-modified-content)[^"]*"[^>]*>[\s\S]*?<\/[^>]+>/gi
-  ) || [];
+  const aiMatches =
+    String(html).match(
+      /<[^>]+class="[^"]*(?:ai-generated-content|ai-modified-content)[^"]*"[^>]*>[\s\S]*?<\/[^>]+>/gi
+    ) || [];
 
-  const pastedWords = pastedMatches.reduce((sum, chunk) => sum + countWords(getTextFromHtml(chunk)), 0);
-  const declaredWords = declaredMatches.reduce((sum, chunk) => sum + countWords(getTextFromHtml(chunk)), 0);
-  const aiWords = aiMatches.reduce((sum, chunk) => sum + countWords(getTextFromHtml(chunk)), 0);
+  const pastedWords = pastedMatches.reduce(
+    (sum, chunk) => sum + countWords(getTextFromHtml(chunk)),
+    0
+  );
+
+  const declaredWords = declaredMatches.reduce(
+    (sum, chunk) => sum + countWords(getTextFromHtml(chunk)),
+    0
+  );
+
+  const aiWords = aiMatches.reduce(
+    (sum, chunk) => sum + countWords(getTextFromHtml(chunk)),
+    0
+  );
 
   const pastePercent = Math.min(100, Math.round((pastedWords / totalWords) * 100));
-  const aiDeclaredPercent = Math.min(100, Math.round(((declaredWords + aiWords) / totalWords) * 100));
+  const aiDeclaredPercent = Math.min(
+    100,
+    Math.round(((declaredWords + aiWords) / totalWords) * 100)
+  );
   const ownWorkPercent = Math.max(0, 100 - pastePercent);
 
   return {
@@ -72,12 +88,51 @@ function estimateCompositionFromHtml(html = "") {
   };
 }
 
-/* ADD IT HERE */
-function applyEvidenceHighlights(html, events = [], declarations = []) {
+function addEventMarkersToHtml(html = "", events = []) {
   let output = html || "";
 
-  const pasteEvents = events.filter((e) =>
-    ["paste", "external_paste"].includes(e.event_type)
+  const pasteEvents = events
+    .filter((event) => event.event_type === "paste")
+    .map((event) => {
+      let meta = {};
+
+      try {
+        meta = JSON.parse(event.event_meta || "{}");
+      } catch {
+        meta = {};
+      }
+
+      return {
+        pasteId: meta.pasteId || "",
+        eventRef: meta.eventRef || ""
+      };
+    })
+    .filter((event) => event.pasteId && event.eventRef);
+
+  pasteEvents.forEach(({ pasteId, eventRef }) => {
+    if (output.includes(`<sup class="event-marker">${eventRef}</sup>`)) {
+      return;
+    }
+
+    const pattern = new RegExp(
+      `(<span[^>]*data-paste-id=["']${pasteId}["'][^>]*>)([\\s\\S]*?)(<\\/span>)`,
+      "i"
+    );
+
+    output = output.replace(
+      pattern,
+      `$1$2 <sup class="event-marker">${eventRef}</sup>$3`
+    );
+  });
+
+  return output;
+}
+
+function applyEvidenceHighlights(html, events = [], declarations = []) {
+  const output = html || "";
+
+  const pasteEvents = events.filter((event) =>
+    ["paste", "external_paste"].includes(event.event_type)
   );
 
   if (!pasteEvents.length) return output;
@@ -92,42 +147,6 @@ function applyEvidenceHighlights(html, events = [], declarations = []) {
     </div>
   `;
 }
-
-
-function estimateComposition({ events = [], declarations = [], finalText = "" }) {
-  const cleanText = stripHtml(finalText);
-  const totalChars = cleanText.length || 1;
-
-  const pasteEvents = events.filter((e) => e.event_type === "paste");
-  let pastedChars = 0;
-
-  pasteEvents.forEach((event) => {
-    try {
-      const meta = JSON.parse(event.event_meta || "{}");
-      pastedChars += Number(meta.pastedLength || 0);
-    } catch {
-      pastedChars += 0;
-    }
-  });
-
-  const aiDeclarations = declarations.filter((d) =>
-    String(d.declaration_type || "").toLowerCase().includes("ai")
-  );
-
-  const pastePercent = Math.min(100, Math.round((pastedChars / totalChars) * 100));
-  const aiDeclaredPercent = aiDeclarations.length
-    ? Math.min(100, Math.round(aiDeclarations.length * 10))
-    : 0;
-  const ownWorkPercent = Math.max(0, 100 - pastePercent - aiDeclaredPercent);
-
-  return {
-    own_work_percent: ownWorkPercent,
-    paste_percent: pastePercent,
-    ai_declared_percent: aiDeclaredPercent,
-    confidence: events.length || declarations.length ? "Medium" : "Low"
-  };
-}
-
 function computeFlags({ events = [], declarations = [] }) {
   const flags = [];
     const pasteEvents = events.filter((e) => e.event_type === "paste");
@@ -687,11 +706,13 @@ router.get("/submission/:id", requireTeacher, async (req, res) => {
       declarations
     });
 
-   const renderedHtml = applyEvidenceHighlights(
+   let renderedHtml = applyEvidenceHighlights(
   submission.final_text || "",
   events,
   declarations
 );
+
+renderedHtml = addEventMarkersToHtml(renderedHtml, events);
 
 const composition = estimateCompositionFromHtml(renderedHtml);
 
