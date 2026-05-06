@@ -189,10 +189,13 @@ router.get("/dashboard", requireStudent, async (req, res) => {
           id,
           title,
           instructions,
+          student_scaffold,
           due_date,
           word_target,
           ai_policy_note,
           require_declaration,
+          show_student_evidence,
+          show_student_composition,
           created_at
         FROM assignments
         WHERE class_id = ?
@@ -206,10 +209,13 @@ router.get("/dashboard", requireStudent, async (req, res) => {
         "id",
         "title",
         "instructions",
+        "student_scaffold",
         "due_date",
         "word_target",
         "ai_policy_note",
         "require_declaration",
+        "show_student_evidence",
+        "show_student_composition",
         "created_at"
       ])
     );
@@ -265,11 +271,14 @@ router.get("/assignment/:id", requireStudent, async (req, res) => {
           class_id,
           title,
           instructions,
+          student_scaffold,
           class_name,
           due_date,
           word_target,
           ai_policy_note,
           require_declaration,
+          show_student_evidence,
+          show_student_composition,
           created_at
         FROM assignments
         WHERE id = ? AND class_id = ?
@@ -283,11 +292,14 @@ router.get("/assignment/:id", requireStudent, async (req, res) => {
       "class_id",
       "title",
       "instructions",
+      "student_scaffold",
       "class_name",
       "due_date",
       "word_target",
       "ai_policy_note",
       "require_declaration",
+      "show_student_evidence",
+      "show_student_composition",
       "created_at"
     ]);
 

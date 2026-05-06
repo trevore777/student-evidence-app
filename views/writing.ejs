@@ -36,33 +36,35 @@
       font-weight: 700;
     }
 
-    .pasted-content {
-      background: #fff3b0;
-      border-bottom: 2px solid #f59e0b;
-      padding: 1px 3px;
-      border-radius: 4px;
+    /* Student view: evidence metadata is still saved, but colours are hidden from students. */
+    .pasted-content,
+    .declared-content,
+    .ai-content,
+    .ai-generated-content,
+    .ai-modified-content,
+    .citation-marker,
+    span[data-pasted="true"],
+    span[data-declared="true"] {
+      background: transparent !important;
+      border: none !important;
+      padding: 0 !important;
+      border-radius: 0 !important;
+      font-weight: inherit !important;
     }
 
-    .declared-content {
-      background: #dcfce7;
-      border-bottom: 2px solid #16a34a;
-      padding: 1px 3px;
-      border-radius: 4px;
+    .view-toggle-row {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items: center;
     }
 
-    .ai-content {
-      background: #fee2e2;
-      border-bottom: 2px solid #dc2626;
-      padding: 1px 3px;
-      border-radius: 4px;
+    .view-toggle-row .button {
+      min-width: 160px;
     }
 
-    .citation-marker {
-      background: #dcfce7;
-      border: 1px solid #16a34a;
-      border-radius: 4px;
-      padding: 0 3px;
-      font-weight: 700;
+    .student-hidden {
+      display: none !important;
     }
 
     .composition-grid {
@@ -177,17 +179,36 @@
     </section>
 
     <section class="writing-card">
-      <h2>Student Writing Evidence</h2>
-
-      <div class="evidence-grid">
-        <div class="evidence-pill pasted-content">External pasted text</div>
-        <div class="evidence-pill declared-content">Declared material</div>
-        <div class="evidence-pill ai-content">AI generated / modified</div>
-        <div class="evidence-pill citation-marker">Citation / bibliography</div>
+      <h2>Student view options</h2>
+      <p class="small">
+        Evidence colours are hidden in the student editor. Your teacher can still review paste, declaration and citation evidence after submission.
+      </p>
+      <div class="view-toggle-row">
+        <% if (assignment.show_student_evidence) { %>
+          <button id="toggleEvidenceView" class="button secondary" type="button">Show evidence guide</button>
+        <% } %>
+        <% if (assignment.show_student_composition) { %>
+          <button id="toggleCompositionView" class="button secondary" type="button">Show composition</button>
+        <% } %>
       </div>
     </section>
 
-    <section class="writing-card">
+    <% if (assignment.show_student_evidence) { %>
+      <section class="writing-card student-hidden" id="studentEvidencePanel">
+        <h2>Student Writing Evidence Guide</h2>
+        <p class="small">This guide explains the evidence categories. Colours are not shown in your writing area.</p>
+
+        <div class="evidence-grid">
+          <div class="evidence-pill">External pasted text</div>
+          <div class="evidence-pill">Declared material</div>
+          <div class="evidence-pill">AI generated / modified</div>
+          <div class="evidence-pill">Citation / bibliography</div>
+        </div>
+      </section>
+    <% } %>
+
+    <% if (assignment.show_student_composition) { %>
+    <section class="writing-card student-hidden" id="studentCompositionPanel">
       <h2>Composition</h2>
 
       <div class="small">
@@ -214,6 +235,7 @@
 
       <div id="riskIndicator">Risk: Low</div>
     </section>
+    <% } %>
 
     <section class="writing-card">
       <textarea id="editor"></textarea>
@@ -291,12 +313,15 @@
     submissionId: <%- JSON.stringify(submission.id) %>,
     sessionId: <%- JSON.stringify(typeof sessionId !== "undefined" ? sessionId : 0) %>,
     initialContent: <%- JSON.stringify(submission.renderedHtml || latestContent || submission.final_text || "") %>,
+    studentScaffold: <%- JSON.stringify(assignment.student_scaffold || "") %>,
     serverComposition: <%- JSON.stringify(typeof composition !== "undefined" ? composition : {
       own_work_percent: 100,
       paste_percent: 0,
       ai_declared_percent: 0,
       confidence: "Low"
-    }) %>
+    }) %>,
+    showStudentEvidence: <%- JSON.stringify(!!assignment.show_student_evidence) %>,
+    showStudentComposition: <%- JSON.stringify(!!assignment.show_student_composition) %>
   };
 </script>
 

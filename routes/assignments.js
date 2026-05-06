@@ -51,6 +51,8 @@ router.get("/new", requireTeacher, async (req, res) => {
         word_target: "",
         ai_policy_note: "",
         require_declaration: 1,
+        show_student_evidence: 0,
+        show_student_composition: 0,
         rubric_text: ""
       }
     });
@@ -68,10 +70,13 @@ router.post("/new", requireTeacher, async (req, res) => {
       classId,
       title,
       instructions,
+      student_scaffold,
       dueDate,
       wordTarget,
       aiPolicyNote,
       requireDeclaration,
+      showStudentEvidence,
+      showStudentComposition,
       rubricText
     } = req.body;
 
@@ -92,6 +97,8 @@ router.post("/new", requireTeacher, async (req, res) => {
           word_target: wordTarget || "",
           ai_policy_note: aiPolicyNote || "",
           require_declaration: requireDeclaration ? 1 : 0,
+          show_student_evidence: showStudentEvidence ? 1 : 0,
+          show_student_composition: showStudentComposition ? 1 : 0,
           rubric_text: rubricText || ""
         }
       });
@@ -123,6 +130,8 @@ router.post("/new", requireTeacher, async (req, res) => {
           word_target: wordTarget || "",
           ai_policy_note: aiPolicyNote || "",
           require_declaration: requireDeclaration ? 1 : 0,
+          show_student_evidence: showStudentEvidence ? 1 : 0,
+          show_student_composition: showStudentComposition ? 1 : 0,
           rubric_text: rubricText || ""
         }
       });
@@ -140,9 +149,12 @@ router.post("/new", requireTeacher, async (req, res) => {
           word_target,
           ai_policy_note,
           require_declaration,
-          rubric_text
+          show_student_evidence,
+          show_student_composition,
+          rubric_text,
+          student_scaffold
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `,
       args: [
         teacher.id,
@@ -154,7 +166,10 @@ router.post("/new", requireTeacher, async (req, res) => {
         wordTarget ? Number(wordTarget) : null,
         sanitizeRichText(aiPolicyNote || ""),
         requireDeclaration ? 1 : 0,
-        sanitizeRichText(rubricText || "")
+        showStudentEvidence ? 1 : 0,
+        showStudentComposition ? 1 : 0,
+        sanitizeRichText(rubricText || ""),
+        student_scaffold || ""
       ]
     });
 
@@ -182,7 +197,10 @@ router.get("/:id/edit", requireTeacher, async (req, res) => {
           word_target,
           ai_policy_note,
           require_declaration,
-          rubric_text
+          show_student_evidence,
+          show_student_composition,
+          rubric_text,
+          student_scaffold
         FROM assignments
         WHERE id = ? AND teacher_id = ?
       `,
@@ -198,7 +216,10 @@ router.get("/:id/edit", requireTeacher, async (req, res) => {
       "word_target",
       "ai_policy_note",
       "require_declaration",
-      "rubric_text"
+      "show_student_evidence",
+      "show_student_composition",
+      "rubric_text",
+      "student_scaffold"
     ]);
 
     if (!assignment.id) {
@@ -227,10 +248,13 @@ router.post("/:id/edit", requireTeacher, async (req, res) => {
       classId,
       title,
       instructions,
+      student_scaffold,
       dueDate,
       wordTarget,
       aiPolicyNote,
       requireDeclaration,
+      showStudentEvidence,
+      showStudentComposition,
       rubricText
     } = req.body;
 
@@ -251,6 +275,8 @@ router.post("/:id/edit", requireTeacher, async (req, res) => {
           word_target: wordTarget || "",
           ai_policy_note: aiPolicyNote || "",
           require_declaration: requireDeclaration ? 1 : 0,
+          show_student_evidence: showStudentEvidence ? 1 : 0,
+          show_student_composition: showStudentComposition ? 1 : 0,
           rubric_text: rubricText || ""
         }
       });
@@ -282,6 +308,8 @@ router.post("/:id/edit", requireTeacher, async (req, res) => {
           word_target: wordTarget || "",
           ai_policy_note: aiPolicyNote || "",
           require_declaration: requireDeclaration ? 1 : 0,
+          show_student_evidence: showStudentEvidence ? 1 : 0,
+          show_student_composition: showStudentComposition ? 1 : 0,
           rubric_text: rubricText || ""
         }
       });
@@ -299,7 +327,10 @@ router.post("/:id/edit", requireTeacher, async (req, res) => {
           word_target = ?,
           ai_policy_note = ?,
           require_declaration = ?,
-          rubric_text = ?
+          show_student_evidence = ?,
+          show_student_composition = ?,
+          rubric_text = ?,
+          student_scaffold = ?
         WHERE id = ? AND teacher_id = ?
       `,
       args: [
@@ -311,7 +342,10 @@ router.post("/:id/edit", requireTeacher, async (req, res) => {
         wordTarget ? Number(wordTarget) : null,
         sanitizeRichText(aiPolicyNote || ""),
         requireDeclaration ? 1 : 0,
+        showStudentEvidence ? 1 : 0,
+        showStudentComposition ? 1 : 0,
         sanitizeRichText(rubricText || ""),
+        student_scaffold || "",
         assignmentId,
         teacher.id
       ]

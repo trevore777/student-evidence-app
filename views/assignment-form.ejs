@@ -144,6 +144,30 @@
         <label>Word target</label>
         <input type="number" name="wordTarget" value="<%= assignment.word_target || '' %>" />
 
+<label for="student_scaffold">Student scaffold / writing template</label>
+<p class="small">
+  This appears in the student editor as guidance and is not counted as student writing.
+</p>
+
+<textarea
+  id="student_scaffold"
+  name="student_scaffold"
+  rows="10"
+  placeholder="Example:
+<h2>Context</h2>
+<p>Write your context here...</p>
+
+<h2>Stakeholders</h2>
+<ul>
+  <li>Stakeholder 1:</li>
+  <li>Stakeholder 2:</li>
+</ul>
+
+<h2>Evaluation</h2>
+<p>Explain how your solution meets the user needs...</p>"
+><%= assignment.student_scaffold || '' %></textarea>
+
+
         <label>AI policy note</label>
         <textarea id="policy-editor" name="aiPolicyNote"><%= assignment.ai_policy_note || '' %></textarea>
 
@@ -165,8 +189,30 @@
           <label for="requireDeclaration" style="margin:0;">Require declaration</label>
         </div>
 
+        <div class="checkbox-row">
+          <input
+            type="checkbox"
+            id="showStudentEvidence"
+            name="showStudentEvidence"
+            value="1"
+            <%= assignment.show_student_evidence ? "checked" : "" %>
+          />
+          <label for="showStudentEvidence" style="margin:0;">Allow students to toggle the evidence guide</label>
+        </div>
+
+        <div class="checkbox-row">
+          <input
+            type="checkbox"
+            id="showStudentComposition"
+            name="showStudentComposition"
+            value="1"
+            <%= assignment.show_student_composition ? "checked" : "" %>
+          />
+          <label for="showStudentComposition" style="margin:0;">Allow students to toggle the composition view</label>
+        </div>
+
         <p class="small">
-          Teachers can update the instructions, due date, declaration requirement, AI guidance, and ISMG/rubric after creation.
+          Student editor colours are hidden. These toggles only decide whether students can show/hide the evidence guide and composition panel. Teacher review still keeps the full coloured evidence view.
         </p>
 
         <div class="button-row">

@@ -16,9 +16,36 @@ function escapeHtml(value = "") {
     .replace(/"/g, "&quot;");
 }
 
+
+function getStudentOnlyText() {
+  if (!editor) return "";
+
+  const clone = editor.getBody().cloneNode(true);
+
+  // REMOVE scaffold from calculations
+  clone.querySelectorAll("[data-scaffold='true'], .student-scaffold").forEach(el => {
+    el.remove();
+  });
+
+  return clone.innerText || "";
+}
+
 function wordCount(text = "") {
   return text.trim() ? text.trim().split(/\s+/).filter(Boolean).length : 0;
 }
+
+function getCleanEditorClone() {
+  if (!editor) return null;
+
+  const clone = editor.getBody().cloneNode(true);
+
+  clone.querySelectorAll("[data-scaffold='true'], .student-scaffold").forEach((el) => {
+    el.remove();
+  });
+
+  return clone;
+}
+
 
 function setText(id, value) {
   const el = document.getElementById(id);
@@ -37,7 +64,8 @@ function getValue(id) {
 function updateStats() {
   if (!editor) return;
 
-  const body = editor.getBody();
+  const body = getCleanEditorClone();
+if (!body) return;
   const totalWords = wordCount(body.innerText || "");
 
   let pastedWords = 0;
@@ -304,6 +332,22 @@ document.addEventListener("DOMContentLoaded", () => {
     saveDeclaration().catch((err) => alert(err.message || "Declaration save failed"));
   });
 
+  document.getElementById("toggleEvidenceView")?.addEventListener("click", () => {
+    const panel = document.getElementById("studentEvidencePanel");
+    const btn = document.getElementById("toggleEvidenceView");
+    if (!panel || !btn) return;
+    const hidden = panel.classList.toggle("student-hidden");
+    btn.textContent = hidden ? "Show evidence guide" : "Hide evidence guide";
+  });
+
+  document.getElementById("toggleCompositionView")?.addEventListener("click", () => {
+    const panel = document.getElementById("studentCompositionPanel");
+    const btn = document.getElementById("toggleCompositionView");
+    if (!panel || !btn) return;
+    const hidden = panel.classList.toggle("student-hidden");
+    btn.textContent = hidden ? "Show composition" : "Hide composition";
+  });
+
   tinymce.init({
     selector: "#editor",
     height: 680,
@@ -328,28 +372,25 @@ document.addEventListener("DOMContentLoaded", () => {
         padding: 12px;
       }
 
+      /* Student editor: keep evidence classes/data attributes for teacher review, but hide visual colours from students. */
       .pasted-content,
-      span[data-pasted="true"] {
-        background: #fff3b0 !important;
-        border-bottom: 2px solid #f59e0b !important;
-        padding: 1px 3px;
-        border-radius: 4px;
-      }
-
       .declared-content,
-      span[data-declared="true"] {
-        background: #dcfce7 !important;
-        border-bottom: 2px solid #16a34a !important;
-        padding: 1px 3px;
-        border-radius: 4px;
+      .ai-content,
+      .ai-generated-content,
+      .ai-modified-content,
+      .citation-marker,
+      span[data-pasted="true"],
+      span[data-declared="true"],
+      span[data-normal-text="true"] {
+        background: transparent !important;
+        border: none !important;
+        padding: 0 !important;
+        border-radius: 0 !important;
+        font-weight: inherit !important;
       }
 
-      .citation-marker {
-        background: #dcfce7 !important;
-        border: 1px solid #16a34a !important;
-        border-radius: 4px;
-        padding: 0 3px;
-        font-weight: 700;
+      .event-marker {
+        display: none !important;
       }
 
       .references-section {
@@ -395,7 +436,20 @@ document.addEventListener("DOMContentLoaded", () => {
       editor = ed;
 
       ed.on("init", () => {
-        editor.setContent(initialContent || "");
+        const scaffold = window.APP_DATA?.studentScaffold || "";
+
+if (initialContent && initialContent.trim()) {
+  editor.setContent(initialContent);
+} else if (scaffold && scaffold.trim()) {
+  editor.setContent(`
+    <div class="student-scaffold" data-scaffold="true" contenteditable="false">
+      ${scaffold}
+    </div>
+    <p><br></p>
+  `);
+} else {
+  editor.setContent("");
+}
 
         editor.getBody().querySelectorAll(".pasted-content[data-paste-id]").forEach((el) => {
           if (el.getAttribute("data-declared") !== "true") {

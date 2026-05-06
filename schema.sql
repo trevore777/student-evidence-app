@@ -26,6 +26,11 @@ CREATE TABLE IF NOT EXISTS assignments (
   word_target INTEGER,
   ai_policy_note TEXT,
   require_declaration INTEGER NOT NULL DEFAULT 1,
+  show_student_evidence INTEGER NOT NULL DEFAULT 0,
+  show_student_composition INTEGER NOT NULL DEFAULT 0,
+  student_scaffold TEXT DEFAULT '',
+  rubric_text TEXT DEFAULT '',
+  class_id INTEGER,
   created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
