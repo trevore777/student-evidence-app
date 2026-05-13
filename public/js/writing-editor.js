@@ -8,6 +8,21 @@ let activePasteId = "";
 let activePastedText = "";
 let undeclaredPasteIds = new Set();
 
+function htmlToPlainText(html = "") {
+  const holder = document.createElement("div");
+  holder.innerHTML = String(html || "");
+  return holder.innerText || holder.textContent || "";
+}
+
+function countWordsInString(text = "") {
+  const clean = String(text || "").trim();
+  return clean ? clean.split(/\s+/).filter(Boolean).length : 0;
+}
+
+const originalScaffoldWordCount = countWordsInString(
+  htmlToPlainText(appData.studentScaffold || "")
+);
+
 function escapeHtml(value = "") {
   return String(value)
     .replace(/&/g, "&amp;")
@@ -17,35 +32,91 @@ function escapeHtml(value = "") {
 }
 
 
+function removeNonStudentScaffoldContent(root) {
+  if (!root) return;
+
+  // Only remove scaffold prompt sections that are explicitly marked.
+  // Do NOT remove the whole .student-scaffold block, because students type their answers inside it.
+  root.querySelectorAll("[data-scaffold-prompt='true'], .scaffold-prompt").forEach((el) => {
+    el.remove();
+  });
+}
+
 function getStudentOnlyText() {
   if (!editor) return "";
 
   const clone = editor.getBody().cloneNode(true);
-
-  // REMOVE scaffold from calculations
-  clone.querySelectorAll("[data-scaffold='true'], .student-scaffold").forEach(el => {
-    el.remove();
-  });
+  removeNonStudentScaffoldContent(clone);
 
   return clone.innerText || "";
 }
 
 function wordCount(text = "") {
-  return text.trim() ? text.trim().split(/\s+/).filter(Boolean).length : 0;
+  return countWordsInString(text);
+}
+
+function hasExplicitScaffoldPrompts(root) {
+  return Boolean(
+    root?.querySelector?.("[data-scaffold-prompt='true'], .scaffold-prompt")
+  );
+}
+
+function getWordCountFromCleanClone(root) {
+  if (!root) return 0;
+
+  const hadExplicitPrompts = hasExplicitScaffoldPrompts(root);
+  removeNonStudentScaffoldContent(root);
+
+  const rawCount = wordCount(root.innerText || "");
+
+  // If the teacher's scaffold has not been split into explicit prompt/answer areas,
+  // subtract the original scaffold text from the displayed count. This prevents a
+  // new student from seeing hundreds of words before they have written anything.
+  if (!hadExplicitPrompts && originalScaffoldWordCount > 0) {
+    const hasScaffold = Boolean(
+      root.querySelector?.(".student-scaffold, [data-scaffold='true']")
+    );
+
+    if (hasScaffold) {
+      return Math.max(0, rawCount - originalScaffoldWordCount);
+    }
+  }
+
+  return rawCount;
 }
 
 function getCleanEditorClone() {
   if (!editor) return null;
 
-  const clone = editor.getBody().cloneNode(true);
-
-  clone.querySelectorAll("[data-scaffold='true'], .student-scaffold").forEach((el) => {
-    el.remove();
-  });
-
-  return clone;
+  return editor.getBody().cloneNode(true);
 }
 
+
+function unlockScaffoldEditing() {
+  if (!editor) return;
+
+  const body = editor.getBody();
+  if (!body) return;
+
+  body.querySelectorAll(".student-scaffold, [data-scaffold='true']").forEach((el) => {
+    el.removeAttribute("contenteditable");
+  });
+}
+
+function buildEditableScaffold(scaffoldHtml = "") {
+  const scaffold = String(scaffoldHtml || "").trim();
+
+  if (!scaffold) {
+    return "";
+  }
+
+  return `
+    <div class="student-scaffold" data-scaffold="true">
+      ${scaffold}
+    </div>
+    <p><br></p>
+  `;
+}
 
 function setText(id, value) {
   const el = document.getElementById(id);
@@ -66,7 +137,7 @@ function updateStats() {
 
   const body = getCleanEditorClone();
 if (!body) return;
-  const totalWords = wordCount(body.innerText || "");
+  const totalWords = getWordCountFromCleanClone(body);
 
   let pastedWords = 0;
   let declaredWords = 0;
@@ -179,7 +250,8 @@ async function save(showAlert = true) {
   setText("save-status", "Saving...");
 
   const content = editor.getContent();
-  const words = wordCount(editor.getContent({ format: "text" }));
+  const body = getCleanEditorClone();
+  const words = getWordCountFromCleanClone(body);
 
   await postJSON("/api/draft/autosave", {
   submissionId,
@@ -372,6 +444,26 @@ document.addEventListener("DOMContentLoaded", () => {
         padding: 12px;
       }
 
+      .student-scaffold,
+      [data-scaffold="true"] {
+        background: #f8fafc;
+        border: 1px solid #cbd5e1;
+        border-radius: 10px;
+        padding: 14px;
+        margin-bottom: 16px;
+        min-height: 160px;
+      }
+
+      .student-scaffold table,
+      [data-scaffold="true"] table {
+        background: #ffffff;
+      }
+
+      .scaffold-prompt,
+      [data-scaffold-prompt="true"] {
+        color: #334155;
+      }
+
       /* Student editor: keep evidence classes/data attributes for teacher review, but hide visual colours from students. */
       .pasted-content,
       .declared-content,
@@ -438,18 +530,17 @@ document.addEventListener("DOMContentLoaded", () => {
       ed.on("init", () => {
         const scaffold = window.APP_DATA?.studentScaffold || "";
 
-if (initialContent && initialContent.trim()) {
-  editor.setContent(initialContent);
-} else if (scaffold && scaffold.trim()) {
-  editor.setContent(`
-    <div class="student-scaffold" data-scaffold="true" contenteditable="false">
-      ${scaffold}
-    </div>
-    <p><br></p>
-  `);
-} else {
-  editor.setContent("");
-}
+        if (initialContent && initialContent.trim()) {
+          editor.setContent(initialContent);
+        } else if (scaffold && scaffold.trim()) {
+          editor.setContent(buildEditableScaffold(scaffold));
+        } else {
+          editor.setContent("");
+        }
+
+        // Older saved drafts may still contain contenteditable="false" from the previous V6 scaffold logic.
+        // Remove it so the student can continue editing the template normally.
+        unlockScaffoldEditing();
 
         editor.getBody().querySelectorAll(".pasted-content[data-paste-id]").forEach((el) => {
           if (el.getAttribute("data-declared") !== "true") {
@@ -461,6 +552,7 @@ if (initialContent && initialContent.trim()) {
         updateStats();
       });
 
+      ed.on("SetContent", unlockScaffoldEditing);
       ed.on("input keyup change undo redo setcontent", updateStats);
 
       ed.on("paste", (event) => {

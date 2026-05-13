@@ -47,6 +47,7 @@ router.get("/new", requireTeacher, async (req, res) => {
         class_id: "",
         title: "",
         instructions: "",
+        student_scaffold: "",
         due_date: "",
         word_target: "",
         ai_policy_note: "",
@@ -93,6 +94,7 @@ router.post("/new", requireTeacher, async (req, res) => {
           class_id: classId || "",
           title: title || "",
           instructions: instructions || "",
+          student_scaffold: student_scaffold || "",
           due_date: dueDate || "",
           word_target: wordTarget || "",
           ai_policy_note: aiPolicyNote || "",
@@ -126,6 +128,7 @@ router.post("/new", requireTeacher, async (req, res) => {
           class_id: classId || "",
           title: title || "",
           instructions: instructions || "",
+          student_scaffold: student_scaffold || "",
           due_date: dueDate || "",
           word_target: wordTarget || "",
           ai_policy_note: aiPolicyNote || "",
@@ -169,7 +172,7 @@ router.post("/new", requireTeacher, async (req, res) => {
         showStudentEvidence ? 1 : 0,
         showStudentComposition ? 1 : 0,
         sanitizeRichText(rubricText || ""),
-        student_scaffold || ""
+        sanitizeRichText(student_scaffold || "")
       ]
     });
 
@@ -271,6 +274,7 @@ router.post("/:id/edit", requireTeacher, async (req, res) => {
           class_id: classId || "",
           title: title || "",
           instructions: instructions || "",
+          student_scaffold: student_scaffold || "",
           due_date: dueDate || "",
           word_target: wordTarget || "",
           ai_policy_note: aiPolicyNote || "",
@@ -304,6 +308,7 @@ router.post("/:id/edit", requireTeacher, async (req, res) => {
           class_id: classId || "",
           title: title || "",
           instructions: instructions || "",
+          student_scaffold: student_scaffold || "",
           due_date: dueDate || "",
           word_target: wordTarget || "",
           ai_policy_note: aiPolicyNote || "",
@@ -345,7 +350,7 @@ router.post("/:id/edit", requireTeacher, async (req, res) => {
         showStudentEvidence ? 1 : 0,
         showStudentComposition ? 1 : 0,
         sanitizeRichText(rubricText || ""),
-        student_scaffold || "",
+        sanitizeRichText(student_scaffold || ""),
         assignmentId,
         teacher.id
       ]

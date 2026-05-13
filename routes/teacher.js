@@ -27,12 +27,21 @@ function countWords(text = "") {
   return clean ? clean.split(/\s+/).filter(Boolean).length : 0;
 }
 
+function scaffoldAwareWordCount(html = "", scaffoldHtml = "") {
+  const contentWords = countWords(stripHtml(html || ""));
+  const scaffoldWords = countWords(stripHtml(scaffoldHtml || ""));
+
+  if (!scaffoldWords) return contentWords;
+
+  return Math.max(0, contentWords - scaffoldWords);
+}
+
 function getTextFromHtml(html = "") {
   return stripHtml(html);
 }
 
-function estimateCompositionFromHtml(html = "") {
-  const totalWords = countWords(getTextFromHtml(html));
+function estimateCompositionFromHtml(html = "", scaffoldHtml = "") {
+  const totalWords = scaffoldAwareWordCount(html, scaffoldHtml);
 
   if (!totalWords) {
     return {
@@ -418,7 +427,8 @@ router.get("/class/:classId/insights", requireTeacher, async (req, res) => {
             sub.final_text,
             sub.status,
             sub.submitted_at,
-            a.title AS assignment_title
+            a.title AS assignment_title,
+            a.student_scaffold AS student_scaffold
           FROM submissions sub
           JOIN assignments a ON a.id = sub.assignment_id
           WHERE sub.student_id = ?
@@ -433,7 +443,8 @@ router.get("/class/:classId/insights", requireTeacher, async (req, res) => {
         "final_text",
         "status",
         "submitted_at",
-        "assignment_title"
+        "assignment_title",
+        "student_scaffold"
       ]);
 
       const eventsRes = await db.execute({
@@ -460,7 +471,10 @@ router.get("/class/:classId/insights", requireTeacher, async (req, res) => {
       });
 
       const cleanText = stripHtml(submission.final_text || "");
-      const wordCount = cleanText ? cleanText.split(/\s+/).filter(Boolean).length : 0;
+      const wordCount = scaffoldAwareWordCount(
+        submission.final_text || "",
+        submission.student_scaffold || ""
+      );
 
       const pasteEvents = events.filter((e) =>
         ["paste", "external_paste", "internal_paste", "internal_move_paste"].includes(e.event_type)
@@ -577,7 +591,8 @@ router.get("/submission/:id", requireTeacher, async (req, res) => {
           c.class_name AS class_name,
           a.title AS assignment_title,
           a.instructions AS instructions,
-          a.rubric_text AS rubric_text
+          a.rubric_text AS rubric_text,
+          a.student_scaffold AS student_scaffold
         FROM submissions sub
         JOIN students s ON s.id = sub.student_id
         JOIN classes c ON c.id = s.class_id
@@ -599,7 +614,8 @@ router.get("/submission/:id", requireTeacher, async (req, res) => {
       "class_name",
       "assignment_title",
       "instructions",
-      "rubric_text"
+      "rubric_text",
+      "student_scaffold"
     ]);
 
     if (!submission.id) {
@@ -714,7 +730,7 @@ router.get("/submission/:id", requireTeacher, async (req, res) => {
 
 renderedHtml = addEventMarkersToHtml(renderedHtml, events);
 
-const composition = estimateCompositionFromHtml(renderedHtml);
+const composition = estimateCompositionFromHtml(renderedHtml, submission.student_scaffold || "");
 
 res.render("teacher-review", {
   submission: {
