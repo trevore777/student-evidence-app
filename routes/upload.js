@@ -9,10 +9,6 @@ import os from "os";
 
 const router = express.Router();
 
-const uploadDir = process.env.VERCEL
-  ? path.join(os.tmpdir(), "uploads")
-  : path.join(process.cwd(), "uploads");
-
 if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir, { recursive: true });
 }
