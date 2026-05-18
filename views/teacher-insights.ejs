@@ -134,6 +134,52 @@
       box-sizing: border-box;
     }
 
+    .export-card {
+      background: white;
+      padding: 20px;
+      border-radius: 16px;
+      box-shadow: 0 4px 14px rgba(0,0,0,0.08);
+      margin: 20px 0;
+      border: 1px solid #e5e7eb;
+    }
+
+    .export-options {
+      display: flex;
+      gap: 18px;
+      flex-wrap: wrap;
+      align-items: center;
+      margin: 12px 0 16px;
+    }
+
+    .export-options label,
+    .student-select-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 14px;
+    }
+
+    .student-select-row {
+      margin-bottom: 12px;
+      font-weight: bold;
+    }
+
+    .select-tools {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 10px;
+    }
+
+    .mini-button {
+      border: 1px solid #d1d5db;
+      background: #f9fafb;
+      border-radius: 8px;
+      padding: 8px 10px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+
     .small {
       color: #666;
       font-size: 14px;
@@ -204,6 +250,30 @@
   <div class="summary-card blue"><strong><%= summary?.excelling || 0 %></strong><span>Doing well</span></div>
 </div>
 
+    <form class="export-card" method="POST" action="/teacher/print/class/<%= classRow.id %>/batch-pdfs">
+      <h2 style="margin-top:0;">PDF Export</h2>
+      <p class="small">
+        Tick the students you want to export. The download will be a ZIP containing individual student PDFs named for QCAA upload.
+      </p>
+
+      <div class="export-options">
+        <label>
+          <input type="checkbox" name="includeEvidencePdfs" value="1" checked>
+          Export individual QCAA evidence PDFs
+        </label>
+      </div>
+
+      <div class="select-tools">
+        <button class="mini-button" type="button" id="selectAllStudents">Select all with work</button>
+        <button class="mini-button" type="button" id="clearAllStudents">Clear all</button>
+        <button class="button" type="submit">Download selected PDFs</button>
+      </div>
+
+      <p class="small">
+        Note: report comments must be saved from the Teacher Review page before they can appear in this export.
+      </p>
+    
+
     <section class="grid">
       <% if (!insights || !insights.length) { %>
         <div class="insight-card">
@@ -214,6 +284,13 @@
 
       <% (insights || []).forEach(i => { %>
         <div class="insight-card <%= i.status %>">
+          <% if (i.submissionId) { %>
+            <label class="student-select-row">
+              <input class="student-export-checkbox" type="checkbox" name="submissionIds" value="<%= i.submissionId %>">
+              Select for PDF export
+            </label>
+          <% } %>
+
           <div class="card-header">
             <h3><%= i.student.name %></h3>
             <span class="badge <%= i.status %>">
@@ -255,7 +332,22 @@
         </div>
       <% }) %>
     </section>
+    </form>
 
   </main>
+
+  <script>
+    const selectAllBtn = document.getElementById("selectAllStudents");
+    const clearAllBtn = document.getElementById("clearAllStudents");
+    const boxes = () => Array.from(document.querySelectorAll(".student-export-checkbox"));
+
+    selectAllBtn?.addEventListener("click", () => {
+      boxes().forEach(box => { box.checked = true; });
+    });
+
+    clearAllBtn?.addEventListener("click", () => {
+      boxes().forEach(box => { box.checked = false; });
+    });
+  </script>
 </body>
 </html>

@@ -460,11 +460,14 @@
 
       <div class="button-row">
         <button class="button" type="button" id="copyFeedbackBtn">Copy teacher final comment</button>
+        <button class="button secondary" type="button" id="saveReportCommentBtn">Save report comment / scores for PDF export</button>
       </div>
     </section>
   </main>
 
   <script>
+    let latestAiReviewResult = null;
+
     const reviewData = {
       studentName: <%- JSON.stringify(submission.student_name || "") %>,
       studentEmail: <%- JSON.stringify(submission.student_email || "") %>,
@@ -533,6 +536,7 @@
     }
 
     function renderAiFeedback(result) {
+  latestAiReviewResult = result;
   renderRubricVisual(result);
 
   const studentBox = document.getElementById("studentSummaryBox");
@@ -626,6 +630,7 @@ async function generateFeedbackEmail() {
       throw new Error(result.error || "AI feedback failed.");
     }
 
+    latestAiReviewResult = result;
     renderAiFeedback(result);
   } catch (err) {
     console.error("AI feedback error:", err);
@@ -647,6 +652,29 @@ async function generateFeedbackEmail() {
       if (!text) return alert("Generate the feedback first.");
       await navigator.clipboard.writeText(text);
       alert("Teacher final comment copied.");
+    });
+
+    document.getElementById("saveReportCommentBtn")?.addEventListener("click", async () => {
+      const commentText = document.getElementById("feedbackEmail")?.value || "";
+      if (!commentText.trim()) return alert("Generate or type the report comment first.");
+      if (!latestAiReviewResult || !Array.isArray(latestAiReviewResult.criteria) || !latestAiReviewResult.criteria.length) {
+        return alert("Generate the AI rubric review first so the criteria scores can be saved.");
+      }
+
+      try {
+        const response = await fetch("/teacher/print/submission/<%= submission.id %>/report-comment", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ commentText, rubricJson: latestAiReviewResult })
+        });
+
+        const result = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(result.error || "Could not save report comment.");
+
+        alert("Report comment and criteria scores saved for PDF export.");
+      } catch (err) {
+        alert(err.message || "Could not save report comment.");
+      }
     });
   </script>
 

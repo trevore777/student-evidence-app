@@ -146,7 +146,31 @@
 John Smith,john@example.com,1234
 Ella Brown,ella@example.com,1234
 Noah Smith,noah@example.com,4321</pre>
-    </div>
+    
+
+    <div class="info-box">
+  <h3>Excel formula for de-identifying students</h3>
+
+  <p>
+    If you want to partially de-identify students before uploading online,
+    you can convert names such as:
+  </p>
+
+  <pre>John Smith → John S</pre>
+
+  <p>Use this Excel formula:</p>
+
+  <pre>=LEFT(A2,FIND(" ",A2)-1)&" "&LEFT(MID(A2,FIND(" ",A2)+1,100),1)</pre>
+</div>
+
+<div class="warning-box">
+  <strong>Privacy recommendation:</strong><br>
+  When uploading student evidence or reports online, consider de-identifying
+  student names where possible to support privacy and QCAA moderation practices.
+  For example:
+  <pre>John Smith → John S</pre>
+</div>
+</div>
 
     <div class="card">
       <h2>Students</h2>
