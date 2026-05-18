@@ -1,11 +1,17 @@
 import express from "express";
 import multer from "multer";
-import path from "path";
+//import path from "path";
 import fs from "fs";
+import os from "os";
+//import path from "path";
+//import fs from "fs";
+
 
 const router = express.Router();
 
-const uploadDir = path.join(process.cwd(), "uploads");
+const uploadDir = process.env.VERCEL
+  ? path.join(os.tmpdir(), "uploads")
+  : path.join(process.cwd(), "uploads");
 
 if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir, { recursive: true });
