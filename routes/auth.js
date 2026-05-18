@@ -11,8 +11,7 @@ function normalizeRow(row, keys = []) {
   const obj = {};
 
   keys.forEach((key, i) => {
-    o
-    bj[key] = row[i];
+    obj[key] = row[i];
   });
 
   return obj;
