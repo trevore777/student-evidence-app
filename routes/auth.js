@@ -1,113 +1,18 @@
 import express from "express";
 import { db } from "../lib/db.js";
-//import { comparePassword } from "../lib/auth.js";
 import { comparePassword, hashPassword } from "../lib/auth.js";
 
 const router = express.Router();
-
-/* REGISTER PAGE */
-router.get("/register", (req, res) => {
-  res.render("register", {
-    error: null
-  });
-});
-
-/* REGISTER SUBMIT */
-router.post("/register", async (req, res) => {
-  try {
-
-    const {
-      name,
-      email,
-      password
-    } = req.body || {};
-
-    if (!name || !email || !password) {
-      return res.render("register", {
-        error: "All fields are required"
-      });
-    }
-
-    const existing = await db.execute({
-      sql: `
-        SELECT id
-        FROM teachers
-        WHERE email = ?
-      `,
-      args: [email]
-    });
-
-    if (existing.rows?.length) {
-      return res.render("register", {
-        error: "An account with this email already exists"
-      });
-    }
-
-    const passwordHash = await hashPassword(password);
-
-    await db.execute({
-      sql: `
-        INSERT INTO teachers (
-          name,
-          email,
-          password_hash,
-          plan
-        )
-        VALUES (?, ?, ?, 'free')
-      `,
-      args: [
-        name,
-        email,
-        passwordHash
-      ]
-    });
-
-    const result = await db.execute({
-      sql: `
-        SELECT id, name, plan
-        FROM teachers
-        WHERE email = ?
-      `,
-      args: [email]
-    });
-
-    const teacher = result.rows?.[0];
-
-    res.cookie(
-      "user",
-      {
-        id: teacher.id,
-        name: teacher.name,
-        role: "teacher",
-        plan: teacher.plan || "free"
-      },
-      {
-        signed: true,
-        httpOnly: true,
-        sameSite: "strict",
-        secure: true
-      }
-    );
-
-    return res.redirect("/teacher/dashboard");
-
-  } catch (err) {
-    console.error("POST /register error:", err);
-
-    res.render("register", {
-      error: "Failed to create account"
-    });
-  }
-});
-
 
 function normalizeRow(row, keys = []) {
   if (!row) return {};
   if (!Array.isArray(row)) return row;
 
   const obj = {};
+
   keys.forEach((key, i) => {
-    obj[key] = row[i];
+    o
+    bj[key] = row[i];
   });
 
   return obj;
@@ -128,26 +33,30 @@ async function getTeachers() {
 /* LOGIN PAGE */
 router.get("/login", async (req, res) => {
   try {
+
     const teachers = await getTeachers();
 
     res.render("login", {
       error: null,
       teachers
     });
+
   } catch (err) {
     console.error("GET /login error:", err);
     res.status(500).send("Failed to load login page");
   }
 });
 
-
 /* LOGIN SUBMIT */
 router.post("/login", async (req, res) => {
   try {
+
     const body = req.body || {};
     const { role } = body;
 
+    /* TEACHER LOGIN */
     if (role === "teacher") {
+
       const { email, password } = body;
 
       const result = await db.execute({
@@ -203,13 +112,14 @@ router.post("/login", async (req, res) => {
           signed: true,
           httpOnly: true,
           sameSite: "strict",
-          secure: true
+          secure: false
         }
       );
 
       return res.redirect("/teacher/dashboard");
     }
 
+    /* STUDENT LOGIN */
     const { teacherId, classId, studentId, studentPin } = body;
 
     const result = await db.execute({
@@ -267,7 +177,7 @@ router.post("/login", async (req, res) => {
         signed: true,
         httpOnly: true,
         sameSite: "strict",
-        secure: true
+        secure: false
       }
     );
 
@@ -276,16 +186,163 @@ router.post("/login", async (req, res) => {
     }
 
     return res.redirect("/student/dashboard");
+
   } catch (err) {
     console.error("POST /login error:", err);
     res.status(500).send("Login failed");
   }
 });
 
+/* REGISTER PIN PAGE */
+router.get("/register", (req, res) => {
+  res.render("register-pin", {
+    error: null
+  });
+});
+
+/* REGISTER PIN CHECK */
+router.post("/register-pin", (req, res) => {
+
+  const { signupPin } = req.body || {};
+
+  if (
+    String(signupPin || "").trim() !==
+    String(process.env.TEACHER_SIGNUP_PIN || "").trim()
+  ) {
+    return res.render("register-pin", {
+      error: "Incorrect teacher registration PIN"
+    });
+  }
+
+  res.cookie(
+    "teacher_signup_allowed",
+    "yes",
+    {
+      signed: true,
+      httpOnly: true,
+      sameSite: "strict",
+      secure: false,
+      maxAge: 10 * 60 * 1000
+    }
+  );
+
+  res.redirect("/register/new");
+});
+
+/* REGISTER PAGE */
+router.get("/register/new", (req, res) => {
+
+  if (req.signedCookies?.teacher_signup_allowed !== "yes") {
+    return res.redirect("/register");
+  }
+
+  res.render("register", {
+    error: null
+  });
+});
+
+/* REGISTER SUBMIT */
+router.post("/register/new", async (req, res) => {
+  try {
+
+    if (req.signedCookies?.teacher_signup_allowed !== "yes") {
+      return res.redirect("/register");
+    }
+
+    const {
+      name,
+      email,
+      password
+    } = req.body || {};
+
+    if (!name || !email || !password) {
+      return res.render("register", {
+        error: "All fields are required"
+      });
+    }
+
+    const existing = await db.execute({
+      sql: `
+        SELECT id
+        FROM teachers
+        WHERE email = ?
+      `,
+      args: [email]
+    });
+
+    if (existing.rows?.length) {
+      return res.render("register", {
+        error: "An account with this email already exists"
+      });
+    }
+
+    const passwordHash = await hashPassword(password);
+
+    await db.execute({
+      sql: `
+        INSERT INTO teachers (
+          name,
+          email,
+          password_hash,
+          plan
+        )
+        VALUES (?, ?, ?, 'free')
+      `,
+      args: [
+        name,
+        email,
+        passwordHash
+      ]
+    });
+
+    const result = await db.execute({
+      sql: `
+        SELECT id, name, plan
+        FROM teachers
+        WHERE email = ?
+      `,
+      args: [email]
+    });
+
+    const teacher = normalizeRow(result.rows?.[0], [
+      "id",
+      "name",
+      "plan"
+    ]);
+
+    res.cookie(
+      "user",
+      {
+        id: teacher.id,
+        name: teacher.name,
+        role: "teacher",
+        plan: teacher.plan || "free"
+      },
+      {
+        signed: true,
+        httpOnly: true,
+        sameSite: "strict",
+        secure: false
+      }
+    );
+
+    return res.redirect("/teacher/dashboard");
+
+  } catch (err) {
+    console.error("POST /register/new error:", err);
+
+    res.render("register", {
+      error: "Failed to create account"
+    });
+  }
+});
+
 /* LOGOUT */
 router.get("/logout", (req, res) => {
   res.clearCookie("user");
+  res.clearCookie("teacher_signup_allowed");
   res.redirect("/login");
 });
 
 export default router;
+

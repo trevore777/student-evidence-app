@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Teacher Registration</title>
+</head>
+<body>
+  <h1>Teacher Registration PIN</h1>
+
+  <% if (error) { %>
+    <p style="color:red;"><%= error %></p>
+  <% } %>
+
+  <form method="POST" action="/register-pin">
+    <label>Enter teacher registration PIN</label>
+    <input type="password" name="signupPin" required />
+    <button type="submit">Continue</button>
+  </form>
+
+  <p><a href="/login">Back to Login</a></p>
+</body>
+</html>
