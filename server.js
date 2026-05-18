@@ -94,6 +94,14 @@ app.get("/health", (req, res) => {
 });
 
 
+app.get("/join-class", (req, res) => {
+  res.redirect("/login");
+});
+
+//app.get("/join-class", (req, res) => {
+ // res.redirect("/student/login");
+//});
+
 /* 404 */
 app.use((req, res) => {
   res.status(404).send("Page not found");

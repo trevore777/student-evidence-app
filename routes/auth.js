@@ -1,8 +1,105 @@
 import express from "express";
 import { db } from "../lib/db.js";
-import { comparePassword } from "../lib/auth.js";
+//import { comparePassword } from "../lib/auth.js";
+import { comparePassword, hashPassword } from "../lib/auth.js";
 
 const router = express.Router();
+
+/* REGISTER PAGE */
+router.get("/register", (req, res) => {
+  res.render("register", {
+    error: null
+  });
+});
+
+/* REGISTER SUBMIT */
+router.post("/register", async (req, res) => {
+  try {
+
+    const {
+      name,
+      email,
+      password
+    } = req.body || {};
+
+    if (!name || !email || !password) {
+      return res.render("register", {
+        error: "All fields are required"
+      });
+    }
+
+    const existing = await db.execute({
+      sql: `
+        SELECT id
+        FROM teachers
+        WHERE email = ?
+      `,
+      args: [email]
+    });
+
+    if (existing.rows?.length) {
+      return res.render("register", {
+        error: "An account with this email already exists"
+      });
+    }
+
+    const passwordHash = await hashPassword(password);
+
+    await db.execute({
+      sql: `
+        INSERT INTO teachers (
+          name,
+          email,
+          password_hash,
+          plan
+        )
+        VALUES (?, ?, ?, 'free')
+      `,
+      args: [
+        name,
+        email,
+        passwordHash
+      ]
+    });
+
+    const result = await db.execute({
+      sql: `
+        SELECT id, name, plan
+        FROM teachers
+        WHERE email = ?
+      `,
+      args: [email]
+    });
+
+    const teacher = result.rows?.[0];
+
+    res.cookie(
+      "user",
+      {
+        id: teacher.id,
+        name: teacher.name,
+        role: "teacher",
+        plan: teacher.plan || "free"
+      },
+      {
+        signed: true,
+        httpOnly: true,
+        sameSite: "strict",
+        secure: true
+      }
+    );
+
+    return res.redirect("/teacher/dashboard");
+
+  } catch (err) {
+    console.error("POST /register error:", err);
+
+    res.render("register", {
+      error: "Failed to create account"
+    });
+  }
+});
+
 
 function normalizeRow(row, keys = []) {
   if (!row) return {};

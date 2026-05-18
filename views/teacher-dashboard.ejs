@@ -135,9 +135,15 @@
 
   <a class="button" href="/teacher/classes">Create / Manage Classes</a>
   <a class="button" href="/teacher/assignments/new">Create Assessment</a>
+  <% if (selectedClass && selectedClass.id) { %>
   <a href="/teacher/class/<%= selectedClass.id %>/insights" class="button">
     Class Insights
-</a>
+  </a>
+<% } else { %>
+  <button class="button secondary" disabled>
+    Class Insights - create or select a class first
+  </button>
+<% } %>
 <a class="button secondary" href="/about-compliance">About / Compliance</a>
 
 </div>
